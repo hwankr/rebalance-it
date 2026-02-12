@@ -1,0 +1,134 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          name: string;
+          strategy: string;
+          threshold_pct: number;
+          calendar_interval: string | null;
+          targets: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          name: string;
+          strategy: string;
+          threshold_pct?: number;
+          calendar_interval?: string | null;
+          targets?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          name?: string;
+          strategy?: string;
+          threshold_pct?: number;
+          calendar_interval?: string | null;
+          targets?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      executions: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          profile_id: string | null;
+          profile_name: string;
+          executed_at: string;
+          status: string;
+          total_orders: number;
+          success_count: number;
+          fail_count: number;
+          total_buy_amount: number;
+          total_sell_amount: number;
+          net_cash_change: number;
+          orders: Json;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          profile_id?: string | null;
+          profile_name: string;
+          executed_at?: string;
+          status: string;
+          total_orders?: number;
+          success_count?: number;
+          fail_count?: number;
+          total_buy_amount?: number;
+          total_sell_amount?: number;
+          net_cash_change?: number;
+          orders?: Json;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          profile_id?: string | null;
+          profile_name?: string;
+          executed_at?: string;
+          status?: string;
+          total_orders?: number;
+          success_count?: number;
+          fail_count?: number;
+          total_buy_amount?: number;
+          total_sell_amount?: number;
+          net_cash_change?: number;
+          orders?: Json;
+        };
+        Relationships: [];
+      };
+      settings: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          key: string;
+          value: Json;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          key: string;
+          value?: Json;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          key?: string;
+          value?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+}
