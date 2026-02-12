@@ -7,6 +7,8 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useHistory } from "@/hooks/use-history";
+import { useSubscription } from "@/hooks/use-subscription";
+import { PLAN_LIMITS } from "@/lib/subscription/plans";
 import { formatCurrency } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -49,8 +51,13 @@ const STATUS_MAP: Record<
 
 export default function HistoryPage() {
   const { history, deleteExecution, clearHistory } = useHistory();
+  const { isPro } = useSubscription();
   const [clearOpen, setClearOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  const maxVisible = isPro ? Infinity : PLAN_LIMITS.free.maxExecutionsVisible;
+  const visibleHistory = history.slice(0, maxVisible);
+  const hasHidden = history.length > maxVisible;
 
   const handleClear = () => {
     clearHistory();
@@ -106,7 +113,7 @@ export default function HistoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {history.map((exec) => {
+              {visibleHistory.map((exec) => {
                 const statusInfo = STATUS_MAP[exec.status];
                 return (
                   <TableRow key={exec.id}>
@@ -161,8 +168,19 @@ export default function HistoryPage() {
           </Table>
 
           <p className="text-muted-foreground text-sm">
-            총 {history.length}건
+            총 {history.length}건{hasHidden && ` (최근 ${maxVisible}건만 표시)`}
           </p>
+
+          {hasHidden && (
+            <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-4">
+              <p className="text-sm text-muted-foreground">
+                Pro 플랜으로 업그레이드하면 전체 이력을 볼 수 있습니다.{" "}
+                <Link href="/pricing" className="text-blue-600 dark:text-blue-400 underline hover:no-underline">
+                  요금제 보기
+                </Link>
+              </p>
+            </Card>
+          )}
         </>
       )}
 

@@ -177,6 +177,90 @@ export interface Database {
         };
         Relationships: [];
       };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          portone_billing_key: string | null;
+          portone_customer_id: string | null;
+          payment_method: string | null;
+          plan_tier: string;
+          billing_cycle: string | null;
+          status: string;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          canceled_at: string | null;
+          trial_start: string | null;
+          trial_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          portone_billing_key?: string | null;
+          portone_customer_id?: string | null;
+          payment_method?: string | null;
+          plan_tier?: string;
+          billing_cycle?: string | null;
+          status?: string;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          trial_start?: string | null;
+          trial_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          portone_billing_key?: string | null;
+          portone_customer_id?: string | null;
+          payment_method?: string | null;
+          plan_tier?: string;
+          billing_cycle?: string | null;
+          status?: string;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          trial_start?: string | null;
+          trial_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      payment_events: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          portone_event_id: string;
+          event_type: string;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          portone_event_id: string;
+          event_type: string;
+          payload?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          portone_event_id?: string;
+          event_type?: string;
+          payload?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

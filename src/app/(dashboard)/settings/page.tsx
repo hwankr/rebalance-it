@@ -10,7 +10,10 @@ import { Loader2, Wifi, WifiOff, Trash2, CheckCircle2, XCircle } from "lucide-re
 
 import { useSettings } from "@/hooks/use-settings";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { createClient } from "@/lib/supabase/client";
+import { PlanBadge } from "@/components/subscription/plan-badge";
+import { UpgradePrompt } from "@/components/subscription/upgrade-prompt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +60,7 @@ type AccountFormValues = z.infer<typeof accountSchema>;
 export default function SettingsPage() {
   const { settings, updateSettings, clearSettings } = useSettings();
   const { user } = useAuth();
+  const { isPro, subscription } = useSubscription();
   const [checking, setChecking] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const queryClient = useQueryClient();
@@ -160,7 +164,9 @@ export default function SettingsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="kiwoom">키움 API</SelectItem>
+              <SelectItem value="kiwoom" disabled={!isPro}>
+                키움 API{!isPro && " (Pro 전용)"}
+              </SelectItem>
               <SelectItem value="manual">수동 입력</SelectItem>
             </SelectContent>
           </Select>
@@ -238,7 +244,46 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 섹션 3: 앱 정보 */}
+      {/* 섹션 3: 구독 관리 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            구독 관리
+            <PlanBadge />
+          </CardTitle>
+          <CardDescription>
+            현재 구독 플랜을 확인하고 관리합니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isPro ? (
+            <>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+                <dt className="text-muted-foreground">상태</dt>
+                <dd className="flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-green-500" />
+                  활성 구독
+                </dd>
+                <dt className="text-muted-foreground">다음 결제일</dt>
+                <dd>{subscription?.current_period_end ?? "-"}</dd>
+              </dl>
+              <Button
+                variant="outline"
+                onClick={() => toast("준비 중입니다")}
+              >
+                구독 취소
+              </Button>
+            </>
+          ) : (
+            <UpgradePrompt
+              title="Pro 플랜으로 업그레이드"
+              description="더 많은 기능을 이용하려면 Pro 플랜으로 업그레이드하세요."
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 섹션 4: 앱 정보 */}
       <Card>
         <CardHeader>
           <CardTitle>앱 정보</CardTitle>
@@ -288,7 +333,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 섹션 4: 시스템 상태 */}
+      {/* 섹션 5: 시스템 상태 */}
       <Card>
         <CardHeader>
           <CardTitle>시스템 상태</CardTitle>

@@ -3,6 +3,7 @@ import { placeOrder } from "@/lib/kiwoom/client";
 import { KiwoomApiError } from "@/lib/kiwoom/errors";
 import type { RebalanceOrder } from "@/lib/rebalance/types";
 import type { KiwoomOrderResponse } from "@/lib/kiwoom/types";
+import { requirePlan } from "@/lib/subscription/guard";
 
 interface ExecuteRequestBody {
   orders: RebalanceOrder[];
@@ -20,6 +21,13 @@ interface OrderResult {
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await requirePlan("pro");
+  } catch (error) {
+    if (error instanceof Response) return error;
+    return NextResponse.json({ error: "인증 오류" }, { status: 500 });
+  }
+
   let body: ExecuteRequestBody;
   try {
     body = await request.json();

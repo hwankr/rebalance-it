@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { simulateRebalance } from "@/lib/rebalance/calculator";
 import type { PortfolioItem, TargetAllocation } from "@/lib/rebalance/types";
+import { requireAuth } from "@/lib/subscription/guard";
 
 interface CalculateRequestBody {
   portfolio: PortfolioItem[];
@@ -9,6 +10,13 @@ interface CalculateRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await requireAuth();
+  } catch (error) {
+    if (error instanceof Response) return error;
+    return NextResponse.json({ error: "인증 오류" }, { status: 500 });
+  }
+
   let body: CalculateRequestBody;
   try {
     body = await request.json();

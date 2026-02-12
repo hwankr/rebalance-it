@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { refreshToken, getAccessToken, isTokenExpired } from "@/lib/kiwoom/auth";
 import { KiwoomApiError } from "@/lib/kiwoom/errors";
+import { requirePlan } from "@/lib/subscription/guard";
 
 export async function POST() {
+  try {
+    await requirePlan("pro");
+  } catch (error) {
+    if (error instanceof Response) return error;
+    return NextResponse.json({ error: "인증 오류" }, { status: 500 });
+  }
+
   try {
     const token = await refreshToken();
     return NextResponse.json({ success: true, token_preview: `${token.slice(0, 8)}...` });
@@ -23,6 +31,13 @@ export async function POST() {
 }
 
 export async function GET() {
+  try {
+    await requirePlan("pro");
+  } catch (error) {
+    if (error instanceof Response) return error;
+    return NextResponse.json({ error: "인증 오류" }, { status: 500 });
+  }
+
   try {
     const expired = isTokenExpired();
     if (expired) {

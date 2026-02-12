@@ -13,6 +13,7 @@ import { NavItem, type NavItemProps } from "./nav";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/supabase/auth";
+import { PlanBadge } from "@/components/subscription/plan-badge";
 
 const navItems: NavItemProps[] = [
   { href: "/portfolio", label: "포트폴리오 현황", icon: LayoutDashboard },
@@ -35,7 +36,11 @@ export function Sidebar() {
           <NavItem key={item.href} {...item} />
         ))}
       </nav>
-      <div className="px-3 py-4 border-t">
+      <div className="px-3 py-4 border-t space-y-2">
+        <div className="flex items-center justify-between px-3">
+          <span className="text-xs text-muted-foreground">플랜</span>
+          <PlanBadge />
+        </div>
         <form action={signOut}>
           <Button variant="ghost" className="w-full justify-start gap-2" type="submit">
             <LogOut className="size-4" />

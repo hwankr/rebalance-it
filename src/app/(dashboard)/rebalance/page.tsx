@@ -14,6 +14,8 @@ import type { TargetAllocation } from "@/lib/rebalance";
 import { formatPercent } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PlanGate } from "@/components/subscription/plan-gate";
+import { useSubscription } from "@/hooks/use-subscription";
 import {
   Card,
   CardContent,
@@ -32,6 +34,7 @@ import { DriftChart } from "@/components/rebalance/drift-chart";
 
 export default function RebalancePage() {
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
+  const { isPro } = useSubscription();
 
   const { profiles } = useProfiles();
   const { data: balance, isLoading, isError, error, isManualMode } = usePortfolioData();
@@ -225,26 +228,45 @@ export default function RebalancePage() {
       </Card>
 
       {/* 하단: 액션 버튼 */}
-      <div className="flex gap-4">
-        <Button asChild disabled={!selectedProfileId}>
-          <Link
-            href={
-              selectedProfileId
-                ? `/rebalance/simulate?profile=${selectedProfileId}`
-                : "#"
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-4">
+          <Button asChild disabled={!selectedProfileId}>
+            <Link
+              href={
+                selectedProfileId
+                  ? `/rebalance/simulate?profile=${selectedProfileId}`
+                  : "#"
+              }
+            >
+              시뮬레이션 실행
+            </Link>
+          </Button>
+          <PlanGate
+            requiredPlan="pro"
+            fallback={
+              <Button disabled>
+                자동 주문 실행
+              </Button>
             }
           >
-            시뮬레이션 실행
-          </Link>
-        </Button>
-        {selectedProfileId && (
+            <Button disabled={!selectedProfileId || !rebalanceNeeded}>
+              자동 주문 실행
+            </Button>
+          </PlanGate>
+          {selectedProfileId && (
+            <Button variant="outline" asChild>
+              <Link href={`/profiles/${selectedProfileId}`}>프로필 수정</Link>
+            </Button>
+          )}
           <Button variant="outline" asChild>
-            <Link href={`/profiles/${selectedProfileId}`}>프로필 수정</Link>
+            <Link href="/profiles">프로필 관리</Link>
           </Button>
+        </div>
+        {!isPro && (
+          <p className="text-sm text-muted-foreground">
+            시뮬레이션은 무료입니다. 자동 주문 실행은 Pro 플랜이 필요합니다.
+          </p>
         )}
-        <Button variant="outline" asChild>
-          <Link href="/profiles">프로필 관리</Link>
-        </Button>
       </div>
     </div>
   );
