@@ -1,16 +1,26 @@
-app = "rebalance-it-proxy"
-primary_region = "nrt"  # 도쿄 (한국에서 가장 가까운 Fly.io 리전)
+# fly.toml app configuration file generated for rebalance-it-proxy on 2026-02-12T21:10:19+09:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'rebalance-it-proxy'
+primary_region = 'nrt'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
+
+[env]
+  KIWOOM_BASE_URL = 'https://openapi.kiwoom.com'
+  PORT = '3001'
 
 [http_service]
   internal_port = 3001
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 1
 
-[env]
-  PORT = "3001"
-  KIWOOM_BASE_URL = "https://openapi.kiwoom.com"
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256
