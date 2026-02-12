@@ -1,8 +1,9 @@
 // 토큰 관련
 export interface KiwoomTokenResponse {
-  access_token: string;
+  token: string;
   token_type: string;
-  expires_in: number;
+  expires_dt?: string;
+  expires_in?: number;
 }
 
 // 잔고 관련

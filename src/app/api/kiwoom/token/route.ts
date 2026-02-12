@@ -13,8 +13,10 @@ export async function POST() {
         { status: error.status ?? 500 }
       );
     }
+    const message = error instanceof Error ? error.message : "알 수 없는 오류";
+    console.error("토큰 발급 오류:", message);
     return NextResponse.json(
-      { error: "토큰 발급 중 오류가 발생했습니다." },
+      { error: `토큰 발급 실패: ${message}` },
       { status: 500 }
     );
   }

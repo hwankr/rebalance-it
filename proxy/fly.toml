@@ -10,7 +10,7 @@ primary_region = 'nrt'
   dockerfile = 'Dockerfile'
 
 [env]
-  KIWOOM_BASE_URL = 'https://openapi.kiwoom.com'
+  KIWOOM_BASE_URL = 'https://mockapi.kiwoom.com'
   PORT = '3001'
 
 [http_service]

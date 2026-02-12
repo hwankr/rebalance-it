@@ -75,14 +75,14 @@ export default function SettingsPage() {
   async function handleCheckConnection() {
     setChecking(true);
     try {
-      const res = await fetch("/api/kiwoom/token");
+      const res = await fetch("/api/kiwoom/token", { method: "POST" });
       const data = await res.json();
-      if (data.authenticated) {
+      if (res.ok && data.success) {
         updateSettings({ isConnected: true });
         toast.success("API 연결이 확인되었습니다.");
       } else {
         updateSettings({ isConnected: false });
-        toast.error("API 연결에 실패했습니다.");
+        toast.error(data.error || "API 연결에 실패했습니다.");
       }
     } catch {
       updateSettings({ isConnected: false });

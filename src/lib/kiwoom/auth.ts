@@ -1,9 +1,8 @@
-import { KIWOOM_BASE_URL, ENDPOINTS } from "./constants";
+import { ENDPOINTS, getKiwoomUrl, getProxyHeaders } from "./constants";
 import { KiwoomApiError } from "./errors";
-import type { KiwoomTokenResponse } from "./types";
 
 interface TokenCache {
-  access_token: string;
+  token: string;
   expires_at: number; // Unix timestamp (ms)
 }
 
@@ -25,35 +24,59 @@ function getCredentials() {
   return { appKey, appSecret };
 }
 
+export function getAuthHeaders(): Record<string, string> {
+  const { appKey, appSecret } = getCredentials();
+  return {
+    appkey: appKey,
+    appsecret: appSecret,
+  };
+}
+
 export async function refreshToken(): Promise<string> {
   const { appKey, appSecret } = getCredentials();
 
-  const response = await fetch(`${KIWOOM_BASE_URL}${ENDPOINTS.TOKEN}`, {
+  const response = await fetch(getKiwoomUrl(ENDPOINTS.TOKEN), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json;charset=UTF-8",
+      ...getProxyHeaders(),
+    },
     body: JSON.stringify({
       grant_type: "client_credentials",
-      app_key: appKey,
-      app_secret: appSecret,
+      appkey: appKey,
+      secretkey: appSecret,
     }),
   });
 
   if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const message =
+      errorData?.return_msg ?? errorData?.message ?? `${response.status} ${response.statusText}`;
+    throw new KiwoomApiError("AUTH_FAILED", `토큰 발급 실패: ${message}`, response.status);
+  }
+
+  const data = await response.json();
+  console.log("키움 토큰 응답:", JSON.stringify(data, null, 2));
+
+  const token = data.token ?? data.access_token;
+  if (!token) {
     throw new KiwoomApiError(
-      "AUTH_FAILED",
-      `토큰 발급 실패: ${response.status} ${response.statusText}`,
-      response.status
+      "AUTH_PARSE",
+      `토큰 응답에서 token을 찾을 수 없습니다. 응답 키: ${Object.keys(data).join(", ")}`
     );
   }
 
-  const data: KiwoomTokenResponse = await response.json();
+  // expires_dt가 있으면 파싱, 없으면 24시간 기본값
+  let expiresAt: number;
+  if (data.expires_dt) {
+    expiresAt = new Date(data.expires_dt).getTime();
+  } else {
+    expiresAt = Date.now() + (data.expires_in ?? 86400) * 1000;
+  }
 
-  tokenCache = {
-    access_token: data.access_token,
-    expires_at: Date.now() + data.expires_in * 1000,
-  };
+  tokenCache = { token, expires_at: expiresAt };
 
-  return data.access_token;
+  return token;
 }
 
 export function isTokenExpired(): boolean {
@@ -63,7 +86,7 @@ export function isTokenExpired(): boolean {
 
 export async function getAccessToken(): Promise<string> {
   if (!isTokenExpired() && tokenCache) {
-    return tokenCache.access_token;
+    return tokenCache.token;
   }
   return refreshToken();
 }

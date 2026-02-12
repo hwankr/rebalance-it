@@ -111,7 +111,7 @@ export default function PortfolioPage() {
         totalProfitLoss={data?.total_profit_loss ?? 0}
         totalProfitRate={data?.total_profit_rate ?? 0}
         cash={data?.cash ?? 0}
-        stockCount={data?.stocks.length ?? 0}
+        stockCount={data?.stocks?.length ?? 0}
         isLoading={isLoading}
       />
 

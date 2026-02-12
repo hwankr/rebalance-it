@@ -35,7 +35,7 @@ function validateApiKey(req, res, next) {
 
 // 키움 API 프록시
 const KIWOOM_BASE =
-  process.env.KIWOOM_BASE_URL || "https://openapi.kiwoom.com";
+  process.env.KIWOOM_BASE_URL || "https://api.kiwoom.com";
 
 app.all("/kiwoom/*", validateApiKey, async (req, res) => {
   const path = req.path.replace("/kiwoom", "");
@@ -57,6 +57,15 @@ app.all("/kiwoom/*", validateApiKey, async (req, res) => {
     }
     if (req.headers["appsecret"]) {
       headers["appsecret"] = req.headers["appsecret"];
+    }
+    if (req.headers["api-id"]) {
+      headers["api-id"] = req.headers["api-id"];
+    }
+    if (req.headers["cont-yn"]) {
+      headers["cont-yn"] = req.headers["cont-yn"];
+    }
+    if (req.headers["next-key"]) {
+      headers["next-key"] = req.headers["next-key"];
     }
 
     const fetchOptions = {

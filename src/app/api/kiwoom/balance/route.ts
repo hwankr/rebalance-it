@@ -16,14 +16,17 @@ export async function GET(request: NextRequest) {
     const balance = await getBalance(account);
     return NextResponse.json(balance);
   } catch (error) {
+    console.error("잔고 조회 에러 전체:", error);
     if (error instanceof KiwoomApiError) {
+      console.error("KiwoomApiError:", error.code, error.message, error.status);
       return NextResponse.json(
         { error: error.message, code: error.code },
         { status: error.status ?? 500 }
       );
     }
+    const message = error instanceof Error ? error.message : "알 수 없는 오류";
     return NextResponse.json(
-      { error: "잔고 조회 중 오류가 발생했습니다." },
+      { error: `잔고 조회 실패: ${message}` },
       { status: 500 }
     );
   }
