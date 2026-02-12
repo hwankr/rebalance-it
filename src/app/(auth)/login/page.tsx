@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { m } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import {
   Card,
@@ -73,77 +74,148 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Rebalance-it</CardTitle>
-          <CardDescription>
-            {mode === "login"
-              ? "계정에 로그인하세요"
-              : "새 계정을 만드세요"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">이메일</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">비밀번호</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="최소 6자"
-                required
-                minLength={6}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
-              />
-            </div>
+    <div className="relative flex min-h-screen items-center justify-center px-4 overflow-hidden bg-mesh">
+      {/* Animated floating orbs */}
+      <div
+        className="orb w-72 h-72 bg-[var(--gradient-start)] opacity-30 top-[10%] left-[15%]"
+      />
+      <div
+        className="orb w-96 h-96 bg-[var(--gradient-end)] opacity-20 top-[50%] right-[10%]"
+        style={{ animationDelay: "2s" }}
+      />
+      <div
+        className="orb w-64 h-64 opacity-25 bottom-[10%] left-[40%]"
+        style={{
+          animationDelay: "4s",
+          background: "oklch(0.60 0.20 300)",
+        }}
+      />
 
-            {error && (
-              <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+      {/* Dot grid overlay */}
+      <div className="absolute inset-0 bg-dot-grid opacity-30" />
 
-            {success && (
-              <div className="rounded-md bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-                {success}
-              </div>
-            )}
-
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="animate-spin" />}
-              {mode === "login" ? "로그인" : "회원가입"}
-            </Button>
-          </form>
-
-          <div className="mt-4 text-center text-sm">
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-              onClick={() => {
-                setMode(mode === "login" ? "signup" : "login");
-                setError(null);
-                setSuccess(null);
-              }}
+      {/* Glass auth card */}
+      <m.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-lg"
+      >
+        <Card className="glass-card">
+          <CardHeader className="text-center space-y-2">
+            <m.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
             >
+              <CardTitle className="text-4xl font-bold text-gradient">
+                Rebalance-it
+              </CardTitle>
+            </m.div>
+            <CardDescription className="text-base">
               {mode === "login"
-                ? "계정이 없으신가요? 회원가입"
-                : "이미 계정이 있으신가요? 로그인"}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+                ? "스마트한 포트폴리오 리밸런싱"
+                : "새 계정을 만들어 시작하세요"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <m.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="flex flex-col gap-2"
+              >
+                <Label htmlFor="email">이메일</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  required
+                  autoComplete="email"
+                  className="h-11"
+                />
+              </m.div>
+              <m.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+                className="flex flex-col gap-2"
+              >
+                <Label htmlFor="password">비밀번호</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="최소 6자"
+                  required
+                  minLength={6}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  className="h-11"
+                />
+              </m.div>
+
+              {error && (
+                <m.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                >
+                  {error}
+                </m.div>
+              )}
+
+              {success && (
+                <m.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-lg bg-success/10 px-4 py-3 text-sm text-success"
+                >
+                  {success}
+                </m.div>
+              )}
+
+              <m.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
+              >
+                <Button
+                  type="submit"
+                  variant="gradient"
+                  className="w-full h-11 text-base"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting && <Loader2 className="animate-spin" />}
+                  {mode === "login" ? "로그인" : "회원가입"}
+                </Button>
+              </m.div>
+            </form>
+
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.6 }}
+              className="mt-6 text-center text-sm"
+            >
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                onClick={() => {
+                  setMode(mode === "login" ? "signup" : "login");
+                  setError(null);
+                  setSuccess(null);
+                }}
+              >
+                {mode === "login"
+                  ? "계정이 없으신가요? 회원가입"
+                  : "이미 계정이 있으신가요? 로그인"}
+              </button>
+            </m.div>
+          </CardContent>
+        </Card>
+      </m.div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -95,50 +96,98 @@ export function ExecutionStatus({
           <CardTitle>주문별 결과</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>종목명</TableHead>
-                <TableHead>매매구분</TableHead>
-                <TableHead className="text-right">수량</TableHead>
-                <TableHead className="text-center">결과</TableHead>
-                <TableHead>에러</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {results.map((result) => (
-                <TableRow key={`${result.stock_code}-${result.side}`}>
-                  <TableCell className="font-medium">
-                    {result.stock_name}
-                  </TableCell>
-                  <TableCell>
-                    {result.side === "buy" ? (
-                      <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
-                        매수
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20">
-                        매도
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {result.quantity.toLocaleString("ko-KR")}주
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {result.success ? (
-                      <CheckCircle className="mx-auto size-5 text-green-600" />
-                    ) : (
-                      <XCircle className="mx-auto size-5 text-red-600" />
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {result.error ?? "-"}
-                  </TableCell>
+          {/* Desktop table - hidden on mobile */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>종목명</TableHead>
+                  <TableHead>매매구분</TableHead>
+                  <TableHead className="text-right">수량</TableHead>
+                  <TableHead className="text-center">결과</TableHead>
+                  <TableHead>에러</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {results.map((result) => (
+                  <TableRow key={`${result.stock_code}-${result.side}`}>
+                    <TableCell className="font-medium">
+                      {result.stock_name}
+                    </TableCell>
+                    <TableCell>
+                      {result.side === "buy" ? (
+                        <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
+                          매수
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20">
+                          매도
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {result.quantity.toLocaleString("ko-KR")}주
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {result.success ? (
+                        <CheckCircle className="mx-auto size-5 text-green-600" />
+                      ) : (
+                        <XCircle className="mx-auto size-5 text-red-600" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {result.error ?? "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile card list */}
+          <div className="space-y-3 md:hidden">
+            {results.map((result, i) => (
+              <m.div
+                key={`${result.stock_code}-${result.side}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+              >
+                <div className="glass-card card-hover rounded-xl p-4">
+                  {/* Row: stock name + side badge + success/fail icon */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="font-semibold">{result.stock_name}</div>
+                      {result.side === "buy" ? (
+                        <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 shrink-0">
+                          매수
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20 shrink-0">
+                          매도
+                        </Badge>
+                      )}
+                    </div>
+                    {result.success ? (
+                      <CheckCircle className="size-5 text-green-600 shrink-0" />
+                    ) : (
+                      <XCircle className="size-5 text-red-600 shrink-0" />
+                    )}
+                  </div>
+
+                  {/* Below: quantity + error message if any */}
+                  <div className="text-sm text-muted-foreground">
+                    수량: {result.quantity.toLocaleString("ko-KR")}주
+                  </div>
+                  {result.error && (
+                    <div className="text-xs text-red-600 mt-1">
+                      {result.error}
+                    </div>
+                  )}
+                </div>
+              </m.div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

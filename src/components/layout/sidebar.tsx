@@ -26,23 +26,32 @@ const navItems: NavItemProps[] = [
 
 export function Sidebar() {
   return (
-    <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-background">
-      <div className="flex h-14 items-center px-6 font-bold text-lg">
-        Rebalance-it
+    <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-sidebar">
+      {/* Logo area */}
+      <div className="flex h-14 items-center gap-2 px-6">
+        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] animate-pulse" />
+        <span className="text-xl font-bold text-gradient">Rebalance-it</span>
       </div>
       <Separator />
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => (
-          <NavItem key={item.href} {...item} />
-        ))}
+
+      {/* Navigation with subtle dot-grid background */}
+      <nav className="relative flex-1 space-y-1.5 px-4 py-4">
+        <div className="absolute inset-0 bg-dot-grid opacity-30 pointer-events-none" />
+        <div className="relative z-10 space-y-1.5">
+          {navItems.map((item) => (
+            <NavItem key={item.href} {...item} />
+          ))}
+        </div>
       </nav>
-      <div className="px-3 py-4 border-t space-y-2">
-        <div className="flex items-center justify-between px-3">
+
+      {/* Bottom section */}
+      <div className="px-4 py-4 border-t space-y-2">
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-accent/30">
           <span className="text-xs text-muted-foreground">플랜</span>
           <PlanBadge />
         </div>
         <form action={signOut}>
-          <Button variant="ghost" className="w-full justify-start gap-2" type="submit">
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" type="submit">
             <LogOut className="size-4" />
             로그아웃
           </Button>

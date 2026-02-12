@@ -13,6 +13,7 @@ import { OrderPreview } from "@/components/rebalance/order-preview";
 import { ExecutionStatus } from "@/components/rebalance/execution-status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageTransition } from "@/components/layout/page-transition";
 import {
   Dialog,
   DialogContent,
@@ -203,8 +204,9 @@ export default function ExecutePage() {
   const netCashChange = totalSellAmount - totalBuyAmount;
 
   return (
+    <PageTransition>
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">리밸런싱 실행</h1>
+      <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">리밸런싱 실행</h1>
       <p className="text-muted-foreground">리밸런싱 주문을 실행합니다.</p>
 
       {/* Warning */}
@@ -257,5 +259,6 @@ export default function ExecutePage() {
         </DialogContent>
       </Dialog>
     </div>
+    </PageTransition>
   );
 }

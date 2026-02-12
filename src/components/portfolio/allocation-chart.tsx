@@ -8,6 +8,7 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
+import { useThemeColors } from "@/hooks/use-theme-colors";
 
 interface AllocationChartProps {
   stocks: Array<{ stock_name: string; eval_amount: number }>;
@@ -16,21 +17,39 @@ interface AllocationChartProps {
   isLoading: boolean;
 }
 
-const COLORS = [
-  "#2563eb", "#dc2626", "#16a34a", "#ca8a04", "#9333ea",
-  "#0891b2", "#e11d48", "#65a30d", "#c026d3", "#ea580c",
-  "#6366f1", "#14b8a6",
-];
+// Extended palette: repeat theme colors with slight variations
+function extendColors(base: string[], count: number): string[] {
+  const extended = [...base];
+  while (extended.length < count) {
+    extended.push(base[extended.length % base.length]);
+  }
+  return extended;
+}
 
 function Skeleton() {
   return (
     <div className="flex items-center justify-center h-[300px]">
-      <div className="h-48 w-48 rounded-full bg-muted animate-pulse" />
+      <div className="h-48 w-48 rounded-full skeleton-shimmer" />
+    </div>
+  );
+}
+
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  return (
+    <div className="rounded-xl border border-border bg-popover/90 backdrop-blur-sm p-3 shadow-lg">
+      <p className="font-medium text-sm">{item.name}</p>
+      <p className="text-muted-foreground text-sm tabular-nums">
+        {Number(item.value).toLocaleString("ko-KR")}원
+      </p>
     </div>
   );
 }
 
 export function AllocationChart({ stocks, cash, totalValue, isLoading }: AllocationChartProps) {
+  const themeColors = useThemeColors();
+
   if (isLoading) {
     return <Skeleton />;
   }
@@ -44,6 +63,7 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
   ];
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
+  const colors = extendColors(themeColors, data.length);
 
   if (total === 0) {
     return (
@@ -71,21 +91,17 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
             labelLine={true}
           >
             {data.map((_, index) => (
-              <Cell key={index} fill={COLORS[index % COLORS.length]} />
+              <Cell key={index} fill={colors[index]} />
             ))}
           </Pie>
-          <Tooltip
-            formatter={(value) =>
-              `${Number(value).toLocaleString("ko-KR")}원`
-            }
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Legend />
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 30 }}>
         <div className="text-center">
           <p className="text-xs text-muted-foreground">총 평가액</p>
-          <p className="text-sm font-semibold">{totalValue.toLocaleString("ko-KR")}원</p>
+          <p className="text-sm font-bold text-gradient tabular-nums">{totalValue.toLocaleString("ko-KR")}원</p>
         </div>
       </div>
     </div>

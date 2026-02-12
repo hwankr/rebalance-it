@@ -5,11 +5,13 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { m } from "framer-motion";
 
 import { useHistory } from "@/hooks/use-history";
 import { useSubscription } from "@/hooks/use-subscription";
 import { PLAN_LIMITS } from "@/lib/subscription/plans";
 import { formatCurrency } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,22 +32,23 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { PageTransition } from "@/components/layout/page-transition";
 
 const STATUS_MAP: Record<
   "completed" | "partial" | "failed",
-  { label: string; className: string }
+  { label: string; variant: "success" | "secondary" | "destructive" }
 > = {
   completed: {
     label: "완료",
-    className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    variant: "success",
   },
   partial: {
     label: "부분",
-    className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+    variant: "secondary",
   },
   failed: {
     label: "실패",
-    className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+    variant: "destructive",
   },
 };
 
@@ -72,10 +75,11 @@ export default function HistoryPage() {
   };
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">실행 이력</h1>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">실행 이력</h1>
           <p className="text-muted-foreground">
             리밸런싱 실행 이력을 확인합니다.
           </p>
@@ -98,61 +102,156 @@ export default function HistoryPage() {
         </Card>
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>실행일시</TableHead>
-                <TableHead>프로필명</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead className="text-right">주문건수</TableHead>
-                <TableHead className="text-right">성공/실패</TableHead>
-                <TableHead className="text-right">총매수</TableHead>
-                <TableHead className="text-right">총매도</TableHead>
-                <TableHead className="text-right">순현금</TableHead>
-                <TableHead className="text-center">삭제</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleHistory.map((exec) => {
-                const statusInfo = STATUS_MAP[exec.status];
-                return (
-                  <TableRow key={exec.id}>
-                    <TableCell>
-                      {format(new Date(exec.executed_at), "yyyy.MM.dd HH:mm")}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {exec.profile_name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusInfo.className}>
+          {/* Desktop table - hidden on mobile */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>실행일시</TableHead>
+                  <TableHead>프로필명</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead className="text-right">주문건수</TableHead>
+                  <TableHead className="text-right">성공/실패</TableHead>
+                  <TableHead className="text-right">총매수</TableHead>
+                  <TableHead className="text-right">총매도</TableHead>
+                  <TableHead className="text-right">순현금</TableHead>
+                  <TableHead className="text-center">삭제</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleHistory.map((exec) => {
+                  const statusInfo = STATUS_MAP[exec.status];
+                  return (
+                    <TableRow key={exec.id} className="hover:bg-accent/30 transition-colors duration-150">
+                      <TableCell>
+                        {format(new Date(exec.executed_at), "yyyy.MM.dd HH:mm")}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {exec.profile_name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusInfo.variant}>
+                          {statusInfo.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {exec.total_orders}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {exec.success_count}/{exec.fail_count}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(exec.total_buy_amount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(exec.total_sell_amount)}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right ${
+                          exec.net_cash_change > 0
+                            ? "text-green-600 dark:text-green-400"
+                            : exec.net_cash_change < 0
+                              ? "text-red-600 dark:text-red-400"
+                              : ""
+                        }`}
+                      >
+                        {exec.net_cash_change > 0 ? "+" : ""}
+                        {formatCurrency(exec.net_cash_change)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteTarget(exec.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile card list */}
+          <div className="space-y-3 md:hidden">
+            {visibleHistory.map((exec, i) => {
+              const statusInfo = STATUS_MAP[exec.status];
+              return (
+                <m.div
+                  key={exec.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                >
+                  <div className="glass-card card-hover rounded-xl p-4">
+                    {/* Top row: profile name + status badge */}
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="font-semibold">{exec.profile_name}</div>
+                      <Badge variant={statusInfo.variant} className="shrink-0">
                         {statusInfo.label}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {exec.total_orders}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {exec.success_count}/{exec.fail_count}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(exec.total_buy_amount)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(exec.total_sell_amount)}
-                    </TableCell>
-                    <TableCell
-                      className={`text-right ${
-                        exec.net_cash_change > 0
-                          ? "text-green-600 dark:text-green-400"
-                          : exec.net_cash_change < 0
-                            ? "text-red-600 dark:text-red-400"
-                            : ""
-                      }`}
-                    >
-                      {exec.net_cash_change > 0 ? "+" : ""}
-                      {formatCurrency(exec.net_cash_change)}
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </div>
+
+                    {/* Date below in muted text */}
+                    <div className="text-xs text-muted-foreground mb-3">
+                      {format(new Date(exec.executed_at), "yyyy.MM.dd HH:mm")}
+                    </div>
+
+                    {/* Middle: metrics grid */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">주문건수</div>
+                        <div className="font-medium tabular-nums text-sm">
+                          {exec.total_orders}건
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">성공</div>
+                        <div className="font-medium tabular-nums text-sm text-green-600">
+                          {exec.success_count}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">실패</div>
+                        <div className="font-medium tabular-nums text-sm text-red-600">
+                          {exec.fail_count}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom: financial values */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">매수</div>
+                        <div className="font-medium tabular-nums text-xs">
+                          {formatCurrency(exec.total_buy_amount)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">매도</div>
+                        <div className="font-medium tabular-nums text-xs">
+                          {formatCurrency(exec.total_sell_amount)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">순현금</div>
+                        <div
+                          className={cn(
+                            "font-medium tabular-nums text-xs",
+                            exec.net_cash_change > 0 && "text-green-600 dark:text-green-400",
+                            exec.net_cash_change < 0 && "text-red-600 dark:text-red-400"
+                          )}
+                        >
+                          {exec.net_cash_change > 0 ? "+" : ""}
+                          {formatCurrency(exec.net_cash_change)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Delete button */}
+                    <div className="flex justify-end pt-2 border-t">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -160,12 +259,12 @@ export default function HistoryPage() {
                       >
                         <Trash2 className="size-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                    </div>
+                  </div>
+                </m.div>
+              );
+            })}
+          </div>
 
           <p className="text-muted-foreground text-sm">
             총 {history.length}건{hasHidden && ` (최근 ${maxVisible}건만 표시)`}
@@ -230,5 +329,6 @@ export default function HistoryPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </PageTransition>
   );
 }

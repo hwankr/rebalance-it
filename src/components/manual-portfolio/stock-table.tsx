@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Trash2, Pencil, Check, X, RefreshCw, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
+import { m } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -15,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
 import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 
 interface StockRow {
@@ -93,7 +96,7 @@ export function StockTable({
 
   if (stocks.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
         종목이 없습니다. 위 폼에서 종목을 추가해주세요.
       </div>
     );
@@ -118,7 +121,10 @@ export function StockTable({
           </Button>
         </div>
       )}
-      <Table>
+
+      {/* Desktop table - hidden on mobile */}
+      <div className="hidden md:block">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>종목코드</TableHead>
@@ -253,16 +259,14 @@ export function StockTable({
                       <>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
+                          size="icon-xs"
                           onClick={() => saveEdit(stock.id)}
                         >
                           <Check className="size-4" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
+                          size="icon-xs"
                           onClick={cancelEdit}
                         >
                           <X className="size-4" />
@@ -272,16 +276,15 @@ export function StockTable({
                       <>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
+                          size="icon-xs"
                           onClick={() => startEdit(stock)}
                         >
                           <Pencil className="size-4" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive"
+                          size="icon-xs"
+                          className="text-destructive"
                           onClick={() => onDelete(stock.id)}
                         >
                           <Trash2 className="size-4" />
@@ -295,6 +298,158 @@ export function StockTable({
           })}
         </TableBody>
       </Table>
+      </div>
+
+      {/* Mobile card list */}
+      <div className="space-y-3 md:hidden">
+        {stocks.map((stock, i) => {
+          const isEditing = editingId === stock.id;
+          const isUsd = stock.currency === "USD";
+          const evalAmount = stock.current_price * stock.quantity;
+          const profitLoss = (stock.current_price - stock.avg_price) * stock.quantity;
+          const profitRate = stock.avg_price > 0 ? ((stock.current_price - stock.avg_price) / stock.avg_price) * 100 : 0;
+
+          const evalAmountKrw = isUsd && exchangeRate ? evalAmount * exchangeRate : evalAmount;
+          const profitLossKrw = isUsd && exchangeRate ? profitLoss * exchangeRate : profitLoss;
+
+          return (
+            <m.div
+              key={stock.id ?? `stock-${i}`}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: i * 0.05 }}
+            >
+              <div className="glass-card card-hover rounded-xl p-4">
+                {isEditing ? (
+                  // Edit mode: stacked inputs
+                  <div className="space-y-3">
+                    <div className="font-semibold mb-2">{stock.stock_name}</div>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">수량</label>
+                      <Input
+                        type="number"
+                        className="w-full"
+                        value={editValues.quantity ?? ""}
+                        onChange={(e) => setEditValues((v) => ({ ...v, quantity: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">평균가</label>
+                      <Input
+                        type="number"
+                        className="w-full"
+                        value={editValues.avg_price ?? ""}
+                        onChange={(e) => setEditValues((v) => ({ ...v, avg_price: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">현재가</label>
+                      <Input
+                        type="number"
+                        className="w-full"
+                        value={editValues.current_price ?? ""}
+                        onChange={(e) => setEditValues((v) => ({ ...v, current_price: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="default"
+                        className="flex-1"
+                        onClick={() => saveEdit(stock.id)}
+                      >
+                        <Check className="size-4 mr-2" />
+                        저장
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={cancelEdit}
+                      >
+                        <X className="size-4 mr-2" />
+                        취소
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  // View mode: card content
+                  <>
+                    {/* Top row: stock name + action buttons */}
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="flex-1">
+                        <div className="font-semibold">{stock.stock_name}</div>
+                        <div className="text-xs text-muted-foreground tabular-nums flex items-center gap-2 mt-0.5">
+                          {stock.stock_code}
+                          <Badge variant="outline" className="text-[10px] px-1 py-0">
+                            {stock.currency}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => startEdit(stock)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-destructive"
+                          onClick={() => onDelete(stock.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Middle row: 3 key values */}
+                    <div className="grid grid-cols-3 gap-2 my-3">
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">현재가</div>
+                        <div className="font-medium tabular-nums text-sm">
+                          {isUsd ? formatUsdPrice(stock.current_price) : formatCurrency(stock.current_price)}
+                        </div>
+                        {isUsd && exchangeRate && (
+                          <div className="text-[10px] text-muted-foreground tabular-nums">
+                            ({formatCurrency(Math.round(stock.current_price * exchangeRate))})
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">평가금액</div>
+                        <div className="font-medium tabular-nums text-sm">
+                          {isUsd && exchangeRate ? formatCurrency(Math.round(evalAmountKrw)) : formatCurrency(evalAmount)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-0.5">손익</div>
+                        <div className={cn("font-medium tabular-nums text-sm", profitLoss >= 0 ? "text-green-600" : "text-red-600")}>
+                          {profitLoss >= 0 ? "+" : ""}
+                          {isUsd && exchangeRate ? formatCurrency(Math.round(profitLossKrw)) : formatCurrency(profitLoss)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom row: secondary info */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="tabular-nums">
+                        수량 {stock.quantity.toLocaleString()} · 평균 {isUsd ? formatUsdPrice(stock.avg_price) : formatCurrency(stock.avg_price)} ·
+                        <span className={cn("ml-1", profitRate >= 0 ? "text-green-600" : "text-red-600")}>
+                          {profitRate >= 0 ? "+" : ""}{formatPercent(profitRate)}
+                        </span>
+                      </div>
+                      <div className={getPriceFreshnessClass(stock.price_updated_at)}>
+                        {formatPriceTimestamp(stock.price_updated_at)}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </m.div>
+          );
+        })}
+      </div>
     </div>
   );
 }

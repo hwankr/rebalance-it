@@ -50,6 +50,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { PageTransition } from "@/components/layout/page-transition";
 
 const accountSchema = z.object({
   account: z.string().min(8, "계좌번호는 8자 이상이어야 합니다."),
@@ -130,9 +131,10 @@ export default function SettingsPage() {
   }
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">설정</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">설정</h1>
         <p className="text-muted-foreground">
           키움증권 API 연결 및 계좌 설정을 관리합니다.
         </p>
@@ -445,5 +447,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
     </div>
+    </PageTransition>
   );
 }

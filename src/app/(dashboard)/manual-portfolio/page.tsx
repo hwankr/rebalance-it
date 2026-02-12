@@ -33,6 +33,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { PageTransition } from "@/components/layout/page-transition";
 
 const cashSchema = z.object({
   cash: z.coerce.number().min(0, "예수금은 0 이상이어야 합니다."),
@@ -109,8 +110,8 @@ export default function ManualPortfolioPage() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">수동 포트폴리오</h1>
         <div className="space-y-3">
-          <div className="h-32 animate-pulse rounded-xl bg-muted" />
-          <div className="h-32 animate-pulse rounded-xl bg-muted" />
+          <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
+          <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
         </div>
       </div>
     );
@@ -123,10 +124,11 @@ export default function ManualPortfolioPage() {
   const totalValue = totalEval + Number(portfolio?.cash ?? 0);
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold">수동 포트폴리오</h1>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">수동 포트폴리오</h1>
           {isManualActive ? (
             <Badge>수동 모드 활성</Badge>
           ) : (
@@ -159,41 +161,41 @@ export default function ManualPortfolioPage() {
       )}
 
       {/* 요약 카드 */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        <Card>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <Card className="glass-card card-hover">
           <CardHeader>
             <CardDescription>총 평가금액</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl tabular-nums font-mono">
               {formatCurrency(totalValue)}
             </CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="glass-card card-hover">
           <CardHeader>
             <CardDescription>주식 평가금액</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl tabular-nums font-mono">
               {formatCurrency(totalEval)}
             </CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="glass-card card-hover">
           <CardHeader>
             <CardDescription>예수금</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl tabular-nums font-mono">
               {formatCurrency(Number(portfolio?.cash ?? 0))}
             </CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="glass-card card-hover">
           <CardHeader>
             <CardDescription>보유 종목 수</CardDescription>
-            <CardTitle className="text-2xl">{stocks.length}종목</CardTitle>
+            <CardTitle className="text-2xl tabular-nums">{stocks.length}종목</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="glass-card card-hover">
           <CardHeader>
             <CardDescription>USD/KRW</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl tabular-nums font-mono">
               {exchangeRate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}
             </CardTitle>
           </CardHeader>
@@ -281,5 +283,6 @@ export default function ManualPortfolioPage() {
         </div>
       )}
     </div>
+    </PageTransition>
   );
 }

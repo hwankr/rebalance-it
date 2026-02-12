@@ -101,7 +101,7 @@ export function StockCombobox({
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[340px] p-0" align="start">
+      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[340px] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="종목코드 또는 종목명 검색"

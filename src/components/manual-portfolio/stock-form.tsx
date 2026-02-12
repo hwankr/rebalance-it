@@ -96,7 +96,7 @@ export function StockForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(handleSubmit)}
-        className="grid grid-cols-2 gap-3 sm:grid-cols-5"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
       >
         <FormItem>
           <FormLabel>종목</FormLabel>
@@ -165,7 +165,7 @@ export function StockForm({
             </FormItem>
           )}
         />
-        <div className="flex items-end">
+        <div className="flex items-end sm:col-span-2 lg:col-span-1">
           <Button type="submit" disabled={isSubmitting} className="w-full">
             {submitLabel}
           </Button>

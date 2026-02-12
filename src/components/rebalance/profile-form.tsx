@@ -206,8 +206,8 @@ export function ProfileForm({
           <FormLabel>종목 목표 비중</FormLabel>
 
           {fields.map((field, index) => (
-            <div key={field.id} className="flex items-start gap-2">
-              <div className="w-56">
+            <div key={field.id} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+              <div className="w-full sm:w-56">
                 <StockCombobox
                   onSelect={(stock) => {
                     form.setValue(`targets.${index}.stock_code`, stock.stock_code, { shouldValidate: true });
@@ -228,38 +228,40 @@ export function ProfileForm({
                   </p>
                 )}
               </div>
-              <FormField
-                control={form.control}
-                name={`targets.${index}.target_pct`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="%"
-                        className="w-20"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value) || 0)
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => remove(index)}
-                disabled={fields.length <= 1}
-              >
-                <Trash2 className="size-4" />
-              </Button>
+              <div className="flex items-start gap-2">
+                <FormField
+                  control={form.control}
+                  name={`targets.${index}.target_pct`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="%"
+                          className="w-full sm:w-20"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => remove(index)}
+                  disabled={fields.length <= 1}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </div>
           ))}
 

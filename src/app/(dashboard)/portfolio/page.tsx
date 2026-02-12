@@ -9,6 +9,7 @@ import { AllocationChart } from "@/components/portfolio/allocation-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageTransition } from "@/components/layout/page-transition";
 
 function formatUpdatedAt(timestamp: number | undefined): string {
   if (!timestamp) return "";
@@ -29,8 +30,8 @@ export default function PortfolioPage() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">포트폴리오 현황</h1>
         <div className="space-y-3">
-          <div className="h-32 animate-pulse rounded-xl bg-muted" />
-          <div className="h-32 animate-pulse rounded-xl bg-muted" />
+          <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
+          <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
         </div>
       </div>
     );
@@ -99,11 +100,12 @@ export default function PortfolioPage() {
   }
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">포트폴리오 현황</h1>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">포트폴리오 현황</h1>
             {isManualMode ? (
               <Badge>수동 모드</Badge>
             ) : (
@@ -173,5 +175,6 @@ export default function PortfolioPage() {
         </Card>
       </div>
     </div>
+    </PageTransition>
   );
 }

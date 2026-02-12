@@ -103,12 +103,15 @@ export default function PricingPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-12">
-        {/* Title */}
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">요금제</h1>
-          <p className="mt-3 text-lg text-muted-foreground">
-            필요에 맞는 플랜을 선택하세요.
-          </p>
+        {/* Title with mesh gradient hero */}
+        <div className="mb-12 text-center relative py-8">
+          <div className="absolute inset-0 bg-mesh rounded-2xl opacity-50" />
+          <div className="relative z-10">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gradient">요금제</h1>
+            <p className="mt-3 text-lg text-muted-foreground">
+              필요에 맞는 플랜을 선택하세요.
+            </p>
+          </div>
         </div>
 
         {/* Plan Cards */}
@@ -158,9 +161,9 @@ export default function PricingPage() {
           </Card>
 
           {/* Pro Plan */}
-          <Card className="relative flex flex-col border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50/50 to-background dark:from-blue-950/20">
+          <Card className="relative flex flex-col border-[var(--gradient-start)]/30 bg-gradient-to-br from-[var(--gradient-start)]/5 to-background dark:from-[var(--gradient-start)]/10 card-hover">
             <div className="absolute -top-3 right-4">
-              <Badge className="gap-1 bg-blue-600 text-white">
+              <Badge variant="gradient" className="gap-1">
                 <Sparkles className="size-3" />
                 추천
               </Badge>
@@ -206,11 +209,11 @@ export default function PricingPage() {
             </CardContent>
             <CardFooter>
               {isCurrentPro ? (
-                <Button className="w-full" disabled>
+                <Button variant="gradient" className="w-full" disabled>
                   현재 플랜
                 </Button>
               ) : (
-                <Button className="w-full gap-2" onClick={handleSubscribe}>
+                <Button variant="gradient" className="w-full gap-2" onClick={handleSubscribe}>
                   <Sparkles className="size-4" />
                   구독하기
                 </Button>
@@ -240,7 +243,7 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {FEATURES.map((feature) => (
-                  <tr key={feature.name} className="border-b last:border-0">
+                  <tr key={feature.name} className="border-b last:border-0 hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-3 font-medium">{feature.name}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center">

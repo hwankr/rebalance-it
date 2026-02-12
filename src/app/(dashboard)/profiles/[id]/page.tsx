@@ -8,6 +8,7 @@ import { useProfiles } from "@/hooks/use-profiles";
 import { ProfileForm } from "@/components/rebalance/profile-form";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { PageTransition } from "@/components/layout/page-transition";
 
 export default function ProfileDetailPage() {
   const params = useParams();
@@ -29,8 +30,9 @@ export default function ProfileDetailPage() {
   }
 
   return (
+    <PageTransition>
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">프로필 수정</h1>
+      <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">프로필 수정</h1>
       <ProfileForm
         initialData={profile}
         onSubmit={(data) => {
@@ -47,5 +49,6 @@ export default function ProfileDetailPage() {
         </Link>
       </Button>
     </div>
+    </PageTransition>
   );
 }

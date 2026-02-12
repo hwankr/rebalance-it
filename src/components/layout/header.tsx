@@ -1,66 +1,41 @@
 "use client";
 
-import { Menu, LogOut } from "lucide-react";
-import { useState } from "react";
+import { Settings, LogOut } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { signOut } from "@/lib/supabase/auth";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
-import { NavItem } from "./nav";
-import { navItems } from "./sidebar";
 
 export function Header() {
-  const [open, setOpen] = useState(false);
-
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 md:px-6">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden"
-        onClick={() => setOpen(true)}
-      >
-        <Menu className="h-5 w-5" />
-        <span className="sr-only">메뉴 열기</span>
-      </Button>
-
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-64 p-0">
-          <SheetHeader className="px-6 pt-4">
-            <SheetTitle className="text-lg font-bold">
-              Rebalance-it
-            </SheetTitle>
-          </SheetHeader>
-          <Separator />
-          <nav className="space-y-1 px-3 py-4">
-            {navItems.map((item) => (
-              <div key={item.href} onClick={() => setOpen(false)}>
-                <NavItem {...item} />
-              </div>
-            ))}
-          </nav>
-          <div className="mt-auto px-3 py-4 border-t">
-            <form action={signOut}>
-              <Button variant="ghost" className="w-full justify-start gap-2" type="submit">
-                <LogOut className="size-4" />
-                로그아웃
-              </Button>
-            </form>
-          </div>
-        </SheetContent>
-      </Sheet>
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border/50 bg-background/80 backdrop-blur-md px-4 md:px-6">
+      {/* Mobile: app logo */}
+      <span className="text-lg font-bold text-gradient md:hidden">Rebalance-it</span>
 
       <div className="flex-1" />
 
-      <Badge variant="outline" className="text-xs">
+      {/* Connection status indicator */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive/60 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+        </span>
         미연결
-      </Badge>
+      </div>
+
+      {/* Mobile: settings gear icon */}
+      <Link href="/settings" className="md:hidden">
+        <Button variant="ghost" size="icon-sm">
+          <Settings className="size-5" />
+        </Button>
+      </Link>
+
+      {/* Desktop: logout button */}
+      <form action={signOut} className="hidden md:block">
+        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+          <LogOut className="size-4" />
+          로그아웃
+        </Button>
+      </form>
     </header>
   );
 }

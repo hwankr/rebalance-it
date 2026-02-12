@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DriftChart } from "@/components/rebalance/drift-chart";
+import { PageTransition } from "@/components/layout/page-transition";
 
 export default function RebalancePage() {
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
@@ -108,9 +109,10 @@ export default function RebalancePage() {
   }
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">리밸런싱</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">리밸런싱</h1>
         <p className="text-muted-foreground">
           현재 포트폴리오의 리밸런싱 현황을 확인합니다.
         </p>
@@ -155,7 +157,7 @@ export default function RebalancePage() {
       </Card>
 
       {/* 상단 요약 카드 */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
         <Card>
           <CardHeader>
             <CardDescription>프로필명</CardDescription>
@@ -187,9 +189,12 @@ export default function RebalancePage() {
               ) : !selectedProfile ? (
                 "-"
               ) : rebalanceNeeded ? (
-                <Badge variant="destructive">리밸런싱 필요</Badge>
+                <span className="relative">
+                  <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping" />
+                  <Badge variant="destructive">리밸런싱 필요</Badge>
+                </span>
               ) : (
-                <Badge variant="default">정상</Badge>
+                <Badge variant="success">정상</Badge>
               )}
             </CardTitle>
           </CardHeader>
@@ -229,7 +234,7 @@ export default function RebalancePage() {
 
       {/* 하단: 액션 버튼 */}
       <div className="flex flex-col gap-4">
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3 sm:gap-4">
           <Button asChild disabled={!selectedProfileId}>
             <Link
               href={
@@ -269,5 +274,6 @@ export default function RebalancePage() {
         )}
       </div>
     </div>
+    </PageTransition>
   );
 }

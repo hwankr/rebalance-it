@@ -28,11 +28,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageTransition } from "@/components/layout/page-transition";
 
 const strategyBadge = {
   threshold: { label: "임계값", variant: "default" as const },
-  calendar: { label: "정기", variant: "secondary" as const },
-  hybrid: { label: "혼합", variant: "outline" as const },
+  calendar: { label: "정기", variant: "success" as const },
+  hybrid: { label: "혼합", variant: "gradient" as const },
 };
 
 export default function ProfilesPage() {
@@ -49,10 +50,11 @@ export default function ProfilesPage() {
   }
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">프로필 관리</h1>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">프로필 관리</h1>
           <span className="text-sm text-muted-foreground">
             {isPro
               ? `${profiles.length}개 프로필`
@@ -105,7 +107,7 @@ export default function ProfilesPage() {
             );
 
             return (
-              <Card key={profile.id}>
+              <Card key={profile.id} className="card-hover">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>{profile.name}</CardTitle>
@@ -170,5 +172,6 @@ export default function ProfilesPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </PageTransition>
   );
 }

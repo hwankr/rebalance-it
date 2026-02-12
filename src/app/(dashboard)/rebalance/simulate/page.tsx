@@ -12,6 +12,7 @@ import { DriftChart } from "@/components/rebalance/drift-chart";
 import { OrderPreview } from "@/components/rebalance/order-preview";
 import { formatCurrency } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
+import { PageTransition } from "@/components/layout/page-transition";
 import {
   Card,
   CardContent,
@@ -107,9 +108,10 @@ function SimulateContent() {
     simulationResult?.orders.filter((o) => o.side === "sell").length ?? 0;
 
   return (
+    <PageTransition>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">리밸런싱 시뮬레이션</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">리밸런싱 시뮬레이션</h1>
         <p className="text-muted-foreground">
           리밸런싱 실행 전 결과를 미리 확인합니다.
         </p>
@@ -187,9 +189,9 @@ function SimulateContent() {
         <CardContent>
           {portfolioLoading ? (
             <div className="space-y-3">
-              <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-              <div className="h-5 w-36 animate-pulse rounded bg-muted" />
-              <div className="h-5 w-28 animate-pulse rounded bg-muted" />
+              <div className="h-5 w-48 skeleton-shimmer rounded bg-muted" />
+              <div className="h-5 w-36 skeleton-shimmer rounded bg-muted" />
+              <div className="h-5 w-28 skeleton-shimmer rounded bg-muted" />
             </div>
           ) : portfolio ? (
             <div className="grid grid-cols-3 gap-4 text-sm">
@@ -341,6 +343,7 @@ function SimulateContent() {
         </>
       )}
     </div>
+    </PageTransition>
   );
 }
 
@@ -356,8 +359,8 @@ export default function SimulatePage() {
             </p>
           </div>
           <div className="space-y-3">
-            <div className="h-32 animate-pulse rounded-xl bg-muted" />
-            <div className="h-32 animate-pulse rounded-xl bg-muted" />
+            <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
+            <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
           </div>
         </div>
       }
