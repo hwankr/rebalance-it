@@ -4,8 +4,7 @@ import { Suspense, useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useProfiles } from "@/hooks/use-profiles";
-import { usePortfolio } from "@/hooks/use-portfolio";
-import { useSettings } from "@/hooks/use-settings";
+import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { simulateRebalance } from "@/lib/rebalance/calculator";
 import { toPortfolioItems } from "@/lib/rebalance/helpers";
 import type { TargetAllocation } from "@/lib/rebalance/types";
@@ -42,10 +41,8 @@ function SimulateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profiles } = useProfiles();
-  const { settings } = useSettings();
-  const account = settings.account;
-  const { data: portfolio, isLoading: portfolioLoading } =
-    usePortfolio(account);
+  const { data: portfolio, isLoading: portfolioLoading, isManualMode } =
+    usePortfolioData();
 
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
     null
@@ -87,12 +84,13 @@ function SimulateContent() {
 
   function handleExecute() {
     if (!simulationResult || !selectedProfile) return;
+    if (isManualMode) return; // 수동 모드에서는 실제 주문 불가
 
     sessionStorage.setItem(
       "rebalance-it-simulation",
       JSON.stringify({
         orders: simulationResult.orders,
-        account,
+        account: "",
         profile_name: selectedProfile.name,
         profile_id: selectedProfile.id,
         total_buy_amount: simulationResult.total_buy_amount,
@@ -187,17 +185,7 @@ function SimulateContent() {
           <CardDescription>연결된 계좌의 잔고 현황입니다.</CardDescription>
         </CardHeader>
         <CardContent>
-          {!account ? (
-            <div className="text-sm text-muted-foreground">
-              계좌가 설정되지 않았습니다.{" "}
-              <Link
-                href="/settings"
-                className="text-primary underline underline-offset-4"
-              >
-                설정에서 계좌를 연결하세요
-              </Link>
-            </div>
-          ) : portfolioLoading ? (
+          {portfolioLoading ? (
             <div className="space-y-3">
               <div className="h-5 w-48 animate-pulse rounded bg-muted" />
               <div className="h-5 w-36 animate-pulse rounded bg-muted" />
@@ -329,9 +317,17 @@ function SimulateContent() {
             </CardContent>
           </Card>
 
+          {/* 수동 모드 안내 */}
+          {isManualMode && (
+            <div className="rounded-lg border border-blue-500/50 bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-200">
+              <p className="font-medium">수동 모드에서는 실제 주문을 실행할 수 없습니다.</p>
+              <p>시뮬레이션 결과만 확인할 수 있습니다.</p>
+            </div>
+          )}
+
           {/* 하단 액션 버튼 */}
           <div className="flex items-center gap-3">
-            <Button onClick={handleExecute}>주문 실행하기</Button>
+            <Button onClick={handleExecute} disabled={isManualMode}>주문 실행하기</Button>
             <Button
               variant="outline"
               onClick={() => setSimulationResult(null)}

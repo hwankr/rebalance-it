@@ -8,10 +8,11 @@ import { useAuth } from "@/hooks/use-auth";
 export interface AppSettings {
   account: string;
   isConnected: boolean;
+  dataSource: "kiwoom" | "manual";
 }
 
 const SETTINGS_ROW_KEY = "app_settings";
-const DEFAULT_SETTINGS: AppSettings = { account: "", isConnected: false };
+const DEFAULT_SETTINGS: AppSettings = { account: "", isConnected: false, dataSource: "kiwoom" };
 
 export function useSettings() {
   const supabase = createClient();

@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
-import { useSettings } from "@/hooks/use-settings";
-import { usePortfolio } from "@/hooks/use-portfolio";
+import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { SummaryCards } from "@/components/portfolio/summary-cards";
 import { HoldingsTable } from "@/components/portfolio/holdings-table";
 import { AllocationChart } from "@/components/portfolio/allocation-chart";
@@ -22,13 +21,10 @@ function formatUpdatedAt(timestamp: number | undefined): string {
 }
 
 export default function PortfolioPage() {
-  const { settings, isLoading: settingsLoading } = useSettings();
-  const account = settings.account;
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt, isMarketOpen, isManualMode } =
+    usePortfolioData();
 
-  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt, isMarketOpen } =
-    usePortfolio(account);
-
-  if (settingsLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">포트폴리오 현황</h1>
@@ -40,17 +36,43 @@ export default function PortfolioPage() {
     );
   }
 
-  if (!account) {
+  if (!isManualMode && !data && !isLoading) {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">포트폴리오 현황</h1>
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground mb-4">
-              계좌 정보가 설정되지 않았습니다. 설정 페이지에서 계좌를 연결해주세요.
+              계좌 정보가 설정되지 않았습니다. 설정 페이지에서 계좌를 연결하거나 수동 모드를 사용해주세요.
             </p>
-            <Link href="/settings">
-              <Button>설정으로 이동</Button>
+            <div className="flex gap-2">
+              <Link href="/settings">
+                <Button>설정으로 이동</Button>
+              </Link>
+              <Link href="/manual-portfolio">
+                <Button variant="outline">수동 포트폴리오</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isManualMode && (!data?.stocks || data.stocks.length === 0)) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold">포트폴리오 현황</h1>
+          <Badge>수동 모드</Badge>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground mb-4">
+              수동 포트폴리오에 종목을 추가해주세요.
+            </p>
+            <Link href="/manual-portfolio">
+              <Button>수동 포트폴리오로 이동</Button>
             </Link>
           </CardContent>
         </Card>
@@ -82,16 +104,24 @@ export default function PortfolioPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold">포트폴리오 현황</h1>
-            <Badge variant={isMarketOpen ? "default" : "secondary"}>
-              {isMarketOpen ? "장중" : "장외"}
-            </Badge>
+            {isManualMode ? (
+              <Badge>수동 모드</Badge>
+            ) : (
+              <Badge variant={isMarketOpen ? "default" : "secondary"}>
+                {isMarketOpen ? "장중" : "장외"}
+              </Badge>
+            )}
           </div>
           <p className="text-muted-foreground">
             보유 자산과 현재 비중을 확인합니다.
             {dataUpdatedAt > 0 && (
               <span className="ml-2 text-xs">
                 마지막 갱신: {formatUpdatedAt(dataUpdatedAt)}
-                {isMarketOpen ? " (10초마다 자동 갱신)" : " (장외 - 수동 갱신)"}
+                {isManualMode
+                  ? " (수동 입력 데이터)"
+                  : isMarketOpen
+                    ? " (10초마다 자동 갱신)"
+                    : " (장외 - 수동 갱신)"}
               </span>
             )}
           </p>

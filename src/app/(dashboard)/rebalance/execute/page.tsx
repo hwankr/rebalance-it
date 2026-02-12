@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useExecutionData } from "@/hooks/use-execution-data";
 import { useHistory } from "@/hooks/use-history";
 import { useRebalanceExecution } from "@/hooks/use-rebalance";
+import { useSettings } from "@/hooks/use-settings";
 import { OrderPreview } from "@/components/rebalance/order-preview";
 import { ExecutionStatus } from "@/components/rebalance/execution-status";
 import { Button } from "@/components/ui/button";
@@ -46,8 +47,28 @@ export default function ExecutePage() {
   const [executionResults, setExecutionResults] =
     useState<ExecutionResults | null>(null);
   const historySavedRef = useRef(false);
+  const { settings } = useSettings();
 
   const executionData = useExecutionData();
+
+  // 수동 모드에서는 주문 실행 차단
+  if (settings.dataSource === "manual") {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">리밸런싱 실행</h1>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-10">
+            <p className="text-muted-foreground">
+              수동 모드에서는 실제 주문을 실행할 수 없습니다.
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/rebalance">리밸런싱으로 돌아가기</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   const { addExecution } = useHistory();
   const executeMutation = useRebalanceExecution();
 

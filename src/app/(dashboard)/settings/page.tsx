@@ -15,6 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -105,6 +112,7 @@ export default function SettingsPage() {
       if (!user) throw new Error("Not authenticated");
       await supabase.from("profiles").delete().eq("user_id", user.id);
       await supabase.from("executions").delete().eq("user_id", user.id);
+      await supabase.from("manual_portfolios").delete().eq("user_id", user.id);
       await supabase.from("settings").delete().eq("user_id", user.id);
 
       queryClient.invalidateQueries();
@@ -125,6 +133,44 @@ export default function SettingsPage() {
           키움증권 API 연결 및 계좌 설정을 관리합니다.
         </p>
       </div>
+
+      {/* 섹션 0: 데이터 소스 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>데이터 소스</CardTitle>
+          <CardDescription>
+            포트폴리오 데이터를 가져올 소스를 선택합니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Select
+            value={settings.dataSource}
+            onValueChange={(value: "kiwoom" | "manual") => {
+              updateSettings({ dataSource: value });
+              queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+              queryClient.invalidateQueries({ queryKey: ["manual-portfolio"] });
+              toast.success(
+                value === "manual"
+                  ? "수동 모드로 전환되었습니다."
+                  : "키움 API 모드로 전환되었습니다."
+              );
+            }}
+          >
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="kiwoom">키움 API</SelectItem>
+              <SelectItem value="manual">수동 입력</SelectItem>
+            </SelectContent>
+          </Select>
+          {settings.dataSource === "manual" && (
+            <p className="text-sm text-muted-foreground">
+              키움 API 없이 수동으로 입력한 포트폴리오로 리밸런싱을 테스트합니다.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 섹션 1: API 연결 상태 */}
       <Card>

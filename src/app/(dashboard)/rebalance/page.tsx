@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePortfolio } from "@/hooks/use-portfolio";
+import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { useProfiles } from "@/hooks/use-profiles";
 import {
   calculateDrift,
@@ -30,28 +30,11 @@ import {
 } from "@/components/ui/select";
 import { DriftChart } from "@/components/rebalance/drift-chart";
 
-function getAccountFromStorage(): string {
-  if (typeof window === "undefined") return "";
-  try {
-    const raw = localStorage.getItem("rebalance-it-settings");
-    if (!raw) return "";
-    const parsed = JSON.parse(raw);
-    return parsed.account ?? "";
-  } catch {
-    return "";
-  }
-}
-
 export default function RebalancePage() {
-  const [account, setAccount] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
-  useEffect(() => {
-    setAccount(getAccountFromStorage());
-  }, []);
-
   const { profiles } = useProfiles();
-  const { data: balance, isLoading, error } = usePortfolio(account);
+  const { data: balance, isLoading, isError, error, isManualMode } = usePortfolioData();
 
   const selectedProfile = useMemo(
     () => profiles.find((p) => p.id === selectedProfileId),
@@ -80,25 +63,30 @@ export default function RebalancePage() {
     };
   }, [balance, selectedProfile, threshold]);
 
-  if (!account) {
+  if (!isManualMode && !balance && !isLoading) {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">리밸런싱</h1>
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-10">
             <p className="text-muted-foreground">
-              계좌가 설정되지 않았습니다. 설정 페이지에서 계좌를 연결해주세요.
+              계좌가 설정되지 않았습니다. 설정 페이지에서 계좌를 연결하거나 수동 모드를 사용해주세요.
             </p>
-            <Button asChild>
-              <Link href="/settings">설정으로 이동</Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild>
+                <Link href="/settings">설정으로 이동</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/manual-portfolio">수동 포트폴리오</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">리밸런싱</h1>

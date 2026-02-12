@@ -117,6 +117,66 @@ export interface Database {
         };
         Relationships: [];
       };
+      manual_portfolios: {
+        Row: {
+          id: string;
+          user_id: string;
+          cash: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          cash?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          cash?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      manual_stocks: {
+        Row: {
+          id: string;
+          portfolio_id: string;
+          stock_code: string;
+          stock_name: string;
+          quantity: number;
+          avg_price: number;
+          current_price: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          portfolio_id: string;
+          stock_code: string;
+          stock_name: string;
+          quantity: number;
+          avg_price: number;
+          current_price: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          portfolio_id?: string;
+          stock_code?: string;
+          stock_name?: string;
+          quantity?: number;
+          avg_price?: number;
+          current_price?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

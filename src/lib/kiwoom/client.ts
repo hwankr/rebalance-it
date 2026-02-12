@@ -6,6 +6,7 @@ import type {
   KiwoomChartResponse,
   KiwoomOrderRequest,
   KiwoomOrderResponse,
+  KiwoomStock,
   KiwoomStockInfo,
 } from "./types";
 

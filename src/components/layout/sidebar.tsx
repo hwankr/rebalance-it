@@ -7,6 +7,7 @@ import {
   History,
   Settings,
   LogOut,
+  PenLine,
 } from "lucide-react";
 import { NavItem, type NavItemProps } from "./nav";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +16,7 @@ import { signOut } from "@/lib/supabase/auth";
 
 const navItems: NavItemProps[] = [
   { href: "/portfolio", label: "포트폴리오 현황", icon: LayoutDashboard },
+  { href: "/manual-portfolio", label: "수동 포트폴리오", icon: PenLine },
   { href: "/rebalance", label: "리밸런싱", icon: RefreshCw },
   { href: "/profiles", label: "프로필 관리", icon: FolderOpen },
   { href: "/history", label: "실행 이력", icon: History },
