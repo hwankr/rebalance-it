@@ -1,11 +1,11 @@
 /** 통화 형식 포맷 (예: "1,234,567원") */
 export function formatCurrency(amount: number): string {
-  return `${amount.toLocaleString("ko-KR")}원`;
+  return `${(amount ?? 0).toLocaleString("ko-KR")}원`;
 }
 
 /** 퍼센트 형식 포맷 (예: "12.34%") */
 export function formatPercent(value: number, decimals: number = 2): string {
-  return `${value.toFixed(decimals)}%`;
+  return `${(value ?? 0).toFixed(decimals)}%`;
 }
 
 /** 종목 코드 포맷 (6자리 0-padding) */

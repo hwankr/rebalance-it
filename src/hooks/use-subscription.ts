@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import type { PlanTier } from "@/lib/subscription/plans";
@@ -11,8 +12,38 @@ interface SubscriptionData {
   billing_cycle?: string;
 }
 
+const DEV_PLAN_KEY = "dev-plan-override";
+
+function getDevOverride(): PlanTier | null {
+  if (typeof window === "undefined") return null;
+  const val = localStorage.getItem(DEV_PLAN_KEY);
+  if (val === "pro" || val === "free") return val;
+  return null;
+}
+
+const listeners = new Set<() => void>();
+function subscribeDevOverride(cb: () => void) {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
+export function setDevPlanOverride(plan: PlanTier | null) {
+  if (plan === null) {
+    localStorage.removeItem(DEV_PLAN_KEY);
+  } else {
+    localStorage.setItem(DEV_PLAN_KEY, plan);
+  }
+  listeners.forEach((cb) => cb());
+}
+
 export function useSubscription() {
   const { user } = useAuth();
+
+  const devOverride = useSyncExternalStore(
+    subscribeDevOverride,
+    () => getDevOverride(),
+    () => null,
+  );
 
   const { data: subscription, isLoading, refetch } = useQuery({
     queryKey: ["subscription", user?.id],
@@ -27,8 +58,10 @@ export function useSubscription() {
     },
   });
 
-  const plan: PlanTier = subscription?.plan_tier ?? "free";
+  const realPlan: PlanTier = subscription?.plan_tier ?? "free";
+  const plan: PlanTier = devOverride ?? realPlan;
   const isPro = plan === "pro";
+  const isDevOverride = devOverride !== null;
 
-  return { plan, isPro, isLoading, subscription, refetch };
+  return { plan, isPro, isLoading, subscription, refetch, isDevOverride, realPlan };
 }

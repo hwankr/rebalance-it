@@ -24,6 +24,8 @@ interface ManualStockRow {
   quantity: number;
   avg_price: number;
   current_price: number;
+  price_updated_at: string | null;
+  currency: string;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +36,7 @@ export interface ManualStockInput {
   quantity: number;
   avg_price: number;
   current_price: number;
+  currency?: string;
 }
 
 // --- 변환 로직 ---
@@ -199,6 +202,7 @@ export function useManualPortfolio() {
         quantity: input.quantity,
         avg_price: input.avg_price,
         current_price: input.current_price,
+        currency: input.currency ?? "KRW",
       } as never);
       if (error) throw error;
     },

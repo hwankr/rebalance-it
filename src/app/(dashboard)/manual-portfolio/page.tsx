@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +9,9 @@ import { Info } from "lucide-react";
 
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
 import { useSettings } from "@/hooks/use-settings";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useRefreshPrices } from "@/hooks/use-refresh-prices";
+import { useExchangeRate } from "@/hooks/use-exchange-rate";
 import { StockForm } from "@/components/manual-portfolio/stock-form";
 import { StockTable } from "@/components/manual-portfolio/stock-table";
 import { formatCurrency } from "@/lib/utils/format";
@@ -53,6 +55,9 @@ export default function ManualPortfolioPage() {
     isAdding,
   } = useManualPortfolio();
   const { settings, updateSettings } = useSettings();
+  const { isPro } = useSubscription();
+  const { refreshPrices, isRefreshing } = useRefreshPrices();
+  const { rate: exchangeRate } = useExchangeRate();
   const isManualActive = settings.dataSource === "manual";
 
   const cashForm = useForm<CashFormValues>({
@@ -80,6 +85,23 @@ export default function ManualPortfolioPage() {
   function handleActivateManualMode() {
     updateSettings({ dataSource: "manual" });
     toast.success("수동 모드가 활성화되었습니다.");
+  }
+
+  function handleRefreshPrices() {
+    refreshPrices(undefined, {
+      onSuccess: (result) => {
+        if (result.failed === 0) {
+          toast.success(`${result.updated}개 종목 가격이 업데이트되었습니다.`);
+        } else if (result.updated > 0) {
+          toast.warning(`${result.updated}개 성공, ${result.failed}개 실패`);
+        } else {
+          toast.error("가격 업데이트에 실패했습니다.");
+        }
+      },
+      onError: (err) => {
+        toast.error(err.message);
+      },
+    });
   }
 
   if (isLoading) {
@@ -137,7 +159,7 @@ export default function ManualPortfolioPage() {
       )}
 
       {/* 요약 카드 */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Card>
           <CardHeader>
             <CardDescription>총 평가금액</CardDescription>
@@ -166,6 +188,14 @@ export default function ManualPortfolioPage() {
           <CardHeader>
             <CardDescription>보유 종목 수</CardDescription>
             <CardTitle className="text-2xl">{stocks.length}종목</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>USD/KRW</CardDescription>
+            <CardTitle className="text-2xl">
+              {exchangeRate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -232,6 +262,9 @@ export default function ManualPortfolioPage() {
             stocks={stocks}
             onUpdate={updateStock}
             onDelete={handleDeleteStock}
+            onRefresh={isPro ? handleRefreshPrices : undefined}
+            isRefreshing={isRefreshing}
+            exchangeRate={exchangeRate}
           />
         </CardContent>
       </Card>

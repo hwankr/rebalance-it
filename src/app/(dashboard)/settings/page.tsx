@@ -10,7 +10,7 @@ import { Loader2, Wifi, WifiOff, Trash2, CheckCircle2, XCircle } from "lucide-re
 
 import { useSettings } from "@/hooks/use-settings";
 import { useAuth } from "@/hooks/use-auth";
-import { useSubscription } from "@/hooks/use-subscription";
+import { useSubscription, setDevPlanOverride } from "@/hooks/use-subscription";
 import { createClient } from "@/lib/supabase/client";
 import { PlanBadge } from "@/components/subscription/plan-badge";
 import { UpgradePrompt } from "@/components/subscription/upgrade-prompt";
@@ -60,7 +60,7 @@ type AccountFormValues = z.infer<typeof accountSchema>;
 export default function SettingsPage() {
   const { settings, updateSettings, clearSettings } = useSettings();
   const { user } = useAuth();
-  const { isPro, subscription } = useSubscription();
+  const { isPro, subscription, isDevOverride, realPlan } = useSubscription();
   const [checking, setChecking] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const queryClient = useQueryClient();
@@ -283,7 +283,59 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 섹션 4: 앱 정보 */}
+      {/* 섹션 4: 개발용 구독 토글 */}
+      {process.env.NODE_ENV === "development" && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              개발용 구독 토글
+              <Badge variant="outline" className="text-yellow-700 border-yellow-400 dark:text-yellow-300">
+                DEV
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              개발 중 Pro 기능을 테스트할 수 있습니다. 실제 구독: {realPlan}
+              {isDevOverride && " (오버라이드 활성)"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-3">
+            <Button
+              variant={isPro && isDevOverride ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setDevPlanOverride("pro");
+                toast.success("Pro 모드로 전환되었습니다 (개발용)");
+              }}
+            >
+              Pro
+            </Button>
+            <Button
+              variant={!isPro && isDevOverride ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setDevPlanOverride("free");
+                toast.success("Free 모드로 전환되었습니다 (개발용)");
+              }}
+            >
+              Free
+            </Button>
+            {isDevOverride && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setDevPlanOverride(null);
+                  toast.success("실제 구독 상태로 복원되었습니다.");
+                }}
+              >
+                초기화
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 섹션 5: 앱 정보 */}
       <Card>
         <CardHeader>
           <CardTitle>앱 정보</CardTitle>

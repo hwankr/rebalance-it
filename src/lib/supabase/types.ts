@@ -150,6 +150,8 @@ export interface Database {
           quantity: number;
           avg_price: number;
           current_price: number;
+          currency: string;
+          price_updated_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -161,6 +163,8 @@ export interface Database {
           quantity: number;
           avg_price: number;
           current_price: number;
+          currency?: string;
+          price_updated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -172,6 +176,8 @@ export interface Database {
           quantity?: number;
           avg_price?: number;
           current_price?: number;
+          currency?: string;
+          price_updated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -258,6 +264,39 @@ export interface Database {
           event_type?: string;
           payload?: Json;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      stocks: {
+        Row: {
+          stock_code: string;
+          stock_name: string;
+          stock_name_ko: string | null;
+          market: string;
+          country: string;
+          currency: string;
+          is_active: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          stock_code: string;
+          stock_name: string;
+          stock_name_ko?: string | null;
+          market: string;
+          country: string;
+          currency: string;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          stock_code?: string;
+          stock_name?: string;
+          stock_name_ko?: string | null;
+          market?: string;
+          country?: string;
+          currency?: string;
+          is_active?: boolean;
+          updated_at?: string;
         };
         Relationships: [];
       };

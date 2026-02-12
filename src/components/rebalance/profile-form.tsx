@@ -22,6 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { StockCombobox } from "@/components/stock-combobox";
 import type { RebalanceProfile } from "@/lib/rebalance/profile-types";
 
 const profileSchema = z
@@ -206,38 +207,27 @@ export function ProfileForm({
 
           {fields.map((field, index) => (
             <div key={field.id} className="flex items-start gap-2">
-              <FormField
-                control={form.control}
-                name={`targets.${index}.stock_code`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        placeholder="종목코드"
-                        className="w-28"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <div className="w-56">
+                <StockCombobox
+                  onSelect={(stock) => {
+                    form.setValue(`targets.${index}.stock_code`, stock.stock_code, { shouldValidate: true });
+                    form.setValue(`targets.${index}.stock_name`, stock.stock_name, { shouldValidate: true });
+                  }}
+                  defaultValue={
+                    field.stock_code && field.stock_name
+                      ? { stock_code: field.stock_code, stock_name: field.stock_name }
+                      : undefined
+                  }
+                  placeholder="종목 검색..."
+                />
+                {(form.formState.errors.targets?.[index]?.stock_code ||
+                  form.formState.errors.targets?.[index]?.stock_name) && (
+                  <p className="text-destructive text-sm mt-1">
+                    {form.formState.errors.targets?.[index]?.stock_code?.message ||
+                      form.formState.errors.targets?.[index]?.stock_name?.message}
+                  </p>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name={`targets.${index}.stock_name`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        placeholder="종목명"
-                        className="w-40"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              </div>
               <FormField
                 control={form.control}
                 name={`targets.${index}.target_pct`}

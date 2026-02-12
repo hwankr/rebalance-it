@@ -28,6 +28,11 @@ export async function requireAuth() {
 export async function requirePlan(minimumPlan: PlanTier) {
   const { user, supabase } = await requireAuth();
 
+  // 개발 모드에서는 플랜 체크를 건너뛰고 Pro로 간주
+  if (process.env.NODE_ENV === "development") {
+    return { user, supabase, plan: "pro" as PlanTier };
+  }
+
   const { data: sub } = await supabase
     .from("subscriptions")
     .select("plan_tier, status")
