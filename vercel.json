@@ -1,14 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "regions": ["icn1"],
-  "crons": [],
-  "env": {
-    "KIWOOM_APP_KEY": "@kiwoom-app-key",
-    "KIWOOM_APP_SECRET": "@kiwoom-app-secret",
-    "KIWOOM_BASE_URL": "https://openapi.kiwoom.com",
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabase-service-role-key"
-  }
+  "regions": ["icn1"]
 }
