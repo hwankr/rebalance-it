@@ -3,13 +3,13 @@ import { getExchangeRate } from "@/lib/exchange-rate";
 
 export async function GET() {
   try {
-    const rate = await getExchangeRate();
+    const { rate, fetchedAt } = await getExchangeRate();
     return NextResponse.json(
       {
         rate,
         from: "USD",
         to: "KRW",
-        updated_at: new Date().toISOString(),
+        updated_at: fetchedAt > 0 ? new Date(fetchedAt).toISOString() : null,
       },
       {
         headers: {

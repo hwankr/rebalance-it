@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Info } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
+import { Info, Pencil, RotateCcw, Check } from "lucide-react";
 
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
 import { useSettings } from "@/hooks/use-settings";
@@ -58,7 +61,16 @@ export default function ManualPortfolioPage() {
   const { settings, updateSettings } = useSettings();
   const { isPro } = useSubscription();
   const { refreshPrices, isRefreshing } = useRefreshPrices();
-  const { rate: exchangeRate } = useExchangeRate();
+  const {
+    rate: exchangeRate,
+    apiRate,
+    updatedAt,
+    isManualRate,
+    setManualRate,
+    clearManualRate,
+  } = useExchangeRate();
+  const [isEditingRate, setIsEditingRate] = useState(false);
+  const [editRateValue, setEditRateValue] = useState("");
   const isManualActive = settings.dataSource === "manual";
 
   const cashForm = useForm<CashFormValues>({
@@ -193,11 +205,92 @@ export default function ManualPortfolioPage() {
           </CardHeader>
         </Card>
         <Card className="glass-card card-hover">
-          <CardHeader>
-            <CardDescription>USD/KRW</CardDescription>
-            <CardTitle className="text-2xl tabular-nums font-mono">
-              {exchangeRate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}
-            </CardTitle>
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-between">
+              <CardDescription>USD/KRW</CardDescription>
+              <div className="flex items-center gap-1">
+                {isManualRate && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    수동
+                  </Badge>
+                )}
+                {isEditingRate ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    onClick={() => {
+                      const parsed = parseFloat(editRateValue);
+                      if (!isNaN(parsed) && parsed > 0) {
+                        setManualRate(parsed);
+                        toast.success("환율이 수동 설정되었습니다.");
+                      }
+                      setIsEditingRate(false);
+                    }}
+                  >
+                    <Check className="size-3.5" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    onClick={() => {
+                      setEditRateValue(String(exchangeRate));
+                      setIsEditingRate(true);
+                    }}
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                )}
+                {isManualRate && !isEditingRate && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    onClick={() => {
+                      clearManualRate();
+                      toast.success("자동 환율로 복원되었습니다.");
+                    }}
+                  >
+                    <RotateCcw className="size-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            {isEditingRate ? (
+              <Input
+                type="number"
+                step="0.01"
+                value={editRateValue}
+                onChange={(e) => setEditRateValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const parsed = parseFloat(editRateValue);
+                    if (!isNaN(parsed) && parsed > 0) {
+                      setManualRate(parsed);
+                      toast.success("환율이 수동 설정되었습니다.");
+                    }
+                    setIsEditingRate(false);
+                  } else if (e.key === "Escape") {
+                    setIsEditingRate(false);
+                  }
+                }}
+                className="h-8 text-lg font-mono tabular-nums"
+                autoFocus
+              />
+            ) : (
+              <CardTitle className="text-2xl tabular-nums font-mono">
+                {exchangeRate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}
+              </CardTitle>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              {isManualRate
+                ? `자동: ${apiRate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}`
+                : updatedAt
+                  ? `${formatDistanceToNow(new Date(updatedAt), { addSuffix: true, locale: ko })} 갱신`
+                  : "갱신 시간 알 수 없음"}
+            </p>
           </CardHeader>
         </Card>
       </div>

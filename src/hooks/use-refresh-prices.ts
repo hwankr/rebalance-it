@@ -25,6 +25,7 @@ export function useRefreshPrices() {
     },
     onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: ["manual-portfolio"] });
+      queryClient.invalidateQueries({ queryKey: ["exchange-rate"] });
     },
   });
 

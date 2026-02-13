@@ -1,18 +1,25 @@
 let cachedRate: { rate: number; fetchedAt: number } | null = null;
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-export async function getExchangeRate(): Promise<number> {
+export async function getExchangeRate(): Promise<{
+  rate: number;
+  fetchedAt: number;
+}> {
   if (cachedRate && Date.now() - cachedRate.fetchedAt < CACHE_TTL) {
-    return cachedRate.rate;
+    return { rate: cachedRate.rate, fetchedAt: cachedRate.fetchedAt };
   }
 
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/USD");
     const data = await res.json();
     const rate = data.rates?.KRW ?? 1350;
-    cachedRate = { rate, fetchedAt: Date.now() };
-    return rate;
+    const fetchedAt = Date.now();
+    cachedRate = { rate, fetchedAt };
+    return { rate, fetchedAt };
   } catch {
-    return cachedRate?.rate ?? 1350;
+    if (cachedRate) {
+      return { rate: cachedRate.rate, fetchedAt: cachedRate.fetchedAt };
+    }
+    return { rate: 1350, fetchedAt: 0 };
   }
 }

@@ -63,7 +63,7 @@ export async function POST() {
       }
     }
 
-    const exchangeRate = await getExchangeRate();
+    const { rate: exchangeRate } = await getExchangeRate();
     let updated = 0;
     let failed = 0;
     const errors: Array<{ stock_code: string; error: string }> = [];
