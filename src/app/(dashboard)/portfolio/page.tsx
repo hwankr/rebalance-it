@@ -22,7 +22,7 @@ function formatUpdatedAt(timestamp: number | undefined): string {
 }
 
 export default function PortfolioPage() {
-  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt, isMarketOpen, isManualMode } =
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt, isMarketOpen, isManualMode, exchangeRate } =
     usePortfolioData();
 
   if (isLoading) {
@@ -170,6 +170,7 @@ export default function PortfolioPage() {
             <HoldingsTable
               stocks={data?.stocks ?? []}
               isLoading={isLoading}
+              exchangeRate={exchangeRate}
             />
           </CardContent>
         </Card>

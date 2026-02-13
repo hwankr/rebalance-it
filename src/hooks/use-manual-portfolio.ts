@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { KiwoomBalanceResponse, KiwoomStock } from "@/lib/kiwoom/types";
+import { DEFAULT_EXCHANGE_RATE } from "@/lib/utils/format";
 
 // --- DB row types ---
 
@@ -44,10 +45,15 @@ export interface ManualStockInput {
 function toBalanceResponse(
   portfolio: ManualPortfolioRow,
   stocks: ManualStockRow[],
+  exchangeRate: number = DEFAULT_EXCHANGE_RATE,
 ): KiwoomBalanceResponse {
   const kiwoomStocks: KiwoomStock[] = stocks.map((s) => {
-    const eval_amount = s.current_price * s.quantity;
-    const profit_loss = (s.current_price - s.avg_price) * s.quantity;
+    const isUsd = s.currency === "USD";
+    const rate = isUsd ? exchangeRate : 1;
+    const priceKrw = s.current_price * rate;
+    const avgPriceKrw = s.avg_price * rate;
+    const eval_amount = priceKrw * s.quantity;
+    const profit_loss = (priceKrw - avgPriceKrw) * s.quantity;
     const profit_rate =
       s.avg_price > 0
         ? ((s.current_price - s.avg_price) / s.avg_price) * 100
@@ -56,11 +62,14 @@ function toBalanceResponse(
       stock_code: s.stock_code,
       stock_name: s.stock_name,
       quantity: s.quantity,
-      avg_price: s.avg_price,
-      current_price: s.current_price,
+      avg_price: avgPriceKrw,
+      current_price: priceKrw,
       eval_amount,
       profit_loss,
       profit_rate,
+      currency: s.currency,
+      native_price: isUsd ? s.current_price : undefined,
+      native_avg_price: isUsd ? s.avg_price : undefined,
     };
   });
 
@@ -87,7 +96,9 @@ function toBalanceResponse(
 
 // --- 독립 fetch 함수 (usePortfolioData의 queryFn으로 사용) ---
 
-export async function fetchManualPortfolio(): Promise<KiwoomBalanceResponse> {
+export async function fetchManualPortfolio(
+  exchangeRate: number = DEFAULT_EXCHANGE_RATE,
+): Promise<KiwoomBalanceResponse> {
   const supabase = createClient();
   const {
     data: { user },
@@ -115,15 +126,17 @@ export async function fetchManualPortfolio(): Promise<KiwoomBalanceResponse> {
   return toBalanceResponse(
     portfolio as ManualPortfolioRow,
     (stocks ?? []) as ManualStockRow[],
+    exchangeRate,
   );
 }
 
 // --- Hook ---
 
-export function useManualPortfolio() {
+export function useManualPortfolio(exchangeRate?: number) {
   const supabase = createClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const rate = exchangeRate ?? DEFAULT_EXCHANGE_RATE;
   const queryKey = ["manual-portfolio", user?.id];
 
   // 포트폴리오 + 종목 조회
@@ -151,7 +164,7 @@ export function useManualPortfolio() {
         portfolio: portfolio as ManualPortfolioRow | null,
         stocks,
         balance: portfolio
-          ? toBalanceResponse(portfolio as ManualPortfolioRow, stocks)
+          ? toBalanceResponse(portfolio as ManualPortfolioRow, stocks, rate)
           : null,
       };
     },

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatPercent, formatStockCode } from "@/lib/utils/format";
+import { formatCurrency, formatPercent, formatStockCode, formatStockPrice, formatAvgPrice } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { KiwoomStock } from "@/lib/kiwoom/types";
 import { useStockChart } from "@/hooks/use-stock-chart";
@@ -31,6 +31,7 @@ import { StockPriceChart } from "./stock-price-chart";
 interface HoldingsTableProps {
   stocks: KiwoomStock[];
   isLoading: boolean;
+  exchangeRate?: number;
 }
 
 function SkeletonBar({ className }: { className?: string }) {
@@ -76,7 +77,7 @@ function StockChartSheet({
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-muted-foreground">현재가</span>
-              <p className="font-medium tabular-nums">{formatCurrency(stock.current_price)}</p>
+              <p className="font-medium tabular-nums">{formatStockPrice(stock)}</p>
             </div>
             <div>
               <span className="text-muted-foreground">수익률</span>
@@ -113,7 +114,7 @@ function StockChartSheet({
   );
 }
 
-export function HoldingsTable({ stocks, isLoading }: HoldingsTableProps) {
+export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTableProps) {
   const [selectedStock, setSelectedStock] = useState<KiwoomStock | null>(null);
 
   return (
@@ -175,10 +176,10 @@ export function HoldingsTable({ stocks, isLoading }: HoldingsTableProps) {
                     {stock.quantity.toLocaleString("ko-KR")}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatCurrency(stock.avg_price)}
+                    {formatAvgPrice(stock)}
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
-                    {formatCurrency(stock.current_price)}
+                    {formatStockPrice(stock)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatCurrency(stock.eval_amount)}
@@ -281,7 +282,7 @@ export function HoldingsTable({ stocks, isLoading }: HoldingsTableProps) {
                   <div>
                     <div className="text-xs text-muted-foreground mb-0.5">현재가</div>
                     <div className="font-medium tabular-nums text-sm">
-                      {formatCurrency(stock.current_price)}
+                      {formatStockPrice(stock)}
                     </div>
                   </div>
                   <div>
@@ -300,7 +301,7 @@ export function HoldingsTable({ stocks, isLoading }: HoldingsTableProps) {
 
                 {/* Bottom row: secondary info */}
                 <div className="text-xs text-muted-foreground tabular-nums">
-                  수량 {stock.quantity.toLocaleString("ko-KR")} · 평균 {formatCurrency(stock.avg_price)}
+                  수량 {stock.quantity.toLocaleString("ko-KR")} · 평균 {formatAvgPrice(stock)}
                 </div>
               </div>
             </m.div>

@@ -16,6 +16,9 @@ export interface KiwoomStock {
   eval_amount: number;
   profit_loss: number;
   profit_rate: number;
+  currency?: string;
+  native_price?: number;
+  native_avg_price?: number;
 }
 
 export interface KiwoomBalanceResponse {
