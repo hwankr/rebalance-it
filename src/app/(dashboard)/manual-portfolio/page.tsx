@@ -6,8 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
+import { format } from "date-fns";
 import { Info, Pencil, RotateCcw, Check } from "lucide-react";
 
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
@@ -288,7 +287,7 @@ export default function ManualPortfolioPage() {
               {isManualRate
                 ? `자동: ${apiRate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}`
                 : updatedAt
-                  ? `${formatDistanceToNow(new Date(updatedAt), { addSuffix: true, locale: ko })} 갱신`
+                  ? `기준: ${format(new Date(updatedAt), "yy.MM.dd HH:mm")}`
                   : "갱신 시간 알 수 없음"}
             </p>
           </CardHeader>
