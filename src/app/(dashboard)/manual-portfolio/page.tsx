@@ -46,17 +46,6 @@ interface CashFormValues {
 }
 
 export default function ManualPortfolioPage() {
-  const {
-    portfolio,
-    stocks,
-    balance,
-    isLoading,
-    setCash,
-    addStock,
-    updateStock,
-    deleteStock,
-    isAdding,
-  } = useManualPortfolio();
   const { settings, updateSettings } = useSettings();
   const { isPro } = useSubscription();
   const { refreshPrices, isRefreshing } = useRefreshPrices();
@@ -68,6 +57,17 @@ export default function ManualPortfolioPage() {
     setManualRate,
     clearManualRate,
   } = useExchangeRate();
+  const {
+    portfolio,
+    stocks,
+    balance,
+    isLoading,
+    setCash,
+    addStock,
+    updateStock,
+    deleteStock,
+    isAdding,
+  } = useManualPortfolio(exchangeRate);
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [editRateValue, setEditRateValue] = useState("");
   const isManualActive = settings.dataSource === "manual";
@@ -128,11 +128,10 @@ export default function ManualPortfolioPage() {
     );
   }
 
-  const totalEval = stocks.reduce(
-    (sum, s) => sum + s.current_price * s.quantity,
-    0,
-  );
-  const totalValue = totalEval + Number(portfolio?.cash ?? 0);
+  const totalEval = balance
+    ? balance.stocks.reduce((sum, s) => sum + s.eval_amount, 0)
+    : 0;
+  const totalValue = balance?.total_value ?? 0;
 
   return (
     <PageTransition>

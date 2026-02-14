@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatPercent, formatStockCode, formatStockPrice, formatAvgPrice } from "@/lib/utils/format";
+import { formatCurrency, formatEvalAmount, formatPercent, formatStockCode, formatStockPrice, formatAvgPrice } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { KiwoomStock } from "@/lib/kiwoom/types";
 import { useStockChart } from "@/hooks/use-stock-chart";
@@ -87,7 +87,7 @@ function StockChartSheet({
             </div>
             <div>
               <span className="text-muted-foreground">평가금액</span>
-              <p className="font-medium tabular-nums">{formatCurrency(stock.eval_amount)}</p>
+              <p className="font-medium tabular-nums">{formatEvalAmount(stock.eval_amount, { currency: stock.currency, nativeEval: stock.native_price != null ? stock.native_price * stock.quantity : undefined })}</p>
             </div>
             <div>
               <span className="text-muted-foreground">손익</span>
@@ -182,7 +182,7 @@ export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTable
                     {formatStockPrice(stock)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatCurrency(stock.eval_amount)}
+                    {formatEvalAmount(stock.eval_amount, { currency: stock.currency, nativeEval: stock.native_price != null ? stock.native_price * stock.quantity : undefined })}
                   </TableCell>
                   <TableCell
                     className={cn(
@@ -288,7 +288,7 @@ export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTable
                   <div>
                     <div className="text-xs text-muted-foreground mb-0.5">평가금액</div>
                     <div className="font-medium tabular-nums text-sm">
-                      {formatCurrency(stock.eval_amount)}
+                      {formatEvalAmount(stock.eval_amount, { currency: stock.currency, nativeEval: stock.native_price != null ? stock.native_price * stock.quantity : undefined })}
                     </div>
                   </div>
                   <div>

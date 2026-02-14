@@ -1,9 +1,30 @@
 /** 기본 환율 (USD/KRW) 폴백 */
 export const DEFAULT_EXCHANGE_RATE = 1350;
 
-/** 통화 형식 포맷 (예: "1,234,567원") */
+/** 통화 형식 포맷 (예: "1,234,567원") — KRW 정수 표시, NaN/Infinity 안전 */
 export function formatCurrency(amount: number): string {
-  return `${(amount ?? 0).toLocaleString("ko-KR")}원`;
+  if (!Number.isFinite(amount)) return "0원";
+  return `${Math.round(amount).toLocaleString("ko-KR")}원`;
+}
+
+/**
+ * 평가금액 포맷: USD 종목은 KRW + USD 듀얼 표시
+ * USD: "1,234,567원 ($914.49)"  /  KRW: "1,234,567원"
+ */
+export function formatEvalAmount(
+  krwAmount: number,
+  options?: { currency?: string; nativeEval?: number },
+): string {
+  if (!Number.isFinite(krwAmount)) return "0원";
+  const krwStr = `${Math.round(krwAmount).toLocaleString("ko-KR")}원`;
+  if (
+    options?.currency === "USD" &&
+    options.nativeEval != null &&
+    Number.isFinite(options.nativeEval)
+  ) {
+    return `${krwStr} (${formatUsdPrice(options.nativeEval)})`;
+  }
+  return krwStr;
 }
 
 /** USD 가격 포맷 (예: "$150.25") */

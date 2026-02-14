@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatPercent } from "@/lib/utils/format";
+import { formatCurrency, formatEvalAmount, formatPercent, formatUsdPrice } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 
@@ -59,9 +59,6 @@ function formatPriceTimestamp(priceUpdatedAt: string | null): string {
   });
 }
 
-function formatUsdPrice(price: number): string {
-  return `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 export function StockTable({
   stocks,
@@ -236,7 +233,7 @@ export function StockTable({
                 </TableCell>
                 <TableCell className="text-right">
                   {isUsd && exchangeRate
-                    ? formatCurrency(Math.round(evalAmountKrw))
+                    ? formatEvalAmount(evalAmountKrw, { currency: "USD", nativeEval: evalAmount })
                     : formatCurrency(evalAmount)}
                 </TableCell>
                 <TableCell
@@ -419,8 +416,13 @@ export function StockTable({
                       <div>
                         <div className="text-xs text-muted-foreground mb-0.5">평가금액</div>
                         <div className="font-medium tabular-nums text-sm">
-                          {isUsd && exchangeRate ? formatCurrency(Math.round(evalAmountKrw)) : formatCurrency(evalAmount)}
+                          {isUsd && exchangeRate ? formatCurrency(evalAmountKrw) : formatCurrency(evalAmount)}
                         </div>
+                        {isUsd && exchangeRate && (
+                          <div className="text-[10px] text-muted-foreground tabular-nums">
+                            ({formatUsdPrice(evalAmount)})
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground mb-0.5">손익</div>

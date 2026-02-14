@@ -137,7 +137,9 @@ export function useManualPortfolio(exchangeRate?: number) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const rate = exchangeRate ?? DEFAULT_EXCHANGE_RATE;
-  const queryKey = ["manual-portfolio", user?.id];
+  const queryKey = ["manual-portfolio", user?.id, rate];
+  // Prefix key for mutation invalidation — clears all rate variants
+  const invalidationKey = ["manual-portfolio", user?.id];
 
   // 포트폴리오 + 종목 조회
   const { data, isLoading, isError, error } = useQuery({
@@ -190,7 +192,7 @@ export function useManualPortfolio(exchangeRate?: number) {
         if (error) throw error;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
   // 종목 추가
@@ -219,7 +221,7 @@ export function useManualPortfolio(exchangeRate?: number) {
       } as never);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
   // 종목 수정
@@ -237,7 +239,7 @@ export function useManualPortfolio(exchangeRate?: number) {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
   // 종목 삭제
@@ -249,7 +251,7 @@ export function useManualPortfolio(exchangeRate?: number) {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
   const setCash = useCallback(
