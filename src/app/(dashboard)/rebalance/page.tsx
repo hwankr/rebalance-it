@@ -1,16 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
-import { useProfiles } from "@/hooks/use-profiles";
+import { useSettings } from "@/hooks/use-settings";
+import { useRebalanceSettings } from "@/hooks/use-rebalance-settings";
 import {
   calculateDrift,
   needsRebalancing,
   getMaxDrift,
   toPortfolioItems,
 } from "@/lib/rebalance";
-import type { TargetAllocation } from "@/lib/rebalance";
 import { formatPercent } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,49 +23,34 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DriftChart } from "@/components/rebalance/drift-chart";
 import { PageTransition } from "@/components/layout/page-transition";
 
 export default function RebalancePage() {
-  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const { isPro } = useSubscription();
+  const { settings: userSettings } = useSettings();
+  const dataSource = userSettings.dataSource;
 
-  const { profiles } = useProfiles();
-  const { data: balance, isLoading, isError, error, isManualMode } = usePortfolioData();
+  const { data: balance, isLoading, isError, error, isManualMode, targets: portfolioTargets } = usePortfolioData();
+  const { settings: rebalanceSettings, isLoading: isSettingsLoading } = useRebalanceSettings(dataSource);
 
-  const selectedProfile = useMemo(
-    () => profiles.find((p) => p.id === selectedProfileId),
-    [profiles, selectedProfileId],
-  );
+  const threshold = rebalanceSettings?.threshold_pct ?? 5;
 
-  const threshold = selectedProfile?.threshold_pct ?? 5;
-
-  const { drifts, maxDrift, rebalanceNeeded } = useMemo(() => {
-    if (!balance?.stocks?.length || !selectedProfile) {
-      return { drifts: [], maxDrift: 0, rebalanceNeeded: false };
+  const { drifts, maxDrift, rebalanceNeeded, targets } = useMemo(() => {
+    if (!balance?.stocks?.length || !portfolioTargets?.length) {
+      return { drifts: [], maxDrift: 0, rebalanceNeeded: false, targets: [] as typeof portfolioTargets };
     }
 
-    const targets: TargetAllocation[] = selectedProfile.targets.map((t) => ({
-      stock_code: t.stock_code,
-      stock_name: t.stock_name,
-      target_pct: t.target_pct,
-    }));
-    const items = toPortfolioItems(balance.stocks, targets);
+    const items = toPortfolioItems(balance.stocks, portfolioTargets);
     const driftResults = calculateDrift(items);
 
     return {
       drifts: driftResults,
       maxDrift: getMaxDrift(driftResults),
       rebalanceNeeded: needsRebalancing(driftResults, threshold),
+      targets: portfolioTargets,
     };
-  }, [balance, selectedProfile, threshold]);
+  }, [balance, portfolioTargets, threshold]);
 
   if (!isManualMode && !balance && !isLoading) {
     return (
@@ -118,51 +103,13 @@ export default function RebalancePage() {
         </p>
       </div>
 
-      {/* 프로필 선택 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>프로필 선택</CardTitle>
-          <CardDescription>
-            리밸런싱에 사용할 프로필을 선택하세요.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {profiles.length === 0 ? (
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-muted-foreground">
-                프로필을 먼저 만들어주세요.
-              </p>
-              <Button size="sm" asChild>
-                <Link href="/profiles/new">프로필 생성</Link>
-              </Button>
-            </div>
-          ) : (
-            <Select
-              value={selectedProfileId}
-              onValueChange={setSelectedProfileId}
-            >
-              <SelectTrigger className="w-full max-w-xs">
-                <SelectValue placeholder="프로필을 선택하세요" />
-              </SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </CardContent>
-      </Card>
-
       {/* 상단 요약 카드 */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
         <Card>
           <CardHeader>
-            <CardDescription>프로필명</CardDescription>
+            <CardDescription>데이터 소스</CardDescription>
             <CardTitle className="text-2xl">
-              {selectedProfile ? selectedProfile.name : "-"}
+              {dataSource === "kiwoom" ? "키움증권" : "수동 입력"}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -173,7 +120,7 @@ export default function RebalancePage() {
             <CardTitle className="text-2xl">
               {isLoading
                 ? "..."
-                : selectedProfile
+                : targets.length > 0
                   ? formatPercent(maxDrift)
                   : "-"}
             </CardTitle>
@@ -186,7 +133,7 @@ export default function RebalancePage() {
             <CardTitle>
               {isLoading ? (
                 "..."
-              ) : !selectedProfile ? (
+              ) : targets.length === 0 ? (
                 "-"
               ) : rebalanceNeeded ? (
                 <span className="relative">
@@ -214,13 +161,13 @@ export default function RebalancePage() {
           <CardTitle>비중 Drift 현황</CardTitle>
           <CardDescription>
             현재 비중과 목표 비중의 차이를 시각화합니다.
-            {selectedProfile && ` (임계값: ${threshold}%)`}
+            {targets.length > 0 && ` (임계값: ${threshold}%)`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!selectedProfile ? (
+          {targets.length === 0 ? (
             <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-              프로필을 선택해주세요.
+              포트폴리오 페이지에서 목표 비중을 설정해주세요.
             </div>
           ) : (
             <DriftChart
@@ -235,14 +182,8 @@ export default function RebalancePage() {
       {/* 하단: 액션 버튼 */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-3 sm:gap-4">
-          <Button asChild disabled={!selectedProfileId}>
-            <Link
-              href={
-                selectedProfileId
-                  ? `/rebalance/simulate?profile=${selectedProfileId}`
-                  : "#"
-              }
-            >
+          <Button asChild disabled={targets.length === 0}>
+            <Link href="/rebalance/simulate">
               시뮬레이션 실행
             </Link>
           </Button>
@@ -254,18 +195,10 @@ export default function RebalancePage() {
               </Button>
             }
           >
-            <Button disabled={!selectedProfileId || !rebalanceNeeded}>
+            <Button disabled={targets.length === 0 || !rebalanceNeeded}>
               자동 주문 실행
             </Button>
           </PlanGate>
-          {selectedProfileId && (
-            <Button variant="outline" asChild>
-              <Link href={`/profiles/${selectedProfileId}`}>프로필 수정</Link>
-            </Button>
-          )}
-          <Button variant="outline" asChild>
-            <Link href="/profiles">프로필 관리</Link>
-          </Button>
         </div>
         {!isPro && (
           <p className="text-sm text-muted-foreground">

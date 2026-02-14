@@ -51,6 +51,7 @@ export interface Database {
           user_id: string | null;
           profile_id: string | null;
           profile_name: string;
+          preset_name: string | null;
           executed_at: string;
           status: string;
           total_orders: number;
@@ -66,6 +67,7 @@ export interface Database {
           user_id?: string | null;
           profile_id?: string | null;
           profile_name: string;
+          preset_name?: string | null;
           executed_at?: string;
           status: string;
           total_orders?: number;
@@ -81,6 +83,7 @@ export interface Database {
           user_id?: string | null;
           profile_id?: string | null;
           profile_name?: string;
+          preset_name?: string | null;
           executed_at?: string;
           status?: string;
           total_orders?: number;
@@ -152,6 +155,7 @@ export interface Database {
           current_price: number;
           currency: string;
           price_updated_at: string | null;
+          target_pct: number;
           created_at: string;
           updated_at: string;
         };
@@ -165,6 +169,7 @@ export interface Database {
           current_price: number;
           currency?: string;
           price_updated_at?: string | null;
+          target_pct?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -178,6 +183,97 @@ export interface Database {
           current_price?: number;
           currency?: string;
           price_updated_at?: string | null;
+          target_pct?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      rebalance_settings: {
+        Row: {
+          id: string;
+          user_id: string;
+          data_source: string;
+          strategy: string;
+          threshold_pct: number;
+          calendar_interval: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          data_source: string;
+          strategy?: string;
+          threshold_pct?: number;
+          calendar_interval?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          data_source?: string;
+          strategy?: string;
+          threshold_pct?: number;
+          calendar_interval?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      stock_targets: {
+        Row: {
+          id: string;
+          user_id: string;
+          stock_code: string;
+          stock_name: string;
+          target_pct: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          stock_code: string;
+          stock_name: string;
+          target_pct?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          stock_code?: string;
+          stock_name?: string;
+          target_pct?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      presets: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          targets: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          targets?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          targets?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -305,7 +401,20 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      apply_preset_to_targets: {
+        Args: {
+          p_user_id: string;
+          p_targets: Json;
+        };
+        Returns: undefined;
+      };
+      apply_preset_to_manual: {
+        Args: {
+          p_portfolio_id: string;
+          p_targets: Json;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;

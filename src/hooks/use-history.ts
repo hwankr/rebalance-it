@@ -28,6 +28,7 @@ export function useHistory() {
       return (data ?? []).map((row) => ({
         ...row,
         profile_id: row.profile_id ?? "",
+        preset_name: (row.preset_name as string | null) ?? undefined,
         status: row.status as RebalanceExecution["status"],
         orders: (row.orders as unknown as RebalanceExecution["orders"]) ?? [],
         total_buy_amount: Number(row.total_buy_amount),
@@ -39,12 +40,14 @@ export function useHistory() {
 
   const addMutation = useMutation({
     mutationFn: async (data: Omit<RebalanceExecution, "id" | "executed_at">) => {
+      const displayName = data.preset_name ?? data.profile_name ?? "직접 설정";
       const { error } = await supabase
         .from("executions")
         .insert({
           user_id: user!.id,
-          profile_id: data.profile_id,
-          profile_name: data.profile_name,
+          profile_id: null,
+          profile_name: displayName,
+          preset_name: data.preset_name ?? null,
           executed_at: new Date().toISOString(),
           status: data.status,
           total_orders: data.total_orders,

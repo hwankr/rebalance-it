@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useState, useEffect, useMemo } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useProfiles } from "@/hooks/use-profiles";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
+import { useSettings } from "@/hooks/use-settings";
+import { useRebalanceSettings } from "@/hooks/use-rebalance-settings";
 import { simulateRebalance } from "@/lib/rebalance/calculator";
 import { toPortfolioItems } from "@/lib/rebalance/helpers";
 import type { TargetAllocation } from "@/lib/rebalance/types";
@@ -21,13 +22,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -40,43 +34,20 @@ type SimulationResult = ReturnType<typeof simulateRebalance>;
 
 function SimulateContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { profiles } = useProfiles();
-  const { data: portfolio, isLoading: portfolioLoading, isManualMode } =
+  const { settings } = useSettings();
+  const { settings: rebalanceSettings } = useRebalanceSettings(
+    settings.dataSource as "kiwoom" | "manual"
+  );
+  const { data: portfolio, isLoading: portfolioLoading, isManualMode, targets } =
     usePortfolioData();
 
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
-    null
-  );
   const [simulationResult, setSimulationResult] =
     useState<SimulationResult | null>(null);
 
-  // URL searchParams에서 profile 자동 선택
-  useEffect(() => {
-    const profileParam = searchParams.get("profile");
-    if (profileParam && profiles.length > 0) {
-      const found = profiles.find((p) => p.id === profileParam);
-      if (found) {
-        setSelectedProfileId(found.id);
-      }
-    }
-  }, [searchParams, profiles]);
-
-  const selectedProfile = useMemo(
-    () => profiles.find((p) => p.id === selectedProfileId) ?? null,
-    [profiles, selectedProfileId]
-  );
-
-  const canSimulate = !!selectedProfile && !!portfolio;
+  const canSimulate = targets.length > 0 && !!portfolio;
 
   function handleSimulate() {
-    if (!selectedProfile || !portfolio) return;
-
-    const targets: TargetAllocation[] = selectedProfile.targets.map((t) => ({
-      stock_code: t.stock_code,
-      stock_name: t.stock_name,
-      target_pct: t.target_pct,
-    }));
+    if (!portfolio || targets.length === 0) return;
 
     const portfolioItems = toPortfolioItems(portfolio.stocks, targets);
     const result = simulateRebalance(portfolioItems, targets, portfolio.cash);
@@ -84,7 +55,7 @@ function SimulateContent() {
   }
 
   function handleExecute() {
-    if (!simulationResult || !selectedProfile) return;
+    if (!simulationResult) return;
     if (isManualMode) return; // 수동 모드에서는 실제 주문 불가
 
     sessionStorage.setItem(
@@ -92,8 +63,7 @@ function SimulateContent() {
       JSON.stringify({
         orders: simulationResult.orders,
         account: "",
-        profile_name: selectedProfile.name,
-        profile_id: selectedProfile.id,
+        preset_name: undefined,
         total_buy_amount: simulationResult.total_buy_amount,
         total_sell_amount: simulationResult.total_sell_amount,
         net_cash_change: simulationResult.net_cash_change,
@@ -117,65 +87,42 @@ function SimulateContent() {
         </p>
       </div>
 
-      {/* 섹션 1: 프로필 선택 */}
+      {/* 섹션 1: 목표 비중 */}
       <Card>
         <CardHeader>
-          <CardTitle>프로필 선택</CardTitle>
-          <CardDescription>리밸런싱에 사용할 프로필을 선택하세요.</CardDescription>
+          <CardTitle>목표 비중</CardTitle>
+          <CardDescription>포트폴리오 페이지에서 설정한 목표 비중입니다.</CardDescription>
         </CardHeader>
         <CardContent>
-          {profiles.length === 0 ? (
+          {targets.length === 0 ? (
             <div className="text-sm text-muted-foreground">
-              먼저 프로필을 만들어주세요.{" "}
+              포트폴리오 페이지에서 목표 비중을 설정해주세요.{" "}
               <Link
-                href="/profiles/new"
+                href="/portfolio"
                 className="text-primary underline underline-offset-4"
               >
-                프로필 생성하기
+                포트폴리오로 이동
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              <Select
-                value={selectedProfileId ?? ""}
-                onValueChange={(value) => {
-                  setSelectedProfileId(value);
-                  setSimulationResult(null);
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="프로필을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profiles.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {selectedProfile && (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>종목명</TableHead>
-                      <TableHead className="text-right">목표비중</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedProfile.targets.map((t) => (
-                      <TableRow key={t.stock_code}>
-                        <TableCell>{t.stock_name}</TableCell>
-                        <TableCell className="text-right">
-                          {t.target_pct}%
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>종목명</TableHead>
+                  <TableHead className="text-right">목표비중</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {targets.map((t) => (
+                  <TableRow key={t.stock_code}>
+                    <TableCell>{t.stock_name}</TableCell>
+                    <TableCell className="text-right">
+                      {t.target_pct}%
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
@@ -227,7 +174,7 @@ function SimulateContent() {
         <CardHeader>
           <CardTitle>시뮬레이션</CardTitle>
           <CardDescription>
-            프로필과 포트폴리오를 기반으로 리밸런싱을 시뮬레이션합니다.
+            목표 비중과 포트폴리오를 기반으로 리밸런싱을 시뮬레이션합니다.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -236,7 +183,9 @@ function SimulateContent() {
           </Button>
           {!canSimulate && (
             <p className="mt-2 text-xs text-muted-foreground">
-              프로필과 포트폴리오가 모두 준비되어야 실행할 수 있습니다.
+              {targets.length === 0
+                ? "목표 비중을 먼저 설정해주세요."
+                : "포트폴리오 정보가 필요합니다."}
             </p>
           )}
         </CardContent>
@@ -255,7 +204,7 @@ function SimulateContent() {
             <CardContent>
               <DriftChart
                 drifts={simulationResult.drift_before}
-                threshold={selectedProfile?.threshold_pct}
+                threshold={rebalanceSettings.threshold_pct}
               />
             </CardContent>
           </Card>

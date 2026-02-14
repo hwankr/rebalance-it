@@ -2,7 +2,7 @@ export type PlanTier = 'free' | 'pro';
 
 export const PLAN_LIMITS = {
   free: {
-    maxProfiles: 3,
+    maxPresets: 3,
     maxExecutionsVisible: 10,
     maxAccounts: 1,
     allowKiwoomApi: false,
@@ -10,7 +10,7 @@ export const PLAN_LIMITS = {
     allowExport: false,
   },
   pro: {
-    maxProfiles: Infinity,
+    maxPresets: Infinity,
     maxExecutionsVisible: Infinity,
     maxAccounts: 1,
     allowKiwoomApi: true,

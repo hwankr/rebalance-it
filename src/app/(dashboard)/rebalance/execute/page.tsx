@@ -93,8 +93,9 @@ export default function ExecutePage() {
             historySavedRef.current = true;
             const d = executionData.data;
             addExecution({
-              profile_id: d.profile_id ?? "",
-              profile_name: d.profile_name,
+              profile_id: "",
+              profile_name: d.preset_name ?? "직접 설정",
+              preset_name: d.preset_name,
               status:
                 data.fail_count === 0
                   ? "completed"
@@ -194,7 +195,8 @@ export default function ExecutePage() {
     );
   }
 
-  const { orders, profile_name } = executionData.data;
+  const { orders, preset_name } = executionData.data;
+  const displayName = preset_name ?? "직접 설정";
   const totalBuyAmount = orders
     .filter((o) => o.side === "buy")
     .reduce((sum, o) => sum + o.estimated_amount, 0);
@@ -220,7 +222,7 @@ export default function ExecutePage() {
       {/* Profile Info */}
       <Card>
         <CardHeader>
-          <CardTitle>프로필: {profile_name}</CardTitle>
+          <CardTitle>리밸런싱 주문 확인</CardTitle>
         </CardHeader>
         <CardContent>
           <OrderPreview

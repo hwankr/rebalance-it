@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { KiwoomBalanceResponse, KiwoomStock } from "@/lib/kiwoom/types";
+import type { PresetTarget } from "@/lib/rebalance/preset-types";
 import { DEFAULT_EXCHANGE_RATE } from "@/lib/utils/format";
 
 // --- DB row types ---
@@ -27,6 +28,7 @@ interface ManualStockRow {
   current_price: number;
   price_updated_at: string | null;
   currency: string;
+  target_pct: number;
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +40,7 @@ export interface ManualStockInput {
   avg_price: number;
   current_price: number;
   currency?: string;
+  target_pct?: number;
 }
 
 // --- 변환 로직 ---
@@ -142,7 +145,7 @@ export function useManualPortfolio(exchangeRate?: number) {
   const invalidationKey = ["manual-portfolio", user?.id];
 
   // 포트폴리오 + 종목 조회
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey,
     enabled: !!user,
     queryFn: async () => {
@@ -218,6 +221,7 @@ export function useManualPortfolio(exchangeRate?: number) {
         avg_price: input.avg_price,
         current_price: input.current_price,
         currency: input.currency ?? "KRW",
+        target_pct: input.target_pct ?? 0,
       } as never);
       if (error) throw error;
     },
@@ -254,6 +258,31 @@ export function useManualPortfolio(exchangeRate?: number) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
+  // 목표 비중만 수정
+  const updateTargetPctMutation = useMutation({
+    mutationFn: async ({ id, targetPct }: { id: string; targetPct: number }) => {
+      const { error } = await supabase
+        .from("manual_stocks")
+        .update({ target_pct: targetPct } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
+  });
+
+  // 프리셋 적용 (RPC 트랜잭션)
+  const applyPresetMutation = useMutation({
+    mutationFn: async (presetTargets: PresetTarget[]) => {
+      if (!portfolio) throw new Error("포트폴리오가 없습니다");
+      const { error } = await supabase.rpc("apply_preset_to_manual", {
+        p_portfolio_id: portfolio.id,
+        p_targets: JSON.parse(JSON.stringify(presetTargets)),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
+  });
+
   const setCash = useCallback(
     (cash: number) => setCashMutation.mutate(cash),
     [setCashMutation],
@@ -275,6 +304,18 @@ export function useManualPortfolio(exchangeRate?: number) {
     [deleteStockMutation],
   );
 
+  const updateTargetPct = useCallback(
+    (id: string, targetPct: number) =>
+      updateTargetPctMutation.mutate({ id, targetPct }),
+    [updateTargetPctMutation],
+  );
+
+  const applyPreset = useCallback(
+    (presetTargets: PresetTarget[]) =>
+      applyPresetMutation.mutate(presetTargets),
+    [applyPresetMutation],
+  );
+
   return {
     portfolio,
     stocks,
@@ -286,7 +327,13 @@ export function useManualPortfolio(exchangeRate?: number) {
     addStock,
     updateStock,
     deleteStock,
+    updateTargetPct,
+    applyPreset,
+    refetch,
+    isFetching,
+    dataUpdatedAt,
     isAdding: addStockMutation.isPending,
     isUpdating: updateStockMutation.isPending,
+    isApplying: applyPresetMutation.isPending,
   };
 }

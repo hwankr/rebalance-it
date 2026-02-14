@@ -19,7 +19,7 @@ const navItems: NavItemProps[] = [
   { href: "/portfolio", label: "포트폴리오 현황", icon: LayoutDashboard },
   { href: "/manual-portfolio", label: "수동 포트폴리오", icon: PenLine },
   { href: "/rebalance", label: "리밸런싱", icon: RefreshCw },
-  { href: "/profiles", label: "프로필 관리", icon: FolderOpen },
+  { href: "/presets", label: "프리셋", icon: FolderOpen },
   { href: "/history", label: "실행 이력", icon: History },
   { href: "/settings", label: "설정", icon: Settings },
 ];

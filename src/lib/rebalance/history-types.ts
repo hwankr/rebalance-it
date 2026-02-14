@@ -2,6 +2,7 @@ export interface RebalanceExecution {
   id: string;
   profile_id: string;
   profile_name: string;
+  preset_name?: string;
   executed_at: string;
   status: "completed" | "partial" | "failed";
   total_orders: number;

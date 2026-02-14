@@ -12,8 +12,11 @@ interface SimulationData {
     estimated_amount: number;
   }>;
   account: string;
-  profile_name: string;
-  profile_id: string;
+  preset_name?: string;
+  /** @deprecated 레거시 호환용 - preset_name 우선 사용 */
+  profile_name?: string;
+  /** @deprecated 레거시 호환용 */
+  profile_id?: string;
   total_buy_amount: number;
   total_sell_amount: number;
   net_cash_change: number;
@@ -28,7 +31,12 @@ export function useExecutionData() {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
-        setData(JSON.parse(raw));
+        const parsed = JSON.parse(raw) as SimulationData;
+        // 레거시 fallback: preset_name이 없으면 profile_name에서 가져옴
+        if (!parsed.preset_name && parsed.profile_name) {
+          parsed.preset_name = parsed.profile_name;
+        }
+        setData(parsed);
       }
     } catch {
       // sessionStorage unavailable or corrupted

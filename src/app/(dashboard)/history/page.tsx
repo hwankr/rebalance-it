@@ -108,7 +108,7 @@ export default function HistoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>실행일시</TableHead>
-                  <TableHead>프로필명</TableHead>
+                  <TableHead>리밸런싱명</TableHead>
                   <TableHead>상태</TableHead>
                   <TableHead className="text-right">주문건수</TableHead>
                   <TableHead className="text-right">성공/실패</TableHead>
@@ -127,7 +127,7 @@ export default function HistoryPage() {
                         {format(new Date(exec.executed_at), "yyyy.MM.dd HH:mm")}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {exec.profile_name}
+                        {exec.preset_name ?? exec.profile_name}
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusInfo.variant}>
@@ -188,7 +188,7 @@ export default function HistoryPage() {
                   <div className="glass-card card-hover rounded-xl p-4">
                     {/* Top row: profile name + status badge */}
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <div className="font-semibold">{exec.profile_name}</div>
+                      <div className="font-semibold">{exec.preset_name ?? exec.profile_name}</div>
                       <Badge variant={statusInfo.variant} className="shrink-0">
                         {statusInfo.label}
                       </Badge>
