@@ -79,7 +79,7 @@ export function calculateRebalance(
     .reduce((sum, o) => sum + o.estimated_amount, 0);
   const net_cash_change = total_sell_amount - total_buy_amount;
 
-  // 주문 실행 후 예상 drift 계산
+  // 리밸런싱 후 예상 drift 계산
   const estimatedPortfolio = merged.map((item) => {
     const order = orders.find((o) => o.stock_code === item.stock_code);
     if (!order) return item;

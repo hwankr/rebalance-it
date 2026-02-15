@@ -4,8 +4,6 @@ import { KiwoomApiError, getErrorMessage } from "./errors";
 import type {
   KiwoomBalanceResponse,
   KiwoomChartResponse,
-  KiwoomOrderRequest,
-  KiwoomOrderResponse,
   KiwoomStock,
   KiwoomStockInfo,
 } from "./types";
@@ -191,37 +189,6 @@ export async function getStockInfo(
     API_IDS.STOCK_INFO,
     { stk_cd: stockCode }
   );
-}
-
-// === 주문 API ===
-
-export async function placeOrder(
-  order: KiwoomOrderRequest
-): Promise<KiwoomOrderResponse> {
-  const apiId = order.side === "buy" ? API_IDS.BUY : API_IDS.SELL;
-
-  // trde_tp: "00" = 지정가, "03" = 시장가
-  const trdeType = order.order_type === "market" ? "03" : "00";
-
-  return kiwoomFetch<KiwoomOrderResponse>(ENDPOINTS.ORDER, apiId, {
-    dmst_stex_tp: "01",
-    stk_cd: order.symbol,
-    ord_qty: order.qty,
-    trde_tp: trdeType,
-    ord_uv: order.price ?? 0,
-  });
-}
-
-export async function cancelOrder(
-  orderId: string,
-  account: string
-): Promise<{ success: boolean; message: string }> {
-  return kiwoomFetch(ENDPOINTS.ORDER, API_IDS.CANCEL, {
-    dmst_stex_tp: "01",
-    orig_ord_no: orderId,
-    stk_cd: "",
-    cncl_qty: 0,
-  });
 }
 
 // === 차트 API ===

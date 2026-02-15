@@ -4,7 +4,6 @@ import { Suspense, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
-import { useSettings } from "@/hooks/use-settings";
 import { useRebalanceSettings } from "@/hooks/use-rebalance-settings";
 import { simulateRebalance } from "@/lib/rebalance/calculator";
 import { toPortfolioItems } from "@/lib/rebalance/helpers";
@@ -34,11 +33,8 @@ type SimulationResult = ReturnType<typeof simulateRebalance>;
 
 function SimulateContent() {
   const router = useRouter();
-  const { settings } = useSettings();
-  const { settings: rebalanceSettings } = useRebalanceSettings(
-    settings.dataSource as "kiwoom" | "manual"
-  );
-  const { data: portfolio, isLoading: portfolioLoading, isManualMode, targets } =
+  const { settings: rebalanceSettings } = useRebalanceSettings();
+  const { data: portfolio, isLoading: portfolioLoading, targets } =
     usePortfolioData();
 
   const [simulationResult, setSimulationResult] =
@@ -54,22 +50,19 @@ function SimulateContent() {
     setSimulationResult(result);
   }
 
-  function handleExecute() {
+  function handleViewGuide() {
     if (!simulationResult) return;
-    if (isManualMode) return; // 수동 모드에서는 실제 주문 불가
 
     sessionStorage.setItem(
       "rebalance-it-simulation",
       JSON.stringify({
         orders: simulationResult.orders,
-        account: "",
-        preset_name: undefined,
         total_buy_amount: simulationResult.total_buy_amount,
         total_sell_amount: simulationResult.total_sell_amount,
         net_cash_change: simulationResult.net_cash_change,
       })
     );
-    router.push("/rebalance/execute");
+    router.push("/rebalance/guide");
   }
 
   const buyCount =
@@ -83,7 +76,7 @@ function SimulateContent() {
       <div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">리밸런싱 시뮬레이션</h1>
         <p className="text-muted-foreground">
-          리밸런싱 실행 전 결과를 미리 확인합니다.
+          시뮬레이션 결과를 미리 확인하고 리밸런싱 가이드를 받으세요.
         </p>
       </div>
 
@@ -211,9 +204,9 @@ function SimulateContent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>주문 미리보기</CardTitle>
+              <CardTitle>매매 안내 미리보기</CardTitle>
               <CardDescription>
-                리밸런싱을 위한 예상 주문 내역입니다.
+                리밸런싱을 위한 예상 거래 내역입니다.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -268,17 +261,9 @@ function SimulateContent() {
             </CardContent>
           </Card>
 
-          {/* 수동 모드 안내 */}
-          {isManualMode && (
-            <div className="rounded-lg border border-blue-500/50 bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-200">
-              <p className="font-medium">수동 모드에서는 실제 주문을 실행할 수 없습니다.</p>
-              <p>시뮬레이션 결과만 확인할 수 있습니다.</p>
-            </div>
-          )}
-
           {/* 하단 액션 버튼 */}
           <div className="flex items-center gap-3">
-            <Button onClick={handleExecute} disabled={isManualMode}>주문 실행하기</Button>
+            <Button onClick={handleViewGuide}>리밸런싱 가이드 보기</Button>
             <Button
               variant="outline"
               onClick={() => setSimulationResult(null)}
@@ -304,7 +289,7 @@ export default function SimulatePage() {
           <div>
             <h1 className="text-3xl font-bold">리밸런싱 시뮬레이션</h1>
             <p className="text-muted-foreground">
-              리밸런싱 실행 전 결과를 미리 확인합니다.
+              시뮬레이션 결과를 미리 확인하고 리밸런싱 가이드를 받으세요.
             </p>
           </div>
           <div className="space-y-3">

@@ -3,19 +3,19 @@ export type PlanTier = 'free' | 'pro';
 export const PLAN_LIMITS = {
   free: {
     maxPresets: 3,
-    maxExecutionsVisible: 10,
-    maxAccounts: 1,
-    allowKiwoomApi: false,
-    allowAutoExecute: false,
+    maxSimulationHistory: 10,
+    maxPortfolios: 1,
+    allowKiwoomImport: false,
     allowExport: false,
+    allowAdvancedAnalytics: false,
   },
   pro: {
     maxPresets: Infinity,
-    maxExecutionsVisible: Infinity,
-    maxAccounts: 1,
-    allowKiwoomApi: true,
-    allowAutoExecute: true,
+    maxSimulationHistory: Infinity,
+    maxPortfolios: 5,
+    allowKiwoomImport: true,
     allowExport: true,
+    allowAdvancedAnalytics: true,
   },
 } as const;
 

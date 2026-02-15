@@ -32,7 +32,7 @@ export function OrderPreview({
   if (isLoading) {
     return (
       <div className="flex h-[200px] items-center justify-center text-muted-foreground">
-        주문 데이터를 불러오는 중...
+        거래 데이터를 불러오는 중...
       </div>
     );
   }
@@ -40,7 +40,7 @@ export function OrderPreview({
   if (orders.length === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center text-muted-foreground">
-        리밸런싱 주문이 없습니다.
+        리밸런싱 거래 내역이 없습니다.
       </div>
     );
   }

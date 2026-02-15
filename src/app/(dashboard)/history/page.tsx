@@ -58,20 +58,20 @@ export default function HistoryPage() {
   const [clearOpen, setClearOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const maxVisible = isPro ? Infinity : PLAN_LIMITS.free.maxExecutionsVisible;
+  const maxVisible = isPro ? Infinity : PLAN_LIMITS.free.maxSimulationHistory;
   const visibleHistory = history.slice(0, maxVisible);
   const hasHidden = history.length > maxVisible;
 
   const handleClear = () => {
     clearHistory();
     setClearOpen(false);
-    toast.success("전체 이력이 삭제되었습니다.");
+    toast.success("전체 기록이 삭제되었습니다.");
   };
 
   const handleDelete = (id: string) => {
     deleteExecution(id);
     setDeleteTarget(null);
-    toast.success("이력이 삭제되었습니다.");
+    toast.success("기록이 삭제되었습니다.");
   };
 
   return (
@@ -79,9 +79,9 @@ export default function HistoryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">실행 이력</h1>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">리밸런싱 기록</h1>
           <p className="text-muted-foreground">
-            리밸런싱 실행 이력을 확인합니다.
+            리밸런싱 시뮬레이션 기록을 확인합니다.
           </p>
         </div>
         {history.length > 0 && (
@@ -94,7 +94,7 @@ export default function HistoryPage() {
       {history.length === 0 ? (
         <Card className="flex flex-col items-center justify-center gap-4 p-12">
           <p className="text-muted-foreground text-lg">
-            아직 실행 이력이 없습니다.
+            아직 리밸런싱 기록이 없습니다.
           </p>
           <Button asChild>
             <Link href="/rebalance/simulate">시뮬레이션 시작하기</Link>
@@ -110,7 +110,7 @@ export default function HistoryPage() {
                   <TableHead>실행일시</TableHead>
                   <TableHead>리밸런싱명</TableHead>
                   <TableHead>상태</TableHead>
-                  <TableHead className="text-right">주문건수</TableHead>
+                  <TableHead className="text-right">거래건수</TableHead>
                   <TableHead className="text-right">성공/실패</TableHead>
                   <TableHead className="text-right">총매수</TableHead>
                   <TableHead className="text-right">총매도</TableHead>
@@ -202,7 +202,7 @@ export default function HistoryPage() {
                     {/* Middle: metrics grid */}
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       <div>
-                        <div className="text-xs text-muted-foreground mb-0.5">주문건수</div>
+                        <div className="text-xs text-muted-foreground mb-0.5">거래건수</div>
                         <div className="font-medium tabular-nums text-sm">
                           {exec.total_orders}건
                         </div>
@@ -287,9 +287,9 @@ export default function HistoryPage() {
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>전체 이력 삭제</DialogTitle>
+            <DialogTitle>전체 기록 삭제</DialogTitle>
             <DialogDescription>
-              모든 실행 이력을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+              모든 리밸런싱 기록을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -310,9 +310,9 @@ export default function HistoryPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>이력 삭제</DialogTitle>
+            <DialogTitle>기록 삭제</DialogTitle>
             <DialogDescription>
-              이 실행 이력을 삭제하시겠습니까?
+              이 리밸런싱 기록을 삭제하시겠습니까?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

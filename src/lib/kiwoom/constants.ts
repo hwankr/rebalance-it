@@ -9,7 +9,7 @@ export const PROXY_API_KEY = process.env.PROXY_API_KEY || "";
 export const ENDPOINTS = {
   TOKEN: "/oauth2/token",
   ACCOUNT: "/api/dostk/acnt",
-  ORDER: "/api/dostk/ordr",
+
   CHART: "/api/dostk/chart",
   STOCK_INFO: "/api/dostk/stkinfo",
   MARKET_CONDITION: "/api/dostk/mrkcond",
@@ -26,12 +26,6 @@ export const API_IDS = {
   FILLED_ORDERS: "ka10076",
   PROFIT_RATES: "ka10085",
   EVALUATION_BALANCE: "kt00018",
-
-  // 주문
-  BUY: "kt10000",
-  SELL: "kt10001",
-  MODIFY: "kt10002",
-  CANCEL: "kt10003",
 
   // 시세
   STOCK_QUOTE: "ka10004",

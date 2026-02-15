@@ -13,11 +13,11 @@ import { Button } from "@/components/ui/button";
 import type { PlanTier } from "@/lib/subscription/plans";
 
 const PRO_FEATURES = [
-  "무제한 리밸런싱 프로필",
-  "키움 API 자동 연동",
-  "자동 주문 실행",
-  "실행 내역 전체 조회",
-  "데이터 내보내기 (CSV/Excel)",
+  "무제한 리밸런싱 프리셋",
+  "키움 포트폴리오 가져오기",
+  "무제한 시뮬레이션 기록",
+  "PDF/CSV 내보내기",
+  "고급 포트폴리오 분석",
 ];
 
 interface UpgradePromptProps {

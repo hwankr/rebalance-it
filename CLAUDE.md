@@ -1,6 +1,6 @@
 # Rebalance-it
 
-Portfolio rebalancing tool powered by the Kiwoom Securities REST API. Also supports manual portfolio mode.
+Portfolio rebalancing simulation & guide tool. Manual portfolio is the primary mode; Kiwoom Securities REST API is available as a read-only portfolio import feature (Pro only).
 
 ## Tech Stack
 
@@ -34,17 +34,18 @@ src/
 │   ├── (auth)/login/           # Login
 │   ├── (dashboard)/            # Dashboard (Sidebar + Header + BottomNav)
 │   │   ├── portfolio/          # Portfolio overview
-│   │   ├── profiles/           # Rebalancing profile CRUD
-│   │   ├── rebalance/          # Simulation & execution
+│   │   ├── manual-portfolio/    # Portfolio management (add/edit stocks)
+│   │   ├── presets/             # Rebalancing preset CRUD
+│   │   ├── rebalance/          # Simulation & guide
 │   │   │   ├── simulate/
-│   │   │   └── execute/
+│   │   │   └── guide/
 │   │   ├── settings/           # Settings (Kiwoom API keys, exchange rate, etc.)
-│   │   └── history/            # Rebalancing history
+│   │   └── history/            # Rebalancing records
 │   ├── pricing/                # Pricing page
 │   └── api/
-│       ├── kiwoom/             # Kiwoom API proxy (balance, token, order, stock, chart)
+│       ├── kiwoom/             # Kiwoom API proxy (balance, token, stock, chart — read-only)
 │       ├── stocks/             # Stock list & current price lookup
-│       ├── rebalance/          # Rebalancing calculate & execute
+│       ├── rebalance/          # Rebalancing calculate
 │       ├── portone/            # Payments (checkout, webhook, cancel)
 │       ├── subscription/       # Subscription management
 │       └── health/, setup/     # Health checks
@@ -52,28 +53,28 @@ src/
 │   ├── ui/                     # shadcn base components
 │   ├── layout/                 # sidebar, header, nav, bottom-nav, page-transition
 │   ├── portfolio/              # allocation-chart, summary-cards, stock-price-chart
-│   ├── rebalance/              # profile-form, drift-chart
+│   ├── rebalance/              # drift-chart, order-preview
 │   ├── subscription/           # plan-gate, plan-badge, upgrade-prompt
 │   ├── manual-portfolio/       # stock-form
 │   ├── stock-combobox.tsx      # Stock search autocomplete
 │   └── providers.tsx           # QueryClient, ThemeProvider
 ├── hooks/
 │   ├── use-auth.ts             # Supabase auth
-│   ├── use-settings.ts         # User settings (Kiwoom API keys, exchange rate)
+│   ├── use-settings.ts         # User settings (account, connection status)
 │   ├── use-profiles.ts         # Rebalancing profiles
-│   ├── use-portfolio.ts        # Kiwoom portfolio
-│   ├── use-portfolio-data.ts   # Portfolio data aggregation
-│   ├── use-manual-portfolio.ts # Manual portfolio
-│   ├── use-rebalance.ts        # Rebalancing logic
-│   ├── use-history.ts          # Execution history
+│   ├── use-portfolio.ts        # Kiwoom portfolio (read-only import)
+│   ├── use-portfolio-data.ts   # Portfolio data (always manual mode)
+│   ├── use-manual-portfolio.ts # Manual portfolio management
+│   ├── use-rebalance.ts        # Rebalancing simulation
+│   ├── use-rebalance-settings.ts # Rebalancing settings (threshold, strategy)
+│   ├── use-history.ts          # Rebalancing records
 │   ├── use-subscription.ts     # Subscription state
 │   ├── use-stock-search.ts     # Stock search
 │   ├── use-stock-list.ts       # Stock list
 │   ├── use-stock-chart.ts      # Chart data
-│   ├── use-execution-data.ts   # Execution data
 │   └── use-theme-colors.ts     # Theme colors
 ├── lib/
-│   ├── kiwoom/                 # Kiwoom REST API client (client, auth, types, constants, errors)
+│   ├── kiwoom/                 # Kiwoom REST API client — read-only (client, auth, types, constants, errors)
 │   ├── supabase/               # Supabase client (client, server, middleware, auth, types)
 │   ├── rebalance/              # Rebalancing engine (calculator, drift, order-generator, price-unit, helpers, types)
 │   ├── subscription/           # Subscription system (plans, guard)
@@ -81,7 +82,7 @@ src/
 │   └── utils/                  # Formatting utilities
 └── middleware.ts               # Supabase auth middleware
 
-supabase/migrations/            # DB schema (001~006)
+supabase/migrations/            # DB schema (001~008)
 ```
 
 ## Path Alias
@@ -108,12 +109,14 @@ See `.env.example`:
 
 ## Key Features
 
-1. **Kiwoom API Integration**: Balance inquiry, order execution, stock quotes
-2. **Manual Portfolio**: Enter stocks/quantities manually without Kiwoom API
-3. **Rebalancing Engine**: Drift calculation against target weights, order generation
-4. **Stock Search**: Autocomplete + live price refresh (KR/US stocks)
-5. **Subscription System**: PortOne payments, feature gating
-6. **Exchange Rate Management**: Manual setting + last refresh timestamp
+1. **Manual Portfolio**: Enter stocks/quantities manually, set target weights
+2. **Rebalancing Simulation**: Drift calculation against target weights, order generation
+3. **Rebalancing Guide**: Step-by-step guide for manual trading (sell first, then buy)
+4. **Kiwoom API Import (Pro)**: Read-only portfolio import from Kiwoom Securities
+5. **Stock Search**: Autocomplete + live price refresh (KR/US stocks)
+6. **Subscription System**: PortOne payments, feature gating
+7. **Exchange Rate Management**: Manual setting + last refresh timestamp
+8. **Rebalancing Presets**: Save and load target allocation presets
 
 ## Codex Collaboration (GPT Pro)
 

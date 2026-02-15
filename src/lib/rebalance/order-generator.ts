@@ -36,7 +36,7 @@ export function generateOrders(
     });
   }
 
-  // 매도를 먼저 실행 (현금 확보), 그 다음 매수
+  // 매도를 먼저 안내 (현금 확보), 그 다음 매수
   return orders.sort((a, b) => {
     if (a.side === "sell" && b.side === "buy") return -1;
     if (a.side === "buy" && b.side === "sell") return 1;

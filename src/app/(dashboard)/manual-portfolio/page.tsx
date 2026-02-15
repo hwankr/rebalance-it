@@ -7,10 +7,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Info, Pencil, RotateCcw, Check } from "lucide-react";
+import { Pencil, RotateCcw, Check } from "lucide-react";
 
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
-import { useSettings } from "@/hooks/use-settings";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useRefreshPrices } from "@/hooks/use-refresh-prices";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
@@ -46,7 +45,6 @@ interface CashFormValues {
 }
 
 export default function ManualPortfolioPage() {
-  const { settings, updateSettings } = useSettings();
   const { isPro } = useSubscription();
   const { refreshPrices, isRefreshing } = useRefreshPrices();
   const {
@@ -70,7 +68,6 @@ export default function ManualPortfolioPage() {
   } = useManualPortfolio(exchangeRate);
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [editRateValue, setEditRateValue] = useState("");
-  const isManualActive = settings.dataSource === "manual";
 
   const cashForm = useForm<CashFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,10 +91,6 @@ export default function ManualPortfolioPage() {
     toast.success(`${stock?.stock_name ?? "종목"}이 삭제되었습니다.`);
   }
 
-  function handleActivateManualMode() {
-    updateSettings({ dataSource: "manual" });
-    toast.success("수동 모드가 활성화되었습니다.");
-  }
 
   function handleRefreshPrices() {
     refreshPrices(undefined, {
@@ -139,36 +132,11 @@ export default function ManualPortfolioPage() {
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">수동 포트폴리오</h1>
-          {isManualActive ? (
-            <Badge>수동 모드 활성</Badge>
-          ) : (
-            <Badge variant="secondary">비활성</Badge>
-          )}
         </div>
         <p className="text-muted-foreground">
           키움 API 없이 직접 자산을 입력하고 리밸런싱을 테스트합니다.
         </p>
       </div>
-
-      {/* 수동 모드 활성화 안내 */}
-      {!isManualActive && (
-        <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30">
-          <CardContent className="flex items-center gap-4 pt-6">
-            <Info className="size-5 shrink-0 text-blue-600 dark:text-blue-400" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                현재 키움 API 모드입니다. 수동 포트폴리오를 사용하려면 수동 모드를 활성화하세요.
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300">
-                설정 페이지에서도 변경할 수 있습니다.
-              </p>
-            </div>
-            <Button size="sm" onClick={handleActivateManualMode}>
-              수동 모드 활성화
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -363,7 +331,7 @@ export default function ManualPortfolioPage() {
       </Card>
 
       {/* 하단 안내 */}
-      {isManualActive && stocks.length > 0 && (
+      {stocks.length > 0 && (
         <div className="flex gap-3">
           <Button asChild>
             <Link href="/rebalance">리밸런싱으로 이동</Link>

@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
-import { useSettings } from "@/hooks/use-settings";
 import { useRebalanceSettings } from "@/hooks/use-rebalance-settings";
 import {
   calculateDrift,
@@ -14,8 +13,6 @@ import {
 import { formatPercent } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlanGate } from "@/components/subscription/plan-gate";
-import { useSubscription } from "@/hooks/use-subscription";
 import {
   Card,
   CardContent,
@@ -27,12 +24,8 @@ import { DriftChart } from "@/components/rebalance/drift-chart";
 import { PageTransition } from "@/components/layout/page-transition";
 
 export default function RebalancePage() {
-  const { isPro } = useSubscription();
-  const { settings: userSettings } = useSettings();
-  const dataSource = userSettings.dataSource;
-
   const { data: balance, isLoading, isError, error, isManualMode, targets: portfolioTargets } = usePortfolioData();
-  const { settings: rebalanceSettings, isLoading: isSettingsLoading } = useRebalanceSettings(dataSource);
+  const { settings: rebalanceSettings, isLoading: isSettingsLoading } = useRebalanceSettings();
 
   const threshold = rebalanceSettings?.threshold_pct ?? 5;
 
@@ -59,16 +52,11 @@ export default function RebalancePage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-10">
             <p className="text-muted-foreground">
-              계좌가 설정되지 않았습니다. 설정 페이지에서 계좌를 연결하거나 수동 모드를 사용해주세요.
+              포트폴리오에 종목을 추가해주세요.
             </p>
-            <div className="flex gap-2">
-              <Button asChild>
-                <Link href="/settings">설정으로 이동</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/manual-portfolio">수동 포트폴리오</Link>
-              </Button>
-            </div>
+            <Button asChild>
+              <Link href="/manual-portfolio">포트폴리오 관리</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -104,16 +92,7 @@ export default function RebalancePage() {
       </div>
 
       {/* 상단 요약 카드 */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>데이터 소스</CardDescription>
-            <CardTitle className="text-2xl">
-              {dataSource === "kiwoom" ? "키움증권" : "수동 입력"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader>
             <CardDescription>최대 Drift</CardDescription>
@@ -149,7 +128,7 @@ export default function RebalancePage() {
 
         <Card>
           <CardHeader>
-            <CardDescription>마지막 실행</CardDescription>
+            <CardDescription>마지막 시뮬레이션</CardDescription>
             <CardTitle className="text-2xl">-</CardTitle>
           </CardHeader>
         </Card>
@@ -180,31 +159,12 @@ export default function RebalancePage() {
       </Card>
 
       {/* 하단: 액션 버튼 */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-3 sm:gap-4">
-          <Button asChild disabled={targets.length === 0}>
-            <Link href="/rebalance/simulate">
-              시뮬레이션 실행
-            </Link>
-          </Button>
-          <PlanGate
-            requiredPlan="pro"
-            fallback={
-              <Button disabled>
-                자동 주문 실행
-              </Button>
-            }
-          >
-            <Button disabled={targets.length === 0 || !rebalanceNeeded}>
-              자동 주문 실행
-            </Button>
-          </PlanGate>
-        </div>
-        {!isPro && (
-          <p className="text-sm text-muted-foreground">
-            시뮬레이션은 무료입니다. 자동 주문 실행은 Pro 플랜이 필요합니다.
-          </p>
-        )}
+      <div className="flex flex-wrap gap-3 sm:gap-4">
+        <Button asChild disabled={targets.length === 0}>
+          <Link href="/rebalance/simulate">
+            시뮬레이션 실행
+          </Link>
+        </Button>
       </div>
     </div>
     </PageTransition>

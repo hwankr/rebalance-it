@@ -2,15 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, PenLine, RefreshCw, FolderOpen, History } from "lucide-react";
+import { LayoutDashboard, RefreshCw, FolderOpen, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/portfolio", label: "포트폴리오", icon: LayoutDashboard },
-  { href: "/manual-portfolio", label: "수동", icon: PenLine },
   { href: "/rebalance", label: "리밸런싱", icon: RefreshCw },
   { href: "/presets", label: "프리셋", icon: FolderOpen },
-  { href: "/history", label: "이력", icon: History },
+  { href: "/history", label: "기록", icon: History },
 ];
 
 export function BottomNav() {

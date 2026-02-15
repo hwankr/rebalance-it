@@ -36,7 +36,7 @@ const FEATURES: FeatureRow[] = [
   },
   {
     name: "실행 내역 조회",
-    free: `최근 ${PLAN_LIMITS.free.maxExecutionsVisible}건`,
+    free: `최근 ${PLAN_LIMITS.free.maxSimulationHistory}건`,
     pro: "전체",
   },
   {
@@ -50,12 +50,12 @@ const FEATURES: FeatureRow[] = [
     pro: true,
   },
   {
-    name: "키움 API 연동",
+    name: "키움 포트폴리오 가져오기",
     free: false,
     pro: true,
   },
   {
-    name: "자동 주문 실행",
+    name: "고급 포트폴리오 분석",
     free: false,
     pro: true,
   },
@@ -135,7 +135,7 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-green-600 dark:text-green-400" />
-                  실행 내역 최근 {PLAN_LIMITS.free.maxExecutionsVisible}건 조회
+                  실행 내역 최근 {PLAN_LIMITS.free.maxSimulationHistory}건 조회
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-green-600 dark:text-green-400" />
@@ -195,11 +195,11 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                  키움 API 자동 연동
+                  키움 포트폴리오 가져오기
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                  자동 주문 실행
+                  고급 포트폴리오 분석
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />

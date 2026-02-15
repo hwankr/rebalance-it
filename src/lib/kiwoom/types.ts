@@ -29,27 +29,6 @@ export interface KiwoomBalanceResponse {
   stocks: KiwoomStock[];
 }
 
-// 주문 관련
-export type OrderSide = "buy" | "sell";
-export type OrderType = "limit" | "market";
-
-export interface KiwoomOrderRequest {
-  account: string;
-  symbol: string;
-  qty: number;
-  price?: number;
-  side: OrderSide;
-  order_type: OrderType;
-}
-
-export interface KiwoomOrderResponse {
-  order_id: string;
-  status: "submitted" | "filled" | "partial" | "rejected";
-  message: string;
-  filled_qty?: number;
-  filled_price?: number;
-}
-
 // 종목 정보
 export interface KiwoomStockInfo {
   stock_code: string;
