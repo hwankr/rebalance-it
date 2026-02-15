@@ -186,24 +186,69 @@ async function main() {
   let kosdaqStocks = kosdaqResult;
 
   if (kospiStocks.length === 0 && kosdaqStocks.length === 0) {
-    console.log("  Loading Korean stocks from local fallback (scripts/data/kr-stocks.json)...");
+    console.log("  Loading Korean stocks from KIND API fallback (kind.krx.co.kr)...");
     try {
-      const krData: Array<{ stock_code: string; stock_name: string; market: string }> =
-        JSON.parse(readFileSync(join(process.cwd(), "scripts", "data", "kr-stocks.json"), "utf-8"));
-      const krRows = krData.map((s) => ({
-        stock_code: s.stock_code,
-        stock_name: s.stock_name,
-        stock_name_ko: s.stock_name,
-        market: s.market,
-        country: "KR",
-        currency: "KRW",
-        is_active: true,
-      }));
-      kospiStocks = krRows.filter((s) => s.market === "KOSPI");
-      kosdaqStocks = krRows.filter((s) => s.market === "KOSDAQ");
-      console.log(`  Loaded ${krRows.length} Korean stocks from fallback`);
-    } catch {
-      console.warn("  ⚠ No local fallback available for Korean stocks");
+      const kindUrl =
+        "https://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13";
+      const kindRes = await fetch(kindUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      });
+      if (!kindRes.ok) throw new Error(`KIND API returned ${kindRes.status}`);
+
+      const buf = await kindRes.arrayBuffer();
+      const html = new TextDecoder("euc-kr").decode(buf);
+
+      const marketMap: Record<string, string> = { "유가": "KOSPI", "코스닥": "KOSDAQ" };
+      const trBlocks = html.split(/<tr>/gi).slice(2);
+      const kindStocks: StockRow[] = [];
+
+      for (const block of trBlocks) {
+        const tds: string[] = [];
+        const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+        let m: RegExpExecArray | null;
+        while ((m = tdRegex.exec(block)) !== null) {
+          tds.push(m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim());
+        }
+        if (tds.length < 3) continue;
+        const code = tds[2];
+        const market = marketMap[tds[1]];
+        if (!/^\d{6}$/.test(code) || !market) continue;
+
+        kindStocks.push({
+          stock_code: code,
+          stock_name: tds[0],
+          stock_name_ko: tds[0],
+          market,
+          country: "KR",
+          currency: "KRW",
+          is_active: true,
+        });
+      }
+
+      kospiStocks = kindStocks.filter((s) => s.market === "KOSPI");
+      kosdaqStocks = kindStocks.filter((s) => s.market === "KOSDAQ");
+      console.log(`  Loaded ${kindStocks.length} Korean stocks from KIND API (KOSPI: ${kospiStocks.length}, KOSDAQ: ${kosdaqStocks.length})`);
+    } catch (kindErr) {
+      console.warn(`  ⚠ KIND API fallback failed: ${(kindErr as Error).message}`);
+      // Last resort: use static file
+      try {
+        const krData: Array<{ stock_code: string; stock_name: string; market: string }> =
+          JSON.parse(readFileSync(join(process.cwd(), "scripts", "data", "kr-stocks.json"), "utf-8"));
+        const krRows = krData.map((s) => ({
+          stock_code: s.stock_code,
+          stock_name: s.stock_name,
+          stock_name_ko: s.stock_name,
+          market: s.market,
+          country: "KR",
+          currency: "KRW",
+          is_active: true,
+        }));
+        kospiStocks = krRows.filter((s) => s.market === "KOSPI");
+        kosdaqStocks = krRows.filter((s) => s.market === "KOSDAQ");
+        console.log(`  Loaded ${krRows.length} Korean stocks from static fallback`);
+      } catch {
+        console.warn("  ⚠ No fallback available for Korean stocks");
+      }
     }
   }
 
