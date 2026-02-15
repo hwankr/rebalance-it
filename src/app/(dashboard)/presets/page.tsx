@@ -8,6 +8,7 @@ import { m } from "framer-motion";
 
 import { usePresets } from "@/hooks/use-presets";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
 import { PLAN_LIMITS } from "@/lib/subscription/plans";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import type { PresetTarget } from "@/lib/rebalance/preset-types";
 export default function PresetsPage() {
   const { presets, isLoading, addPreset, deletePreset, isAdding } = usePresets();
   const { isPro } = useSubscription();
+  const { stocks: portfolioStocks, isLoading: isPortfolioLoading } = useManualPortfolio();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -216,6 +218,8 @@ export default function PresetsPage() {
           onOpenChange={setCreateOpen}
           onSubmit={handleCreate}
           isSubmitting={isAdding}
+          portfolioStocks={portfolioStocks}
+          isPortfolioLoading={isPortfolioLoading}
         />
 
         {/* 삭제 확인 Dialog */}

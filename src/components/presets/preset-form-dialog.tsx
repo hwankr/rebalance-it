@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, FolderInput } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -19,12 +19,15 @@ import {
 } from "@/components/ui/dialog";
 import { StockCombobox } from "@/components/stock-combobox";
 import type { PresetTarget } from "@/lib/rebalance/preset-types";
+import type { ManualStockRow } from "@/hooks/use-manual-portfolio";
 
 interface PresetFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (name: string, targets: PresetTarget[]) => void;
   isSubmitting?: boolean;
+  portfolioStocks?: ManualStockRow[];
+  isPortfolioLoading?: boolean;
 }
 
 export function PresetFormDialog({
@@ -32,6 +35,8 @@ export function PresetFormDialog({
   onOpenChange,
   onSubmit,
   isSubmitting = false,
+  portfolioStocks,
+  isPortfolioLoading = false,
 }: PresetFormDialogProps) {
   const [name, setName] = useState("");
   const [targets, setTargets] = useState<PresetTarget[]>([]);
@@ -77,6 +82,27 @@ export function PresetFormDialog({
   const handleRemoveStock = useCallback((stockCode: string) => {
     setTargets((prev) => prev.filter((t) => t.stock_code !== stockCode));
   }, []);
+
+  const handleLoadFromPortfolio = useCallback(() => {
+    if (!portfolioStocks || portfolioStocks.length === 0) {
+      toast.info("포트폴리오에 종목이 없습니다.");
+      return;
+    }
+    const existingCodes = new Set(targets.map((t) => t.stock_code));
+    const newTargets = portfolioStocks
+      .filter((s) => !existingCodes.has(s.stock_code))
+      .map((s) => ({
+        stock_code: s.stock_code,
+        stock_name: s.stock_name,
+        target_pct: s.target_pct,
+      }));
+    if (newTargets.length === 0) {
+      toast.info("모든 종목이 이미 추가되어 있습니다.");
+      return;
+    }
+    setTargets((prev) => [...prev, ...newTargets]);
+    toast.success(`${newTargets.length}개 종목을 불러왔습니다.`);
+  }, [portfolioStocks, targets]);
 
   const handlePctChange = useCallback((stockCode: string, value: string) => {
     const num = parseFloat(value);
@@ -199,15 +225,29 @@ export function PresetFormDialog({
                 </Button>
               </div>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => setShowStockPicker(true)}
-              >
-                <Plus className="size-4" />
-                종목 추가
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {portfolioStocks && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={handleLoadFromPortfolio}
+                    disabled={isPortfolioLoading}
+                  >
+                    <FolderInput className="size-4" />
+                    {isPortfolioLoading ? "로딩 중..." : "포트폴리오에서 불러오기"}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setShowStockPicker(true)}
+                >
+                  <Plus className="size-4" />
+                  종목 추가
+                </Button>
+              </div>
             )}
           </div>
 

@@ -20,7 +20,7 @@ interface ManualPortfolioRow {
   updated_at: string;
 }
 
-interface ManualStockRow {
+export interface ManualStockRow {
   id: string;
   portfolio_id: string;
   stock_code: string;
