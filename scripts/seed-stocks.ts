@@ -111,6 +111,7 @@ async function main() {
   console.log("Supabase seed complete.");
 
   // Generate public/data/stocks.json for client-side fallback
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const publicData = allRows.map(({ is_active, ...rest }) => rest);
   const publicDir = join(projectRoot, "public", "data");
   mkdirSync(publicDir, { recursive: true });

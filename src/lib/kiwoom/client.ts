@@ -158,6 +158,7 @@ async function kiwoomFetch<T>(
 
 /** 계좌평가현황요청 (kt00004) */
 export async function getBalance(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   account: string
 ): Promise<KiwoomBalanceResponse> {
   const raw = await kiwoomFetch<unknown>(
@@ -170,6 +171,7 @@ export async function getBalance(
 
 /** 예수금상세현황요청 (kt00001) */
 export async function getDeposits(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   account: string
 ): Promise<{ deposit: number; available: number }> {
   return kiwoomFetch(
@@ -195,7 +197,9 @@ export async function getStockInfo(
 
 export async function getStockChart(
   stockCode: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   period: "day" | "week" | "month" = "day",
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   count: number = 60
 ): Promise<KiwoomChartResponse> {
   return kiwoomFetch<KiwoomChartResponse>(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FolderInput, AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
 import { m } from "framer-motion";
 
 import { usePresets } from "@/hooks/use-presets";
@@ -91,7 +91,7 @@ export function PresetSelector({
             <div className="flex flex-col items-center justify-center gap-2 py-8">
               <p className="text-muted-foreground">저장된 프리셋이 없습니다.</p>
               <p className="text-sm text-muted-foreground">
-                프리셋 관리 페이지에서 먼저 프리셋을 만들어주세요.
+                프리셋 관리에서 먼저 프리셋을 만들어주세요.
               </p>
             </div>
           ) : (

@@ -24,6 +24,22 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // 페이지 구조 변경 리다이렉트
+  async redirects() {
+    return [
+      {
+        source: "/manual-portfolio",
+        destination: "/portfolio",
+        permanent: true,
+      },
+      {
+        source: "/presets",
+        destination: "/rebalance",
+        permanent: true,
+      },
+    ];
+  },
+
   // 키움 API 프록시 (CORS 우회 + IP 고정용)
   async rewrites() {
     const kiwoomProxy = process.env.KIWOOM_PROXY_URL;

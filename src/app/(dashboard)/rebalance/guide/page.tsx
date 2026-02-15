@@ -8,8 +8,7 @@ import { m } from "framer-motion";
 import { ArrowLeft, BookmarkPlus, FileDown, AlertTriangle } from "lucide-react";
 
 import { useHistory } from "@/hooks/use-history";
-import { useAuth } from "@/hooks/use-auth";
-import { useGuestMode } from "@/contexts/guest-mode-context";
+
 import { formatCurrency } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,8 +50,6 @@ const STORAGE_KEY = "rebalance-it-simulation";
 
 export default function GuidePage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { isGuest } = useGuestMode();
   const { addExecution } = useHistory();
   const [data, setData] = useState<SimulationData | null>(null);
   const [saved, setSaved] = useState(false);
@@ -61,6 +58,7 @@ export default function GuidePage() {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setData(JSON.parse(raw) as SimulationData);
       }
     } catch {

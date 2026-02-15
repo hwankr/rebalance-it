@@ -33,7 +33,7 @@ function useValueFlash(value: number) {
 
   useEffect(() => {
     if (prevRef.current !== value && prevRef.current !== 0) {
-      setFlash(true);
+      setFlash(true); // eslint-disable-line react-hooks/set-state-in-effect
       const timer = setTimeout(() => setFlash(false), 600);
       return () => clearTimeout(timer);
     }
@@ -72,6 +72,7 @@ function AnimatedNumber({
 
 function SummaryCard({
   title,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   value,
   numericValue,
   isLoading,

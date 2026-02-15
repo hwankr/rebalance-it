@@ -28,6 +28,11 @@ interface PresetFormDialogProps {
   isSubmitting?: boolean;
   portfolioStocks?: ManualStockRow[];
   isPortfolioLoading?: boolean;
+  // Edit mode props (new)
+  mode?: "create" | "edit";
+  editPresetId?: string;
+  initialName?: string;
+  initialTargets?: PresetTarget[];
 }
 
 export function PresetFormDialog({
@@ -37,6 +42,11 @@ export function PresetFormDialog({
   isSubmitting = false,
   portfolioStocks,
   isPortfolioLoading = false,
+  mode = "create",
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  editPresetId,
+  initialName = "",
+  initialTargets = [],
 }: PresetFormDialogProps) {
   const [name, setName] = useState("");
   const [targets, setTargets] = useState<PresetTarget[]>([]);
@@ -46,15 +56,24 @@ export function PresetFormDialog({
   const roundedTotal = Math.round(totalPct * 100) / 100;
   const isValid = name.trim().length > 0 && targets.length > 0 && roundedTotal <= 100;
 
+  // Initialize with edit mode values when dialog opens
   const handleReset = useCallback(() => {
-    setName("");
-    setTargets([]);
+    if (mode === "edit") {
+      setName(initialName);
+      setTargets(initialTargets);
+    } else {
+      setName("");
+      setTargets([]);
+    }
     setShowStockPicker(false);
-  }, []);
+  }, [mode, initialName, initialTargets]);
 
   const handleOpenChange = useCallback(
     (value: boolean) => {
-      if (!value) handleReset();
+      if (value) {
+        // Initialize form when dialog opens
+        handleReset();
+      }
       onOpenChange(value);
     },
     [onOpenChange, handleReset],
@@ -138,9 +157,11 @@ export function PresetFormDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>새 프리셋 만들기</DialogTitle>
+          <DialogTitle>{mode === "edit" ? "프리셋 편집" : "새 프리셋 만들기"}</DialogTitle>
           <DialogDescription>
-            목표 비중 프리셋을 생성합니다. 종목을 추가하고 비중을 설정하세요.
+            {mode === "edit"
+              ? "프리셋의 이름과 목표 비중을 수정합니다."
+              : "목표 비중 프리셋을 생성합니다. 종목을 추가하고 비중을 설정하세요."}
           </DialogDescription>
         </DialogHeader>
 
@@ -263,7 +284,7 @@ export function PresetFormDialog({
             <Button variant="outline">취소</Button>
           </DialogClose>
           <Button onClick={handleSubmit} disabled={!isValid || isSubmitting}>
-            {isSubmitting ? "저장 중..." : "프리셋 저장"}
+            {isSubmitting ? "저장 중..." : mode === "edit" ? "저장" : "프리셋 저장"}
           </Button>
         </DialogFooter>
       </DialogContent>

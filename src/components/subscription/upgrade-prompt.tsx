@@ -27,7 +27,8 @@ interface UpgradePromptProps {
 }
 
 export function UpgradePrompt({
-  requiredPlan: _requiredPlan = "pro",
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  requiredPlan = "pro",
   title = "Pro 플랜이 필요합니다",
   description = "이 기능을 사용하려면 Pro 플랜으로 업그레이드하세요.",
 }: UpgradePromptProps) {

@@ -86,7 +86,8 @@ class GuestQueryBuilder<T = any> implements StorageQueryBuilder<T> {
     this.table = table;
   }
 
-  select(_columns?: string): StorageQueryBuilder<T> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  select(columns?: string): StorageQueryBuilder<T> {
     if (this.operation.type === "insert") {
       (this.operation as any).returnData = true;
     } else {

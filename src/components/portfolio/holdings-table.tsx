@@ -114,6 +114,7 @@ function StockChartSheet({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTableProps) {
   const [selectedStock, setSelectedStock] = useState<KiwoomStock | null>(null);
 

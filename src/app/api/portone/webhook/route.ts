@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 // - Transaction.Failed → 결제 실패 처리
 // - BillingKey.Deleted → 구독 취소 처리
 // - payment_events 테이블에 이벤트 기록
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function POST(_request: NextRequest) {
   return NextResponse.json(
     { message: "웹훅 처리 기능 준비 중" },

@@ -18,8 +18,6 @@ import { ko } from "date-fns/locale";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
 import { usePresets } from "@/hooks/use-presets";
-import { useAuth } from "@/hooks/use-auth";
-import { useGuestMode } from "@/contexts/guest-mode-context";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 import { simulateRebalance } from "@/lib/rebalance/calculator";
 import { toPortfolioItems } from "@/lib/rebalance/helpers";
@@ -49,10 +47,9 @@ import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor"
 import { ProgressiveOrderList } from "@/components/rebalance/progressive-order-list";
 import { ProgressSummary } from "@/components/rebalance/progress-summary";
 import { PresetSelector } from "@/components/rebalance/preset-selector";
+import { PresetManager } from "@/components/rebalance/preset-manager";
 
 export default function RebalancePage() {
-  const { user } = useAuth();
-  const { isGuest } = useGuestMode();
   const {
     data: balance,
     isLoading,
@@ -89,6 +86,7 @@ export default function RebalancePage() {
   const [abandonOpen, setAbandonOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [presetSelectorOpen, setPresetSelectorOpen] = useState(false);
+  const [presetManagerOpen, setPresetManagerOpen] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [showEditor, setShowEditor] = useState(false);
 
@@ -358,7 +356,7 @@ export default function RebalancePage() {
                 포트폴리오에 종목을 추가해주세요.
               </p>
               <Button asChild>
-                <Link href="/manual-portfolio">포트폴리오 관리</Link>
+                <Link href="/portfolio">포트폴리오 관리</Link>
               </Button>
             </CardContent>
           </Card>
@@ -581,10 +579,15 @@ export default function RebalancePage() {
                   저장된 프리셋을 적용하여 목표 비중을 설정하세요.
                 </p>
               </div>
-              <Button onClick={() => setPresetSelectorOpen(true)}>
-                <FolderInput className="size-4" />
-                프리셋 선택
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => setPresetSelectorOpen(true)}>
+                  <FolderInput className="size-4" />
+                  프리셋 선택
+                </Button>
+                <Button variant="outline" onClick={() => setPresetManagerOpen(true)}>
+                  프리셋 관리
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -617,15 +620,25 @@ export default function RebalancePage() {
                       </>
                     )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPresetSelectorOpen(true)}
-                    className="shrink-0"
-                  >
-                    <FolderInput className="size-4" />
-                    {activePreset ? "프리셋 변경" : "프리셋 선택"}
-                  </Button>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPresetSelectorOpen(true)}
+                      className="shrink-0"
+                    >
+                      <FolderInput className="size-4" />
+                      {activePreset ? "프리셋 변경" : "프리셋 선택"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPresetManagerOpen(true)}
+                      className="shrink-0"
+                    >
+                      관리
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
             </Card>
@@ -781,6 +794,14 @@ export default function RebalancePage() {
         onApply={handleApplyPreset}
         isApplying={isApplying}
         portfolioStockCodes={portfolioStockCodes}
+      />
+
+      {/* Preset manager dialog */}
+      <PresetManager
+        open={presetManagerOpen}
+        onOpenChange={setPresetManagerOpen}
+        onApplyPreset={handleApplyPreset}
+        isApplying={isApplying}
       />
     </PageTransition>
   );

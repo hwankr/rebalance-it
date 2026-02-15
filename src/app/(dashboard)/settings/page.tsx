@@ -53,7 +53,7 @@ const accountSchema = z.object({
 type AccountFormValues = z.infer<typeof accountSchema>;
 
 export default function SettingsPage() {
-  const { settings, updateSettings, clearSettings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
   const { isPro, subscription, isDevOverride, realPlan } = useSubscription();

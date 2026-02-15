@@ -294,6 +294,7 @@ async function main() {
   console.log("\n✓ Supabase seed complete.");
 
   // Generate public/data/stocks.json for client-side cache
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const publicData = uniqueStocks.map(({ is_active, ...rest }) => rest);
   const publicDir = join(process.cwd(), "public", "data");
   mkdirSync(publicDir, { recursive: true });

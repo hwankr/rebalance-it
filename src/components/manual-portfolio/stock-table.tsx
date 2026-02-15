@@ -16,9 +16,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { formatCurrency, formatEvalAmount, formatPercent, formatUsdPrice } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
+import { useStockChart } from "@/hooks/use-stock-chart";
+import { StockPriceChart } from "@/components/portfolio/stock-price-chart";
 
 interface StockRow {
   id: string;
@@ -59,6 +70,94 @@ function formatPriceTimestamp(priceUpdatedAt: string | null): string {
   });
 }
 
+function StockChartSheet({
+  stock,
+  open,
+  onOpenChange,
+  exchangeRate,
+}: {
+  stock: StockRow;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  exchangeRate?: number;
+}) {
+  const { data, isLoading } = useStockChart(
+    open ? stock.stock_code : null,
+    "day",
+    132
+  );
+
+  const isUsd = stock.currency === "USD";
+  const evalAmount = stock.current_price * stock.quantity;
+  const profitLoss = (stock.current_price - stock.avg_price) * stock.quantity;
+  const profitRate = stock.avg_price > 0 ? ((stock.current_price - stock.avg_price) / stock.avg_price) * 100 : 0;
+
+  // KRW-equivalent values for USD stocks
+  const evalAmountKrw = isUsd && exchangeRate ? evalAmount * exchangeRate : evalAmount;
+  const profitLossKrw = isUsd && exchangeRate ? profitLoss * exchangeRate : profitLoss;
+
+  function profitColor(value: number) {
+    if (value > 0) return "profit-up";
+    if (value < 0) return "profit-down";
+    return "";
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{stock.stock_name}</SheetTitle>
+          <SheetDescription>{stock.stock_code}</SheetDescription>
+        </SheetHeader>
+
+        <div className="px-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-muted-foreground">현재가</span>
+              <p className="font-medium tabular-nums">
+                {isUsd ? formatUsdPrice(stock.current_price) : formatCurrency(stock.current_price)}
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">수익률</span>
+              <p className={cn("font-medium tabular-nums", profitColor(profitRate))}>
+                {formatPercent(profitRate)}
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">평가금액</span>
+              <p className="font-medium tabular-nums">
+                {isUsd && exchangeRate
+                  ? formatEvalAmount(evalAmountKrw, { currency: "USD", nativeEval: evalAmount })
+                  : formatCurrency(evalAmount)}
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">손익</span>
+              <p className={cn("font-medium tabular-nums", profitColor(profitLoss))}>
+                {isUsd && exchangeRate
+                  ? formatCurrency(Math.round(profitLossKrw))
+                  : formatCurrency(profitLoss)}
+              </p>
+            </div>
+          </div>
+
+          <StockPriceChart
+            chartData={data?.data ?? []}
+            stockName={stock.stock_name}
+            isLoading={isLoading}
+          />
+        </div>
+
+        <SheetFooter>
+          <SheetClose asChild>
+            <Button variant="outline" className="w-full">닫기</Button>
+          </SheetClose>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 export function StockTable({
   stocks,
@@ -70,6 +169,7 @@ export function StockTable({
 }: StockTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<ManualStockInput>>({});
+  const [selectedStock, setSelectedStock] = useState<StockRow | null>(null);
 
   function startEdit(stock: StockRow) {
     setEditingId(stock.id);
@@ -159,7 +259,15 @@ export function StockTable({
                 <TableCell className="font-mono text-sm">
                   {stock.stock_code}
                 </TableCell>
-                <TableCell>{stock.stock_name}</TableCell>
+                <TableCell>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStock(stock)}
+                    className="font-medium text-left hover:text-primary hover:underline underline-offset-4 cursor-pointer transition-colors"
+                  >
+                    {stock.stock_name}
+                  </button>
+                </TableCell>
                 <TableCell className="text-right">
                   {isEditing ? (
                     <Input
@@ -372,20 +480,27 @@ export function StockTable({
                   <>
                     {/* Top row: stock name + action buttons */}
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <div className="flex-1">
-                        <div className="font-semibold">{stock.stock_name}</div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStock(stock)}
+                        className="flex-1 text-left"
+                      >
+                        <div className="font-semibold hover:text-primary transition-colors">{stock.stock_name}</div>
                         <div className="text-xs text-muted-foreground tabular-nums flex items-center gap-2 mt-0.5">
                           {stock.stock_code}
                           <Badge variant="outline" className="text-[10px] px-1 py-0">
                             {stock.currency}
                           </Badge>
                         </div>
-                      </div>
+                      </button>
                       <div className="flex gap-1 shrink-0">
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          onClick={() => startEdit(stock)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEdit(stock);
+                          }}
                         >
                           <Pencil className="size-4" />
                         </Button>
@@ -393,7 +508,10 @@ export function StockTable({
                           variant="ghost"
                           size="icon-xs"
                           className="text-destructive"
-                          onClick={() => onDelete(stock.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(stock.id);
+                          }}
                         >
                           <Trash2 className="size-4" />
                         </Button>
@@ -452,6 +570,17 @@ export function StockTable({
           );
         })}
       </div>
+
+      {selectedStock && (
+        <StockChartSheet
+          stock={selectedStock}
+          open={!!selectedStock}
+          onOpenChange={(open) => {
+            if (!open) setSelectedStock(null);
+          }}
+          exchangeRate={exchangeRate}
+        />
+      )}
     </div>
   );
 }

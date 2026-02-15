@@ -2,15 +2,15 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, RefreshCw, FolderOpen, History } from "lucide-react";
+import { LayoutDashboard, RefreshCw, History, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 
 const tabs = [
   { href: "/portfolio", label: "포트폴리오", icon: LayoutDashboard },
   { href: "/rebalance", label: "리밸런싱", icon: RefreshCw },
-  { href: "/presets", label: "프리셋", icon: FolderOpen },
   { href: "/history", label: "기록", icon: History },
+  { href: "/settings", label: "설정", icon: Settings },
 ];
 
 export function BottomNav() {
