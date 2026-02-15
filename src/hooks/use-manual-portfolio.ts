@@ -258,7 +258,7 @@ export function useManualPortfolio(exchangeRate?: number) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
-  // 목표 비중만 수정
+  // 목표 비중만 수정 (단건)
   const updateTargetPctMutation = useMutation({
     mutationFn: async ({ id, targetPct }: { id: string; targetPct: number }) => {
       const { error } = await supabase
@@ -266,6 +266,23 @@ export function useManualPortfolio(exchangeRate?: number) {
         .update({ target_pct: targetPct } as never)
         .eq("id", id);
       if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
+  });
+
+  // 목표 비중 일괄 수정 (batch)
+  const updateBatchTargetsMutation = useMutation({
+    mutationFn: async (updates: { id: string; targetPct: number }[]) => {
+      const results = await Promise.all(
+        updates.map(({ id, targetPct }) =>
+          supabase
+            .from("manual_stocks")
+            .update({ target_pct: targetPct } as never)
+            .eq("id", id)
+        )
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
@@ -310,6 +327,15 @@ export function useManualPortfolio(exchangeRate?: number) {
     [updateTargetPctMutation],
   );
 
+  const updateBatchTargets = useCallback(
+    (
+      updates: { id: string; targetPct: number }[],
+      options?: { onSuccess?: () => void; onError?: (error: Error) => void },
+    ) =>
+      updateBatchTargetsMutation.mutate(updates, options),
+    [updateBatchTargetsMutation],
+  );
+
   const applyPreset = useCallback(
     (presetTargets: PresetTarget[]) =>
       applyPresetMutation.mutate(presetTargets),
@@ -328,6 +354,7 @@ export function useManualPortfolio(exchangeRate?: number) {
     updateStock,
     deleteStock,
     updateTargetPct,
+    updateBatchTargets,
     applyPreset,
     refetch,
     isFetching,

@@ -6,12 +6,12 @@ const MIN_ORDER_AMOUNT = 10_000; // 최소 주문 금액 (1만원)
 /** 리밸런싱 주문 목록 생성 */
 export function generateOrders(
   portfolio: PortfolioItem[],
-  totalValue: number,
-  cashBalance: number
+  totalValue: number
 ): RebalanceOrder[] {
   const orders: RebalanceOrder[] = [];
 
   for (const item of portfolio) {
+    if (item.is_cash) continue; // 현금은 매매 대상 아님
     if (item.current_price <= 0) continue;
 
     const targetAmount = (item.target_pct / 100) * totalValue;
@@ -47,8 +47,11 @@ export function generateOrders(
 /** 매수 주문의 총 필요 금액이 사용 가능 현금을 초과하는지 확인 */
 export function validateCashSufficiency(
   orders: RebalanceOrder[],
-  cashBalance: number
+  portfolio: PortfolioItem[]
 ): { sufficient: boolean; shortfall: number } {
+  const cashItem = portfolio.find((p) => p.is_cash);
+  const cashBalance = cashItem?.eval_amount ?? 0;
+
   const totalSell = orders
     .filter((o) => o.side === "sell")
     .reduce((sum, o) => sum + o.estimated_amount, 0);

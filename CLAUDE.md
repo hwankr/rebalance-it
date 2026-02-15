@@ -120,23 +120,37 @@ See `.env.example`:
 
 ## Codex Collaboration (GPT Pro)
 
-- **ALWAYS maximize Codex (`ask_codex`) usage.** User has GPT Pro plan with generous limits — no cost concerns, use liberally.
-- Run Codex in background (`background: true`) when possible for parallel work.
-- Always attach relevant `context_files` for better analysis quality.
+- Use Codex (`ask_codex`) for high-value analysis: architecture, security, planning validation, critical review.
+- User has GPT Pro plan — cost is not a concern, but **TPM (tokens per minute) rate limit** must be respected.
+- Codex uses `xhigh` reasoning effort — each call consumes very high token volume.
 - Codex is read-only (analysis/review); actual code writing/editing is done by Claude.
+
+### Rate Limit Rules (CRITICAL)
+
+- **NEVER run Codex calls in parallel.** Always sequential, one at a time. No `background: true`.
+- **Limit `context_files` to 3 files max**, prioritizing the most relevant ones.
+- **Multi-role reviews must be sequential**: architect first → wait → critic → wait → security-reviewer.
+- If a Codex call fails with rate limit, wait 60+ seconds before retrying.
 
 ### Design Partner Pattern
 
-- **Consult Codex before major design decisions**: For architecture, DB schema, API design, and other critical decisions, always seek Codex architect/critic opinion BEFORE implementation.
-- **Cross-validation loop**: Claude proposes → Codex critic critiques → Claude incorporates feedback → finalize. The higher the stakes, the more strictly this loop must be followed.
-- **Multi-role parallel review**: For complex tasks, invoke Codex in multiple roles simultaneously (e.g., architect + critic + security-reviewer) to get multi-angle feedback.
+- **Consult Codex before major design decisions**: For architecture, DB schema, API design, and other critical decisions, seek Codex architect/critic opinion BEFORE implementation.
+- **Cross-validation loop**: Claude proposes → Codex critiques → Claude incorporates → finalize. Each Codex call sequential.
+- **Multi-role review**: For complex tasks, invoke Codex in multiple roles **sequentially** (architect → critic → security-reviewer), not in parallel.
 
 ### Auto Review Pattern
 
-- **Automatic Codex code review after implementation**: After meaningful code changes (5+ files or core logic changes), automatically run Codex code-reviewer.
-- **Mandatory security review for sensitive code**: Authentication, authorization, payments (PortOne), and personal data handling code must always pass through Codex security-reviewer.
+- **Codex code review after implementation**: After meaningful code changes (5+ files or core logic changes), run Codex code-reviewer.
+- **Mandatory security review for sensitive code**: Authentication, authorization, payments (PortOne), and personal data handling code must pass through Codex security-reviewer.
+- Run code-review and security-review **sequentially**, not in parallel.
+
+### When NOT to Use Codex (Use Claude Agents Instead)
+
+- Simple file exploration, codebase search, symbol lookup
+- Build error fixes, lint fixes, straightforward bug fixes
+- Small refactors (<3 files), simple feature additions
 
 ### Scope of Use
 
-- Architecture review, planning validation, code review, security review, critical analysis, test strategy, debugging analysis, second-opinion checks.
+- Architecture review, planning validation, code review, security review, critical analysis, test strategy, debugging analysis.
 - For complex bug analysis, attach relevant files to Codex debugger/analyst and collaboratively identify root causes.

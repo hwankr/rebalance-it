@@ -11,7 +11,6 @@ type SimulationResult = RebalanceResult & {
 interface SimulationParams {
   portfolio: PortfolioItem[];
   targets: TargetAllocation[];
-  cash: number;
 }
 
 async function simulateRebalance(

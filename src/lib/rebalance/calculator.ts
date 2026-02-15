@@ -47,11 +47,10 @@ export function mergeTargets(
   }));
 }
 
-/** 리밸런싱 계산 (시뮬레이션) */
+/** 리밸런싱 계산 (시뮬레이션) — 현금은 portfolio에 포함되어 있어야 함 */
 export function calculateRebalance(
   portfolio: PortfolioItem[],
-  targets: TargetAllocation[],
-  cashBalance: number
+  targets: TargetAllocation[]
 ): RebalanceResult {
   // 목표 비중 검증
   const validation = validateTargets(targets);
@@ -61,14 +60,15 @@ export function calculateRebalance(
 
   // 목표 비중 매핑
   const merged = mergeTargets(portfolio, targets);
-  const totalValue =
-    merged.reduce((sum, item) => sum + item.eval_amount, 0) + cashBalance;
+
+  // totalValue: portfolio에 현금이 이미 포함되어 있으므로 eval_amount 합계만 사용
+  const totalValue = merged.reduce((sum, item) => sum + item.eval_amount, 0);
 
   // 현재 drift 계산
   const drift_before = calculateDrift(merged);
 
-  // 주문 생성
-  const orders = generateOrders(merged, totalValue, cashBalance);
+  // 주문 생성 (is_cash 항목은 내부에서 skip됨)
+  const orders = generateOrders(merged, totalValue);
 
   // 매수/매도 총액
   const total_sell_amount = orders
@@ -81,6 +81,15 @@ export function calculateRebalance(
 
   // 리밸런싱 후 예상 drift 계산
   const estimatedPortfolio = merged.map((item) => {
+    if (item.is_cash) {
+      // 현금은 매매 결과에 따라 자동 조정
+      return {
+        ...item,
+        eval_amount: item.eval_amount + net_cash_change,
+        quantity: item.eval_amount + net_cash_change,
+      };
+    }
+
     const order = orders.find((o) => o.stock_code === item.stock_code);
     if (!order) return item;
 
@@ -98,6 +107,10 @@ export function calculateRebalance(
 
   const estimated_drift_after = calculateDrift(estimatedPortfolio);
 
+  // 현금 잔액 계산
+  const cashItem = merged.find((p) => p.is_cash);
+  const cashBefore = cashItem?.eval_amount ?? 0;
+
   return {
     orders,
     drift_before,
@@ -105,20 +118,19 @@ export function calculateRebalance(
     total_buy_amount,
     total_sell_amount,
     net_cash_change,
-    cash_after: cashBalance + net_cash_change,
+    cash_after: cashBefore + net_cash_change,
   };
 }
 
 /** 현금 충분성 검증을 포함한 시뮬레이션 */
 export function simulateRebalance(
   portfolio: PortfolioItem[],
-  targets: TargetAllocation[],
-  cashBalance: number
+  targets: TargetAllocation[]
 ): RebalanceResult & { cash_sufficient: boolean; cash_shortfall: number } {
-  const result = calculateRebalance(portfolio, targets, cashBalance);
+  const result = calculateRebalance(portfolio, targets);
   const { sufficient, shortfall } = validateCashSufficiency(
     result.orders,
-    cashBalance
+    portfolio
   );
 
   return {

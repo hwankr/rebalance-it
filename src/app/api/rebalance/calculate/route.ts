@@ -6,7 +6,6 @@ import { requireAuth } from "@/lib/subscription/guard";
 interface CalculateRequestBody {
   portfolio: PortfolioItem[];
   targets: TargetAllocation[];
-  cash: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -27,15 +26,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!body.portfolio || !body.targets || body.cash == null) {
+  if (!body.portfolio || !body.targets) {
     return NextResponse.json(
-      { error: "portfolio, targets, cash는 필수 항목입니다." },
+      { error: "portfolio, targets는 필수 항목입니다." },
       { status: 400 }
     );
   }
 
   try {
-    const result = simulateRebalance(body.portfolio, body.targets, body.cash);
+    const result = simulateRebalance(body.portfolio, body.targets);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof Error) {

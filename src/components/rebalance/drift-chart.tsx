@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -82,6 +83,7 @@ export function DriftChart({
     current_pct: Math.round(d.current_pct * 100) / 100,
     target_pct: Math.round(d.target_pct * 100) / 100,
     drift_pct: Math.round(d.drift_pct * 100) / 100,
+    is_cash: d.stock_code === "CASH",
   }));
 
   const chartHeight = Math.max(300, drifts.length * 50);
@@ -116,18 +118,30 @@ export function DriftChart({
         />
         <Bar
           dataKey="current_pct"
-          fill={themeColors[0] || "#4f46e5"}
           name="current_pct"
           barSize={16}
           radius={[0, 4, 4, 0]}
-        />
+        >
+          {data.map((entry, index) => (
+            <Cell
+              key={`current-${index}`}
+              fill={entry.is_cash ? "#9ca3af" : themeColors[0] || "#4f46e5"}
+            />
+          ))}
+        </Bar>
         <Bar
           dataKey="target_pct"
-          fill={themeColors[2] || "#16a34a"}
           name="target_pct"
           barSize={16}
           radius={[0, 4, 4, 0]}
-        />
+        >
+          {data.map((entry, index) => (
+            <Cell
+              key={`target-${index}`}
+              fill={entry.is_cash ? "#d1d5db" : themeColors[2] || "#16a34a"}
+            />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );

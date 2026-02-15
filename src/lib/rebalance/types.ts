@@ -6,6 +6,7 @@ export interface PortfolioItem {
   eval_amount: number; // current_price * quantity
   current_pct: number; // 현재 비중 (0-100)
   target_pct: number; // 목표 비중 (0-100)
+  is_cash?: boolean; // 현금 자산 여부
 }
 
 export interface DriftResult {
@@ -40,4 +41,5 @@ export interface TargetAllocation {
   stock_code: string;
   stock_name: string;
   target_pct: number;
+  is_cash?: boolean; // 현금 자산 여부
 }
