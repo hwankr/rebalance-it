@@ -16,6 +16,7 @@ interface ManualPortfolioRow {
   id: string;
   user_id: string;
   cash: number;
+  active_preset_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -293,11 +294,18 @@ export function useManualPortfolio(exchangeRate?: number) {
 
   // 프리셋 적용 (RPC 트랜잭션 — guest client handles internally)
   const applyPresetMutation = useMutation({
-    mutationFn: async (presetTargets: PresetTarget[]) => {
+    mutationFn: async ({
+      presetTargets,
+      presetId,
+    }: {
+      presetTargets: PresetTarget[];
+      presetId?: string | null;
+    }) => {
       if (!portfolio) throw new Error("포트폴리오가 없습니다");
       const { error } = await client.rpc("apply_preset_to_manual", {
         p_portfolio_id: portfolio.id,
         p_targets: JSON.parse(JSON.stringify(presetTargets)),
+        p_preset_id: presetId ?? null,
       });
       if (error) throw error;
     },
@@ -341,8 +349,18 @@ export function useManualPortfolio(exchangeRate?: number) {
   );
 
   const applyPreset = useCallback(
-    (presetTargets: PresetTarget[]) =>
-      applyPresetMutation.mutate(presetTargets),
+    (
+      presetTargets: PresetTarget[],
+      options?: {
+        presetId?: string | null;
+        onSuccess?: () => void;
+        onError?: (error: Error) => void;
+      },
+    ) =>
+      applyPresetMutation.mutate(
+        { presetTargets, presetId: options?.presetId },
+        { onSuccess: options?.onSuccess, onError: options?.onError },
+      ),
     [applyPresetMutation],
   );
 
@@ -350,6 +368,7 @@ export function useManualPortfolio(exchangeRate?: number) {
     portfolio,
     stocks,
     balance,
+    activePresetId: portfolio?.active_preset_id ?? null,
     isLoading,
     isError,
     error,

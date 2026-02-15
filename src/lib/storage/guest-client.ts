@@ -319,6 +319,7 @@ function handleRpc(
         target_pct: number;
       }>;
       const portfolioId = params.p_portfolio_id as string;
+      const presetId = (params.p_preset_id as string | null) ?? null;
 
       // Verify portfolio belongs to guest user (defense-in-depth)
       const portfolios = readTable("manual_portfolios");
@@ -340,6 +341,12 @@ function handleRpc(
       }
 
       writeTable("manual_stocks", stocks);
+
+      // Update active_preset_id on the portfolio
+      portfolio.active_preset_id = presetId;
+      portfolio.updated_at = nowISO();
+      writeTable("manual_portfolios", portfolios);
+
       return { data: null, error: null };
     }
 

@@ -8,17 +8,23 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  FolderInput,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
+import { usePresets } from "@/hooks/use-presets";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 import { simulateRebalance } from "@/lib/rebalance/calculator";
 import { toPortfolioItems } from "@/lib/rebalance/helpers";
 import { formatCurrency } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,10 +43,12 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/layout/page-transition";
 import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
 import { ProgressiveOrderList } from "@/components/rebalance/progressive-order-list";
 import { ProgressSummary } from "@/components/rebalance/progress-summary";
+import { PresetSelector } from "@/components/rebalance/preset-selector";
 
 export default function RebalancePage() {
   const { user } = useAuth();
@@ -56,9 +64,13 @@ export default function RebalancePage() {
   const {
     stocks: manualStocks,
     portfolio,
+    activePresetId,
     updateBatchTargets,
+    applyPreset,
+    isApplying,
     isLoading: isManualLoading,
   } = useManualPortfolio(exchangeRate);
+  const { getPreset, isLoading: isPresetsLoading } = usePresets();
   const {
     activeSession,
     isLoadingSession,
@@ -76,6 +88,9 @@ export default function RebalancePage() {
   const [isSavingTargets, setIsSavingTargets] = useState(false);
   const [abandonOpen, setAbandonOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [presetSelectorOpen, setPresetSelectorOpen] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
+  const [showEditor, setShowEditor] = useState(false);
 
   const cashAmount = Number(portfolio?.cash ?? 0);
   const totalValue = balance?.total_value ?? 0;
@@ -85,9 +100,92 @@ export default function RebalancePage() {
   const canSimulate = hasStocks && hasTargets && !!balance;
   const hasActiveSession = !!activeSession;
 
+  const portfolioStockCodes = useMemo(
+    () => new Set(manualStocks.map((s) => s.stock_code)),
+    [manualStocks],
+  );
+
   // Capture current time once per render for staleness check
   // eslint-disable-next-line react-hooks/purity
   const now = useMemo(() => Date.now(), []);
+
+  // --- Preset state detection ---
+  const activePreset = activePresetId ? getPreset(activePresetId) : null;
+  const presetDeleted = !!activePresetId && !activePreset && !isPresetsLoading;
+
+  // Check if current targets differ from the linked preset
+  const isTargetModified = useMemo(() => {
+    if (!activePreset) return false;
+    const presetMap = new Map(
+      activePreset.targets.map((t) => [t.stock_code, t.target_pct]),
+    );
+    for (const s of manualStocks) {
+      const presetPct = presetMap.get(s.stock_code) ?? 0;
+      if (Math.abs(s.target_pct - presetPct) > 0.01) return true;
+    }
+    for (const t of activePreset.targets) {
+      if (!manualStocks.find((s) => s.stock_code === t.stock_code) && t.target_pct > 0)
+        return true;
+    }
+    return false;
+  }, [activePreset, manualStocks]);
+
+  // Compact comparison data for read-only current vs target view
+  const comparisonData = useMemo(() => {
+    if (!balance || !manualStocks.length) return [];
+    return manualStocks.map((stock) => {
+      const evalAmount =
+        stock.currency === "USD"
+          ? stock.current_price * exchangeRate * stock.quantity
+          : stock.current_price * stock.quantity;
+      const currentPct = totalValue > 0 ? (evalAmount / totalValue) * 100 : 0;
+      return {
+        id: stock.id,
+        stock_name: stock.stock_name,
+        stock_code: stock.stock_code,
+        currentPct,
+        targetPct: stock.target_pct,
+        diff: stock.target_pct - currentPct,
+      };
+    });
+  }, [manualStocks, balance, exchangeRate, totalValue]);
+
+  const cashCurrentPct = totalValue > 0 ? (cashAmount / totalValue) * 100 : 0;
+  const totalStockTargetPct = manualStocks.reduce((sum, s) => sum + s.target_pct, 0);
+  const cashTargetPct = Math.max(0, 100 - totalStockTargetPct);
+  const cashDiff = cashTargetPct - cashCurrentPct;
+
+  function handleApplyPreset(
+    presetTargets: import("@/lib/rebalance/preset-types").PresetTarget[],
+    presetId: string,
+  ) {
+    applyPreset(presetTargets, {
+      presetId,
+      onSuccess: () => {
+        toast.success("프리셋이 적용되었습니다.");
+        setPresetSelectorOpen(false);
+        setEditorKey((k) => k + 1);
+        setShowEditor(false);
+      },
+      onError: (error: Error) => {
+        toast.error(`프리셋 적용에 실패했습니다: ${error.message}`);
+      },
+    });
+  }
+
+  function handleReapplyPreset() {
+    if (!activePreset) return;
+    applyPreset(activePreset.targets, {
+      presetId: activePreset.id,
+      onSuccess: () => {
+        toast.success("프리셋이 다시 적용되었습니다.");
+        setEditorKey((k) => k + 1);
+      },
+      onError: (error: Error) => {
+        toast.error(`프리셋 적용에 실패했습니다: ${error.message}`);
+      },
+    });
+  }
 
   function handleSaveTargets(updates: { id: string; targetPct: number }[]) {
     setIsSavingTargets(true);
@@ -150,6 +248,7 @@ export default function RebalancePage() {
       await startSession({
         simulationResult: result,
         portfolioSnapshot: snapshot,
+        presetName: activePreset?.name,
       });
 
       toast.success("리밸런싱이 시작되었습니다. 체결 수량을 입력하세요.");
@@ -436,7 +535,7 @@ export default function RebalancePage() {
             리밸런싱
           </h1>
           <p className="text-muted-foreground">
-            목표 비중을 설정하고 리밸런싱을 실행하세요.
+            프리셋 기반으로 포트폴리오를 리밸런싱하세요.
           </p>
         </div>
 
@@ -460,28 +559,173 @@ export default function RebalancePage() {
           </span>
         </div>
 
-        {/* Target weight editor + action button */}
-        <Card>
-          <CardHeader>
-            <CardTitle>목표 비중 설정</CardTitle>
-            <CardDescription>
-              각 종목의 목표 비중을 설정하세요. 현금 비중은 나머지로 자동
-              계산됩니다.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <TargetWeightEditor
-              stocks={manualStocks}
-              cashAmount={cashAmount}
-              exchangeRate={exchangeRate}
-              onSave={handleSaveTargets}
-              isSaving={isSavingTargets}
-            />
-            <Separator />
+        {/* Deleted preset warning */}
+        {presetDeleted && (
+          <div className="flex items-start gap-3 rounded-lg border border-orange-500/50 bg-orange-50 p-4 dark:bg-orange-950/30">
+            <AlertTriangle className="size-5 shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
+            <div className="text-sm text-orange-800 dark:text-orange-200">
+              <p className="font-medium">이전 프리셋이 삭제되었습니다</p>
+              <p>현재 설정된 비중은 그대로 유지됩니다. 새 프리셋을 선택하거나 직접 비중을 조정하세요.</p>
+            </div>
+          </div>
+        )}
+
+        {!hasTargets && !activePresetId ? (
+          /* ── State A: No preset, no targets → prompt ── */
+          <Card>
+            <CardContent className="flex flex-col items-center gap-4 py-10">
+              <FolderInput className="size-12 text-muted-foreground" />
+              <div className="text-center">
+                <p className="font-medium">프리셋을 선택해주세요</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  저장된 프리셋을 적용하여 목표 비중을 설정하세요.
+                </p>
+              </div>
+              <Button onClick={() => setPresetSelectorOpen(true)}>
+                <FolderInput className="size-4" />
+                프리셋 선택
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          /* ── State B: Has targets → full rebalancing view ── */
+          <>
+            {/* Preset info card */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1 min-w-0">
+                    {activePreset ? (
+                      <>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CardTitle className="text-lg">{activePreset.name}</CardTitle>
+                          {isTargetModified && (
+                            <Badge variant="secondary" className="text-xs">수정됨</Badge>
+                          )}
+                        </div>
+                        <CardDescription>
+                          {activePreset.targets.length}개 종목 · 비중 합계{" "}
+                          {activePreset.targets.reduce((s, t) => s + t.target_pct, 0).toFixed(1)}%
+                        </CardDescription>
+                      </>
+                    ) : (
+                      <>
+                        <CardTitle className="text-lg">수동 비중 설정</CardTitle>
+                        <CardDescription>
+                          프리셋 없이 직접 설정한 비중입니다.
+                        </CardDescription>
+                      </>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPresetSelectorOpen(true)}
+                    className="shrink-0"
+                  >
+                    <FolderInput className="size-4" />
+                    {activePreset ? "프리셋 변경" : "프리셋 선택"}
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {/* Re-apply banner when targets modified */}
+            {activePreset && isTargetModified && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-blue-500/50 bg-blue-50 p-3 dark:bg-blue-950/30">
+                <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
+                  <RefreshCw className="size-4 shrink-0" />
+                  <span>비중이 프리셋과 다릅니다.</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReapplyPreset}
+                  disabled={isApplying}
+                  className="shrink-0"
+                >
+                  {isApplying ? "적용 중..." : "다시 적용"}
+                </Button>
+              </div>
+            )}
+
+            {/* Current vs Target comparison (read-only, compact) */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">현재 vs 목표 비중</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Header row */}
+                <div className="hidden sm:flex items-center text-xs text-muted-foreground pb-2 border-b mb-1">
+                  <span className="flex-1">종목</span>
+                  <span className="w-16 text-right">현재</span>
+                  <span className="w-6 text-center" />
+                  <span className="w-16 text-right">목표</span>
+                  <span className="w-16 text-right">차이</span>
+                </div>
+                <div className="space-y-0.5">
+                  {comparisonData.map((stock) => (
+                    <div
+                      key={stock.id}
+                      className="flex items-center justify-between sm:justify-start text-sm py-1.5"
+                    >
+                      <span className="font-medium truncate flex-1 min-w-0 pr-2">
+                        {stock.stock_name}
+                      </span>
+                      <div className="flex items-center gap-0 tabular-nums shrink-0">
+                        <span className="text-muted-foreground w-16 text-right">
+                          {stock.currentPct.toFixed(1)}%
+                        </span>
+                        <span className="w-6 text-center text-muted-foreground">→</span>
+                        <span className="font-medium w-16 text-right">
+                          {stock.targetPct.toFixed(1)}%
+                        </span>
+                        <span
+                          className={cn(
+                            "w-16 text-right",
+                            stock.diff > 0.1 && "text-blue-600 dark:text-blue-400",
+                            stock.diff < -0.1 && "text-red-600 dark:text-red-400",
+                          )}
+                        >
+                          {stock.diff > 0 ? "+" : ""}
+                          {stock.diff.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Cash row */}
+                  <div className="flex items-center justify-between sm:justify-start text-sm py-1.5 border-t mt-1 pt-2">
+                    <span className="font-medium flex-1">현금</span>
+                    <div className="flex items-center gap-0 tabular-nums shrink-0">
+                      <span className="text-muted-foreground w-16 text-right">
+                        {cashCurrentPct.toFixed(1)}%
+                      </span>
+                      <span className="w-6 text-center text-muted-foreground">→</span>
+                      <span className="font-medium w-16 text-right">
+                        {cashTargetPct.toFixed(1)}%
+                      </span>
+                      <span
+                        className={cn(
+                          "w-16 text-right",
+                          cashDiff > 0.1 && "text-blue-600 dark:text-blue-400",
+                          cashDiff < -0.1 && "text-red-600 dark:text-red-400",
+                        )}
+                      >
+                        {cashDiff > 0 ? "+" : ""}
+                        {cashDiff.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Main CTA */}
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleStartRebalancing}
                 disabled={!canSimulate || isStarting || isLoadingSession}
+                size="lg"
               >
                 {isStarting ? "시작 중..." : "리밸런싱 실행"}
               </Button>
@@ -491,9 +735,53 @@ export default function RebalancePage() {
                 </p>
               )}
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Collapsible target weight editor */}
+            <Card>
+              <CardHeader className="pb-0">
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full text-left"
+                  onClick={() => setShowEditor((v) => !v)}
+                >
+                  <div className="space-y-1">
+                    <CardTitle className="text-base">세부 비중 조정</CardTitle>
+                    <CardDescription>
+                      각 종목의 목표 비중을 직접 수정합니다.
+                    </CardDescription>
+                  </div>
+                  {showEditor ? (
+                    <ChevronUp className="size-5 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronDown className="size-5 text-muted-foreground shrink-0" />
+                  )}
+                </button>
+              </CardHeader>
+              {showEditor && (
+                <CardContent className="pt-4">
+                  <TargetWeightEditor
+                    key={editorKey}
+                    stocks={manualStocks}
+                    cashAmount={cashAmount}
+                    exchangeRate={exchangeRate}
+                    onSave={handleSaveTargets}
+                    isSaving={isSavingTargets}
+                  />
+                </CardContent>
+              )}
+            </Card>
+          </>
+        )}
       </div>
+
+      {/* Preset selector dialog */}
+      <PresetSelector
+        open={presetSelectorOpen}
+        onOpenChange={setPresetSelectorOpen}
+        onApply={handleApplyPreset}
+        isApplying={isApplying}
+        portfolioStockCodes={portfolioStockCodes}
+      />
     </PageTransition>
   );
 }

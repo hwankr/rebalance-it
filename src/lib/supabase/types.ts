@@ -125,6 +125,7 @@ export interface Database {
           id: string;
           user_id: string;
           cash: number;
+          active_preset_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -132,6 +133,7 @@ export interface Database {
           id?: string;
           user_id: string;
           cash?: number;
+          active_preset_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -139,6 +141,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           cash?: number;
+          active_preset_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -412,6 +415,7 @@ export interface Database {
         Args: {
           p_portfolio_id: string;
           p_targets: Json;
+          p_preset_id?: string | null;
         };
         Returns: undefined;
       };
