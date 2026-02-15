@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,24 +36,33 @@ import {
 import { PageTransition } from "@/components/layout/page-transition";
 
 const STATUS_MAP: Record<
-  "completed" | "partial" | "failed",
-  { label: string; variant: "success" | "secondary" | "destructive" }
+  string,
+  { label: string; variant: "success" | "secondary" | "destructive" | "default" | "outline" }
 > = {
   completed: {
     label: "완료",
     variant: "success",
   },
   partial: {
-    label: "부분",
+    label: "부분 완료",
     variant: "secondary",
   },
   failed: {
     label: "실패",
     variant: "destructive",
   },
+  in_progress: {
+    label: "진행중",
+    variant: "default",
+  },
+  abandoned: {
+    label: "포기",
+    variant: "outline",
+  },
 };
 
 export default function HistoryPage() {
+  const router = useRouter();
   const { history, deleteExecution, clearHistory } = useHistory();
   const { isPro } = useSubscription();
   const [clearOpen, setClearOpen] = useState(false);
@@ -120,9 +130,17 @@ export default function HistoryPage() {
               </TableHeader>
               <TableBody>
                 {visibleHistory.map((exec) => {
-                  const statusInfo = STATUS_MAP[exec.status];
+                  const statusInfo = STATUS_MAP[exec.status] ?? STATUS_MAP.completed;
+                  const isClickable = exec.status === "in_progress";
                   return (
-                    <TableRow key={exec.id} className="hover:bg-accent/30 transition-colors duration-150">
+                    <TableRow
+                      key={exec.id}
+                      className={cn(
+                        "hover:bg-accent/30 transition-colors duration-150",
+                        isClickable && "cursor-pointer"
+                      )}
+                      onClick={isClickable ? () => router.push("/rebalance") : undefined}
+                    >
                       <TableCell>
                         {format(new Date(exec.executed_at), "yyyy.MM.dd HH:mm")}
                       </TableCell>
@@ -162,7 +180,7 @@ export default function HistoryPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setDeleteTarget(exec.id)}
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(exec.id); }}
                         >
                           <Trash2 className="size-4" />
                         </Button>
@@ -177,7 +195,8 @@ export default function HistoryPage() {
           {/* Mobile card list */}
           <div className="space-y-3 md:hidden">
             {visibleHistory.map((exec, i) => {
-              const statusInfo = STATUS_MAP[exec.status];
+              const statusInfo = STATUS_MAP[exec.status] ?? STATUS_MAP.completed;
+              const isClickable = exec.status === "in_progress";
               return (
                 <m.div
                   key={exec.id}
@@ -185,7 +204,13 @@ export default function HistoryPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: i * 0.05 }}
                 >
-                  <div className="glass-card card-hover rounded-xl p-4">
+                  <div
+                    className={cn(
+                      "glass-card card-hover rounded-xl p-4",
+                      isClickable && "cursor-pointer ring-1 ring-blue-500/30"
+                    )}
+                    onClick={isClickable ? () => router.push("/rebalance") : undefined}
+                  >
                     {/* Top row: profile name + status badge */}
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="font-semibold">{exec.preset_name ?? exec.profile_name}</div>

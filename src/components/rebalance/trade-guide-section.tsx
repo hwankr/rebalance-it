@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, BookmarkPlus } from "lucide-react";
+import { AlertTriangle, BookmarkPlus, Play } from "lucide-react";
 import { m } from "framer-motion";
 import type { RebalanceOrder } from "@/lib/rebalance/types";
 import { formatCurrency } from "@/lib/utils/format";
@@ -30,6 +30,9 @@ interface TradeGuideSectionProps {
   netCashChange: number;
   onSaveToHistory?: () => void;
   isSaved?: boolean;
+  onStartProgressive?: () => void;
+  isStartingProgressive?: boolean;
+  hasActiveSession?: boolean;
 }
 
 export function TradeGuideSection({
@@ -39,6 +42,9 @@ export function TradeGuideSection({
   netCashChange,
   onSaveToHistory,
   isSaved = false,
+  onStartProgressive,
+  isStartingProgressive = false,
+  hasActiveSession = false,
 }: TradeGuideSectionProps) {
   const sellOrders = orders.filter((o) => o.side === "sell");
   const buyOrders = orders.filter((o) => o.side === "buy");
@@ -281,17 +287,30 @@ export function TradeGuideSection({
 
       <Separator />
 
-      {/* Save to History */}
-      {onSaveToHistory && (
-        <Button
-          onClick={onSaveToHistory}
-          disabled={isSaved}
-          className="gap-2"
-        >
-          <BookmarkPlus className="size-4" />
-          {isSaved ? "저장 완료" : "기록 저장"}
-        </Button>
-      )}
+      {/* Action Buttons */}
+      <div className="flex flex-wrap items-center gap-3">
+        {onStartProgressive && (
+          <Button
+            onClick={onStartProgressive}
+            disabled={isStartingProgressive || hasActiveSession}
+            className="gap-2"
+          >
+            <Play className="size-4" />
+            {isStartingProgressive ? "시작 중..." : "리밸런싱 시작"}
+          </Button>
+        )}
+        {onSaveToHistory && (
+          <Button
+            variant={onStartProgressive ? "outline" : "default"}
+            onClick={onSaveToHistory}
+            disabled={isSaved}
+            className="gap-2"
+          >
+            <BookmarkPlus className="size-4" />
+            {isSaved ? "저장 완료" : "기록만 저장"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

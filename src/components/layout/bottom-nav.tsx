@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, RefreshCw, FolderOpen, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 
 const tabs = [
   { href: "/portfolio", label: "포트폴리오", icon: LayoutDashboard },
@@ -14,11 +15,13 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { activeSession } = useProgressiveRebalance();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-border/50 bg-background/80 backdrop-blur-md md:hidden safe-area-pb">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href));
+        const showBadge = tab.href === "/rebalance" && !!activeSession;
         return (
           <Link
             key={tab.href}
@@ -28,7 +31,12 @@ export function BottomNav() {
               isActive ? "text-primary" : "text-muted-foreground"
             )}
           >
-            <tab.icon className={cn("size-5 transition-transform", isActive && "scale-110")} />
+            <div className="relative">
+              <tab.icon className={cn("size-5 transition-transform", isActive && "scale-110")} />
+              {showBadge && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+              )}
+            </div>
             <span className="text-[11px] font-medium">{tab.label}</span>
             {/* CSS-only active indicator - no layoutId needed */}
             <span

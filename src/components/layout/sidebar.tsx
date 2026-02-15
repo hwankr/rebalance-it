@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/supabase/auth";
 import { PlanBadge } from "@/components/subscription/plan-badge";
+import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 
 const navItems: NavItemProps[] = [
   { href: "/portfolio", label: "내 포트폴리오", icon: LayoutDashboard },
@@ -23,6 +24,8 @@ const navItems: NavItemProps[] = [
 ];
 
 export function Sidebar() {
+  const { activeSession } = useProgressiveRebalance();
+
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-sidebar">
       {/* Logo area */}
@@ -37,7 +40,11 @@ export function Sidebar() {
         <div className="absolute inset-0 bg-dot-grid opacity-30 pointer-events-none" />
         <div className="relative z-10 space-y-1.5">
           {navItems.map((item) => (
-            <NavItem key={item.href} {...item} />
+            <NavItem
+              key={item.href}
+              {...item}
+              showBadge={item.href === "/rebalance" && !!activeSession}
+            />
           ))}
         </div>
       </nav>

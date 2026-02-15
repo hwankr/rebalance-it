@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
-import { useRebalanceSettings } from "@/hooks/use-rebalance-settings";
-import { useHistory } from "@/hooks/use-history";
 import { useAuth } from "@/hooks/use-auth";
+import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 import { simulateRebalance } from "@/lib/rebalance/calculator";
 import { toPortfolioItems } from "@/lib/rebalance/helpers";
 import { formatCurrency } from "@/lib/utils/format";
@@ -19,12 +26,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { PageTransition } from "@/components/layout/page-transition";
 import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
-import { SimulationResultSection } from "@/components/rebalance/simulation-result-section";
-import { TradeGuideSection } from "@/components/rebalance/trade-guide-section";
-
-type SimulationResult = ReturnType<typeof simulateRebalance>;
+import { ProgressiveOrderList } from "@/components/rebalance/progressive-order-list";
+import { ProgressSummary } from "@/components/rebalance/progress-summary";
 
 export default function RebalancePage() {
   const { user } = useAuth();
@@ -42,39 +57,40 @@ export default function RebalancePage() {
     updateBatchTargets,
     isLoading: isManualLoading,
   } = useManualPortfolio(exchangeRate);
-  const { settings: rebalanceSettings } = useRebalanceSettings();
-  const { addExecution } = useHistory();
+  const {
+    activeSession,
+    isLoadingSession,
+    refetchActiveSession,
+    startSession,
+    toggleOrder,
+    completeSession,
+    abandonSession,
+    getProgress,
+    isStarting,
+    isCompleting,
+    isAbandoning,
+  } = useProgressiveRebalance();
 
-  const threshold = rebalanceSettings?.threshold_pct ?? 5;
-
-  const [simulationResult, setSimulationResult] =
-    useState<SimulationResult | null>(null);
-  const [saved, setSaved] = useState(false);
   const [isSavingTargets, setIsSavingTargets] = useState(false);
+  const [abandonOpen, setAbandonOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
 
   const cashAmount = Number(portfolio?.cash ?? 0);
   const totalValue = balance?.total_value ?? 0;
 
-  // 시뮬레이션에 사용할 수 있는지 확인
   const hasStocks = manualStocks.length > 0;
   const hasTargets = targets.some((t) => !t.is_cash && t.target_pct > 0);
   const canSimulate = hasStocks && hasTargets && !!balance;
+  const hasActiveSession = !!activeSession;
 
-  function handleSimulate() {
-    if (!balance) return;
-
-    const portfolioItems = toPortfolioItems(balance.stocks, targets, cashAmount);
-    const result = simulateRebalance(portfolioItems, targets);
-    setSimulationResult(result);
-    setSaved(false);
-  }
+  // Capture current time once per render for staleness check
+  // eslint-disable-next-line react-hooks/purity
+  const now = useMemo(() => Date.now(), []);
 
   function handleSaveTargets(updates: { id: string; targetPct: number }[]) {
     setIsSavingTargets(true);
     updateBatchTargets(updates, {
       onSuccess: () => {
-        setSimulationResult(null);
-        setSaved(false);
         toast.success("목표 비중이 저장되었습니다.");
         setIsSavingTargets(false);
       },
@@ -92,32 +108,102 @@ export default function RebalancePage() {
     });
   }
 
-  function handleSaveToHistory() {
-    if (!simulationResult || !user) return;
+  // Single action: calculate + start session
+  async function handleStartRebalancing() {
+    if (!balance || !user) return;
 
-    addExecution({
-      profile_id: "",
-      profile_name: "리밸런싱",
-      preset_name: "리밸런싱",
-      status: "completed",
-      total_orders: simulationResult.orders.length,
-      success_count: simulationResult.orders.length,
-      fail_count: 0,
-      total_buy_amount: simulationResult.total_buy_amount,
-      total_sell_amount: simulationResult.total_sell_amount,
-      net_cash_change: simulationResult.net_cash_change,
-      orders: simulationResult.orders.map((o) => ({
-        ...o,
-        success: true,
-      })),
-    });
+    // Guard: if active session already exists, don't try to create another
+    if (activeSession) {
+      toast.info("이미 진행중인 세션이 있습니다. 먼저 완료하거나 포기해주세요.");
+      return;
+    }
 
-    setSaved(true);
-    toast.success("시뮬레이션 기록이 저장되었습니다.");
+    const portfolioItems = toPortfolioItems(
+      balance.stocks,
+      targets,
+      cashAmount
+    );
+    const result = simulateRebalance(portfolioItems, targets);
+
+    if (result.orders.length === 0) {
+      toast.info(
+        "리밸런싱이 필요하지 않습니다. 포트폴리오가 이미 목표 비중에 근접합니다."
+      );
+      return;
+    }
+
+    try {
+      const snapshot = {
+        stocks: balance.stocks.map((s) => ({
+          stock_code: s.stock_code,
+          stock_name: s.stock_name,
+          quantity: s.quantity,
+          price: s.current_price,
+        })),
+        cash: cashAmount,
+        exchange_rate: exchangeRate,
+        captured_at: new Date().toISOString(),
+      };
+
+      await startSession({
+        simulationResult: result,
+        portfolioSnapshot: snapshot,
+      });
+
+      toast.success("리밸런싱이 시작되었습니다. 주문을 체크하세요.");
+    } catch (err) {
+      // Session creation failed — check if a stale in_progress record exists.
+      console.error(
+        "[Rebalance] startSession failed:",
+        err instanceof Error ? err.message : JSON.stringify(err)
+      );
+
+      // Force-refresh: if a stale session is found, page auto-transitions.
+      const { data: existingSession } = await refetchActiveSession();
+      if (existingSession) {
+        toast.info("기존 진행중인 세션이 있습니다. 완료하거나 포기해주세요.");
+      } else {
+        toast.error(
+          `리밸런싱 시작에 실패했습니다: ${err instanceof Error ? err.message : "알 수 없는 오류"}`
+        );
+      }
+    }
   }
 
-  // 로딩 상태
-  if (isLoading || isManualLoading) {
+  function handleToggle(stockCode: string, executed: boolean) {
+    if (!activeSession) return;
+    toggleOrder(activeSession.id, stockCode, executed);
+  }
+
+  async function handleComplete() {
+    if (!activeSession) return;
+    try {
+      const progress = getProgress(activeSession.orders);
+      await completeSession(activeSession.id);
+      setCompleteOpen(false);
+      toast.success(
+        progress.completed >= progress.total
+          ? "리밸런싱이 완료되었습니다!"
+          : "리밸런싱이 부분 완료로 저장되었습니다."
+      );
+    } catch {
+      toast.error("완료 처리에 실패했습니다.");
+    }
+  }
+
+  async function handleAbandon() {
+    if (!activeSession) return;
+    try {
+      await abandonSession(activeSession.id);
+      setAbandonOpen(false);
+      toast.success("리밸런싱 세션이 포기되었습니다.");
+    } catch {
+      toast.error("포기 처리에 실패했습니다.");
+    }
+  }
+
+  // Loading (wait for session check too, to avoid showing button when stale session exists)
+  if (isLoading || isManualLoading || isLoadingSession) {
     return (
       <PageTransition>
         <div className="space-y-6">
@@ -133,7 +219,7 @@ export default function RebalancePage() {
     );
   }
 
-  // 에러 상태
+  // Error
   if (isError) {
     return (
       <PageTransition>
@@ -156,7 +242,7 @@ export default function RebalancePage() {
     );
   }
 
-  // 포트폴리오 없음
+  // No stocks
   if (!hasStocks) {
     return (
       <PageTransition>
@@ -179,6 +265,165 @@ export default function RebalancePage() {
     );
   }
 
+  // ── Active session view ──────────────────────────────────────
+  if (hasActiveSession) {
+    const progress = getProgress(activeSession.orders);
+    const sellOrders = activeSession.orders.filter((o) => o.side === "sell");
+    const buyOrders = activeSession.orders.filter((o) => o.side === "buy");
+    const startedAt = activeSession.started_at
+      ? new Date(activeSession.started_at)
+      : null;
+    const daysSinceStart = startedAt
+      ? (now - startedAt.getTime()) / (1000 * 60 * 60 * 24)
+      : 0;
+    const isStale = daysSinceStart > 30;
+
+    return (
+      <PageTransition>
+        <div className="space-y-6">
+          {/* Header */}
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+                리밸런싱
+              </h1>
+              <span className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400">
+                <Clock className="size-4" />
+                진행중
+              </span>
+            </div>
+            <p className="text-muted-foreground">
+              증권사 앱에서 주문을 실행하고, 완료된 주문을 체크하세요.
+            </p>
+          </div>
+
+          {/* Stale warning */}
+          {isStale && (
+            <div className="flex items-start gap-3 rounded-lg border border-orange-500/50 bg-orange-50 p-4 dark:bg-orange-950/30">
+              <Clock className="size-5 shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
+              <div className="text-sm text-orange-800 dark:text-orange-200">
+                <p className="font-medium">오래된 세션입니다</p>
+                <p>
+                  이 리밸런싱 세션이 시작된 지{" "}
+                  {startedAt &&
+                    formatDistanceToNow(startedAt, {
+                      locale: ko,
+                      addSuffix: false,
+                    })}
+                  이 경과했습니다. 시장 가격이 크게 변동되었을 수 있으니 포기
+                  후 새로 시작하는 것을 권장합니다.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Reference banner */}
+          <div className="flex items-start gap-3 rounded-lg border border-yellow-500/50 bg-yellow-50 p-4 dark:bg-yellow-950/30">
+            <AlertTriangle className="size-5 shrink-0 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+            <div className="text-sm text-yellow-800 dark:text-yellow-200">
+              <p className="font-medium">참고용 안내입니다</p>
+              <p>실제 주문은 증권사 앱(HTS/MTS)에서 직접 실행해주세요.</p>
+            </div>
+          </div>
+
+          {/* Progress summary */}
+          <ProgressSummary
+            orders={activeSession.orders}
+            totalBuyAmount={activeSession.total_buy_amount}
+            totalSellAmount={activeSession.total_sell_amount}
+          />
+
+          {/* Sell orders */}
+          {sellOrders.length > 0 && (
+            <ProgressiveOrderList
+              orders={activeSession.orders}
+              side="sell"
+              stepNumber={1}
+              onToggle={handleToggle}
+              disabled={false}
+            />
+          )}
+
+          {/* Buy orders */}
+          {buyOrders.length > 0 && (
+            <ProgressiveOrderList
+              orders={activeSession.orders}
+              side="buy"
+              stepNumber={sellOrders.length > 0 ? 2 : 1}
+              onToggle={handleToggle}
+              disabled={false}
+            />
+          )}
+
+          {/* Action buttons */}
+          <Separator />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setCompleteOpen(true)} className="gap-2">
+              <CheckCircle2 className="size-4" />
+              리밸런싱 완료
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setAbandonOpen(true)}
+              className="gap-2 text-destructive hover:text-destructive"
+            >
+              <XCircle className="size-4" />
+              포기
+            </Button>
+          </div>
+        </div>
+
+        {/* Complete dialog */}
+        <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>리밸런싱 완료</DialogTitle>
+              <DialogDescription>
+                {progress.completed >= progress.total
+                  ? "모든 주문이 완료되었습니다. 리밸런싱을 완료하시겠습니까?"
+                  : `${progress.total}건 중 ${progress.completed}건만 완료되었습니다. 부분 완료로 저장됩니다.`}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">취소</Button>
+              </DialogClose>
+              <Button onClick={handleComplete} disabled={isCompleting}>
+                {isCompleting ? "처리 중..." : "완료"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Abandon dialog */}
+        <Dialog open={abandonOpen} onOpenChange={setAbandonOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>리밸런싱 포기</DialogTitle>
+              <DialogDescription>
+                이 리밸런싱 세션을 포기하시겠습니까? 진행 상태는 기록에
+                보존됩니다.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">취소</Button>
+              </DialogClose>
+              <Button
+                variant="destructive"
+                onClick={handleAbandon}
+                disabled={isAbandoning}
+              >
+                {isAbandoning ? "처리 중..." : "포기"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </PageTransition>
+    );
+  }
+
+  // ── Normal view (no active session) ──────────────────────────
   return (
     <PageTransition>
       <div className="space-y-6">
@@ -188,39 +433,31 @@ export default function RebalancePage() {
             리밸런싱
           </h1>
           <p className="text-muted-foreground">
-            목표 비중을 설정하고 리밸런싱 시뮬레이션을 실행하세요.
+            목표 비중을 설정하고 리밸런싱을 실행하세요.
           </p>
         </div>
 
-        {/* 섹션 1: 포트폴리오 요약 */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardDescription>총 자산</CardDescription>
-              <CardTitle className="text-2xl tabular-nums font-mono">
-                {formatCurrency(totalValue)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="glass-card">
-            <CardHeader>
-              <CardDescription>예수금 (현금)</CardDescription>
-              <CardTitle className="text-2xl tabular-nums font-mono">
-                {formatCurrency(cashAmount)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="glass-card">
-            <CardHeader>
-              <CardDescription>보유 종목 수</CardDescription>
-              <CardTitle className="text-2xl tabular-nums">
-                {manualStocks.length}종목
-              </CardTitle>
-            </CardHeader>
-          </Card>
+        {/* Compact portfolio summary */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1">
+          <span>
+            <span className="text-muted-foreground">총 자산</span>{" "}
+            <span className="font-semibold tabular-nums">
+              {formatCurrency(totalValue)}
+            </span>
+          </span>
+          <span>
+            <span className="text-muted-foreground">예수금</span>{" "}
+            <span className="font-semibold tabular-nums">
+              {formatCurrency(cashAmount)}
+            </span>
+          </span>
+          <span>
+            <span className="text-muted-foreground">보유</span>{" "}
+            <span className="font-semibold">{manualStocks.length}종목</span>
+          </span>
         </div>
 
-        {/* 섹션 2: 목표 비중 설정 */}
+        {/* Target weight editor + action button */}
         <Card>
           <CardHeader>
             <CardTitle>목표 비중 설정</CardTitle>
@@ -229,7 +466,7 @@ export default function RebalancePage() {
               계산됩니다.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <TargetWeightEditor
               stocks={manualStocks}
               cashAmount={cashAmount}
@@ -237,61 +474,22 @@ export default function RebalancePage() {
               onSave={handleSaveTargets}
               isSaving={isSavingTargets}
             />
-          </CardContent>
-        </Card>
-
-        {/* 섹션 3: 시뮬레이션 실행 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>시뮬레이션</CardTitle>
-            <CardDescription>
-              설정한 목표 비중을 기반으로 리밸런싱을 시뮬레이션합니다.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            <Separator />
             <div className="flex items-center gap-3">
-              <Button onClick={handleSimulate} disabled={!canSimulate}>
-                시뮬레이션 실행
+              <Button
+                onClick={handleStartRebalancing}
+                disabled={!canSimulate || isStarting || isLoadingSession}
+              >
+                {isStarting ? "시작 중..." : "리밸런싱 실행"}
               </Button>
-              {simulationResult && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSimulationResult(null);
-                    setSaved(false);
-                  }}
-                >
-                  초기화
-                </Button>
+              {!canSimulate && hasStocks && (
+                <p className="text-xs text-muted-foreground">
+                  목표 비중을 먼저 설정하고 저장해주세요.
+                </p>
               )}
             </div>
-            {!canSimulate && hasStocks && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                목표 비중을 먼저 설정하고 저장해주세요.
-              </p>
-            )}
           </CardContent>
         </Card>
-
-        {/* 섹션 4: 시뮬레이션 결과 */}
-        {simulationResult && (
-          <SimulationResultSection
-            result={simulationResult}
-            threshold={threshold}
-          />
-        )}
-
-        {/* 섹션 5: 매매 가이드 */}
-        {simulationResult && simulationResult.orders.length > 0 && (
-          <TradeGuideSection
-            orders={simulationResult.orders}
-            totalBuyAmount={simulationResult.total_buy_amount}
-            totalSellAmount={simulationResult.total_sell_amount}
-            netCashChange={simulationResult.net_cash_change}
-            onSaveToHistory={user ? handleSaveToHistory : undefined}
-            isSaved={saved}
-          />
-        )}
       </div>
     </PageTransition>
   );

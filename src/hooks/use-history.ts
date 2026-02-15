@@ -25,16 +25,29 @@ export function useHistory() {
         .order("executed_at", { ascending: false })
         .limit(MAX_HISTORY);
       if (error) throw error;
-      return (data ?? []).map((row) => ({
-        ...row,
-        profile_id: row.profile_id ?? "",
-        preset_name: (row.preset_name as string | null) ?? undefined,
-        status: row.status as RebalanceExecution["status"],
-        orders: (row.orders as unknown as RebalanceExecution["orders"]) ?? [],
-        total_buy_amount: Number(row.total_buy_amount),
-        total_sell_amount: Number(row.total_sell_amount),
-        net_cash_change: Number(row.net_cash_change),
-      }));
+      return (data ?? []).map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          id: row.id,
+          profile_id: row.profile_id ?? "",
+          profile_name: row.profile_name,
+          preset_name: (row.preset_name as string | null) ?? undefined,
+          executed_at: row.executed_at,
+          status: row.status as RebalanceExecution["status"],
+          total_orders: row.total_orders,
+          success_count: row.success_count,
+          fail_count: row.fail_count,
+          total_buy_amount: Number(row.total_buy_amount),
+          total_sell_amount: Number(row.total_sell_amount),
+          net_cash_change: Number(row.net_cash_change),
+          orders: (row.orders as unknown as RebalanceExecution["orders"]) ?? [],
+          started_at: (r.started_at as string | null) ?? undefined,
+          completed_at: (r.completed_at as string | null) ?? undefined,
+          portfolio_snapshot:
+            (r.portfolio_snapshot as unknown as RebalanceExecution["portfolio_snapshot"]) ??
+            undefined,
+        };
+      });
     },
   });
 
