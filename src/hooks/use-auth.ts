@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { clearGuestStorage } from "@/contexts/guest-mode-context";
-import { mergeGuestData } from "@/lib/storage/merge";
 import { useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 
@@ -27,10 +26,8 @@ export function useAuth() {
 
       // Clear guest mode and cached guest data on successful login
       if (event === "SIGNED_IN" && localStorage.getItem("guest-mode") === "true") {
-        mergeGuestData(supabase).then(() => {
-          clearGuestStorage();
-          queryClient.removeQueries();
-        });
+        clearGuestStorage();
+        queryClient.removeQueries();
       }
     });
 
