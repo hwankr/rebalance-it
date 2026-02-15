@@ -19,7 +19,7 @@ import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { enterGuestMode } = useGuestMode();
+  const { enterGuestMode, exitGuestMode } = useGuestMode();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -59,6 +59,7 @@ export default function LoginPage() {
         setIsSubmitting(false);
         return;
       }
+      exitGuestMode();
       router.push("/portfolio");
     } else {
       const { error } = await supabase.auth.signUp({

@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { clearGuestStorage } from "@/contexts/guest-mode-context";
+import { useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const supabase = createClient();
@@ -18,12 +21,18 @@ export function useAuth() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+
+      // Clear guest mode and cached guest data on successful login
+      if (event === "SIGNED_IN" && localStorage.getItem("guest-mode") === "true") {
+        clearGuestStorage();
+        queryClient.removeQueries();
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   return { user, loading };
 }

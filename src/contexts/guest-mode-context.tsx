@@ -34,6 +34,17 @@ function notifyListeners() {
   listeners.forEach((cb) => cb());
 }
 
+/**
+ * Plain function (not a hook) to clear guest mode localStorage.
+ * Safe to call from event callbacks, auth listeners, etc.
+ */
+export function clearGuestStorage() {
+  localStorage.removeItem(GUEST_MODE_KEY);
+  const keys = Object.keys(localStorage).filter((k) => k.startsWith(GUEST_PREFIX));
+  keys.forEach((k) => localStorage.removeItem(k));
+  notifyListeners();
+}
+
 // --- Context ---
 
 interface GuestModeContextValue {
@@ -59,12 +70,7 @@ export function GuestModeProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const exitGuestMode = useCallback(() => {
-    // Clear guest mode flag
-    localStorage.removeItem(GUEST_MODE_KEY);
-    // Clear all guest data keys
-    const keys = Object.keys(localStorage).filter((k) => k.startsWith(GUEST_PREFIX));
-    keys.forEach((k) => localStorage.removeItem(k));
-    notifyListeners();
+    clearGuestStorage();
   }, []);
 
   return (
