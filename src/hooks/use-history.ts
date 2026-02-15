@@ -2,26 +2,29 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import type { RebalanceExecution } from "@/lib/rebalance/history-types";
 
 const MAX_HISTORY = 50;
 
 export function useHistory() {
-  const supabase = createClient();
+  const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const queryKey = ["history", user?.id];
+  const { isGuest } = useGuestMode();
+  const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
+  const queryKey = ["history", effectiveUserId];
 
   const { data: history = [], isLoading } = useQuery({
     queryKey,
-    enabled: !!user,
+    enabled: !!user || isGuest,
     queryFn: async (): Promise<RebalanceExecution[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("executions")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", effectiveUserId!)
         .order("executed_at", { ascending: false })
         .limit(MAX_HISTORY);
       if (error) throw error;
@@ -54,10 +57,10 @@ export function useHistory() {
   const addMutation = useMutation({
     mutationFn: async (data: Omit<RebalanceExecution, "id" | "executed_at">) => {
       const displayName = data.preset_name ?? data.profile_name ?? "직접 설정";
-      const { error } = await supabase
+      const { error } = await client
         .from("executions")
         .insert({
-          user_id: user!.id,
+          user_id: effectiveUserId,
           profile_id: null,
           profile_name: displayName,
           preset_name: data.preset_name ?? null,
@@ -70,7 +73,7 @@ export function useHistory() {
           total_sell_amount: data.total_sell_amount,
           net_cash_change: data.net_cash_change,
           orders: JSON.parse(JSON.stringify(data.orders)),
-        });
+        } as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -80,7 +83,7 @@ export function useHistory() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await client
         .from("executions")
         .delete()
         .eq("id", id);
@@ -93,10 +96,10 @@ export function useHistory() {
 
   const clearMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
+      const { error } = await client
         .from("executions")
         .delete()
-        .eq("user_id", user!.id);
+        .eq("user_id", effectiveUserId!);
       if (error) throw error;
     },
     onSuccess: () => {

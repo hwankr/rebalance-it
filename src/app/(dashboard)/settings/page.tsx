@@ -10,6 +10,7 @@ import { Loader2, Wifi, WifiOff, Trash2, CheckCircle2, XCircle } from "lucide-re
 
 import { useSettings } from "@/hooks/use-settings";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import { useSubscription, setDevPlanOverride } from "@/hooks/use-subscription";
 import { createClient } from "@/lib/supabase/client";
 import { PlanBadge } from "@/components/subscription/plan-badge";
@@ -54,6 +55,7 @@ type AccountFormValues = z.infer<typeof accountSchema>;
 export default function SettingsPage() {
   const { settings, updateSettings, clearSettings } = useSettings();
   const { user } = useAuth();
+  const { isGuest } = useGuestMode();
   const { isPro, subscription, isDevOverride, realPlan } = useSubscription();
   const [checking, setChecking] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -107,11 +109,23 @@ export default function SettingsPage() {
     try {
       const supabase = createClient();
 
-      if (!user) throw new Error("Not authenticated");
-      await supabase.from("profiles").delete().eq("user_id", user.id);
-      await supabase.from("executions").delete().eq("user_id", user.id);
-      await supabase.from("manual_portfolios").delete().eq("user_id", user.id);
-      await supabase.from("settings").delete().eq("user_id", user.id);
+      if (!user && !isGuest) throw new Error("Not authenticated");
+
+      if (isGuest) {
+        // Guest mode: clear localStorage guest data
+        const keys = Object.keys(localStorage).filter((k) => k.startsWith("guest:"));
+        keys.forEach((k) => localStorage.removeItem(k));
+        queryClient.invalidateQueries();
+        form.reset({ account: "" });
+        toast.success("모든 데이터가 초기화되었습니다.");
+        setIsResetting(false);
+        return;
+      }
+
+      await supabase.from("profiles").delete().eq("user_id", user!.id);
+      await supabase.from("executions").delete().eq("user_id", user!.id);
+      await supabase.from("manual_portfolios").delete().eq("user_id", user!.id);
+      await supabase.from("settings").delete().eq("user_id", user!.id);
 
       queryClient.invalidateQueries();
       form.reset({ account: "" });

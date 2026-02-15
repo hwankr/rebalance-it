@@ -3,7 +3,9 @@
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import type { KiwoomBalanceResponse, KiwoomStock } from "@/lib/kiwoom/types";
 import type { PresetTarget } from "@/lib/rebalance/preset-types";
 import { DEFAULT_EXCHANGE_RATE } from "@/lib/utils/format";
@@ -136,28 +138,30 @@ export async function fetchManualPortfolio(
 // --- Hook ---
 
 export function useManualPortfolio(exchangeRate?: number) {
-  const supabase = createClient();
+  const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isGuest } = useGuestMode();
   const rate = exchangeRate ?? DEFAULT_EXCHANGE_RATE;
-  const queryKey = ["manual-portfolio", user?.id, rate];
+  const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
+  const queryKey = ["manual-portfolio", effectiveUserId, rate];
   // Prefix key for mutation invalidation — clears all rate variants
-  const invalidationKey = ["manual-portfolio", user?.id];
+  const invalidationKey = ["manual-portfolio", effectiveUserId];
 
   // 포트폴리오 + 종목 조회
   const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey,
-    enabled: !!user,
+    enabled: !!user || isGuest,
     queryFn: async () => {
-      const { data: portfolio } = await supabase
+      const { data: portfolio } = await client
         .from("manual_portfolios")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", effectiveUserId!)
         .maybeSingle();
 
       const stocks: ManualStockRow[] = [];
       if (portfolio) {
-        const { data: stockRows } = await supabase
+        const { data: stockRows } = await client
           .from("manual_stocks")
           .select("*")
           .eq("portfolio_id", portfolio.id)
@@ -183,15 +187,15 @@ export function useManualPortfolio(exchangeRate?: number) {
   const setCashMutation = useMutation({
     mutationFn: async (cash: number) => {
       if (portfolio) {
-        const { error } = await supabase
+        const { error } = await client
           .from("manual_portfolios")
           .update({ cash } as never)
           .eq("id", portfolio.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await client
           .from("manual_portfolios")
-          .insert({ user_id: user!.id, cash } as never);
+          .insert({ user_id: effectiveUserId, cash } as never);
         if (error) throw error;
       }
     },
@@ -204,16 +208,16 @@ export function useManualPortfolio(exchangeRate?: number) {
       // 포트폴리오가 없으면 먼저 생성
       let portfolioId = portfolio?.id;
       if (!portfolioId) {
-        const { data: newPortfolio, error: pErr } = await supabase
+        const { data: newPortfolio, error: pErr } = await client
           .from("manual_portfolios")
-          .insert({ user_id: user!.id, cash: 0 } as never)
+          .insert({ user_id: effectiveUserId, cash: 0 } as never)
           .select()
           .single();
         if (pErr) throw pErr;
         portfolioId = (newPortfolio as ManualPortfolioRow).id;
       }
 
-      const { error } = await supabase.from("manual_stocks").insert({
+      const { error } = await client.from("manual_stocks").insert({
         portfolio_id: portfolioId,
         stock_code: input.stock_code,
         stock_name: input.stock_name,
@@ -237,7 +241,7 @@ export function useManualPortfolio(exchangeRate?: number) {
       id: string;
       updates: Partial<ManualStockInput>;
     }) => {
-      const { error } = await supabase
+      const { error } = await client
         .from("manual_stocks")
         .update(updates as never)
         .eq("id", id);
@@ -249,7 +253,7 @@ export function useManualPortfolio(exchangeRate?: number) {
   // 종목 삭제
   const deleteStockMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await client
         .from("manual_stocks")
         .delete()
         .eq("id", id);
@@ -261,7 +265,7 @@ export function useManualPortfolio(exchangeRate?: number) {
   // 목표 비중만 수정 (단건)
   const updateTargetPctMutation = useMutation({
     mutationFn: async ({ id, targetPct }: { id: string; targetPct: number }) => {
-      const { error } = await supabase
+      const { error } = await client
         .from("manual_stocks")
         .update({ target_pct: targetPct } as never)
         .eq("id", id);
@@ -275,7 +279,7 @@ export function useManualPortfolio(exchangeRate?: number) {
     mutationFn: async (updates: { id: string; targetPct: number }[]) => {
       const results = await Promise.all(
         updates.map(({ id, targetPct }) =>
-          supabase
+          client
             .from("manual_stocks")
             .update({ target_pct: targetPct } as never)
             .eq("id", id)
@@ -287,11 +291,11 @@ export function useManualPortfolio(exchangeRate?: number) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
-  // 프리셋 적용 (RPC 트랜잭션)
+  // 프리셋 적용 (RPC 트랜잭션 — guest client handles internally)
   const applyPresetMutation = useMutation({
     mutationFn: async (presetTargets: PresetTarget[]) => {
       if (!portfolio) throw new Error("포트폴리오가 없습니다");
-      const { error } = await supabase.rpc("apply_preset_to_manual", {
+      const { error } = await client.rpc("apply_preset_to_manual", {
         p_portfolio_id: portfolio.id,
         p_targets: JSON.parse(JSON.stringify(presetTargets)),
       });

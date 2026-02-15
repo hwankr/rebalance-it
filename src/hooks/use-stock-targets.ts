@@ -2,25 +2,28 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import type { StockTarget, PresetTarget } from "@/lib/rebalance/preset-types";
 import type { TargetAllocation } from "@/lib/rebalance/types";
 
 export function useStockTargets() {
-  const supabase = createClient();
+  const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const queryKey = ["stock-targets", user?.id];
+  const { isGuest } = useGuestMode();
+  const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
+  const queryKey = ["stock-targets", effectiveUserId];
 
   const { data: targets = [], isLoading } = useQuery({
     queryKey,
-    enabled: !!user,
+    enabled: !!user || isGuest,
     queryFn: async (): Promise<StockTarget[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("stock_targets")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", effectiveUserId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data ?? []).map((row) => ({
@@ -42,11 +45,11 @@ export function useStockTargets() {
       stockName: string;
       targetPct: number;
     }) => {
-      const { error } = await supabase
+      const { error } = await client
         .from("stock_targets")
         .upsert(
           {
-            user_id: user!.id,
+            user_id: effectiveUserId,
             stock_code: stockCode,
             stock_name: stockName,
             target_pct: targetPct,
@@ -63,10 +66,10 @@ export function useStockTargets() {
 
   const removeTargetMutation = useMutation({
     mutationFn: async (stockCode: string) => {
-      const { error } = await supabase
+      const { error } = await client
         .from("stock_targets")
         .delete()
-        .eq("user_id", user!.id)
+        .eq("user_id", effectiveUserId!)
         .eq("stock_code", stockCode);
       if (error) throw error;
     },
@@ -77,8 +80,8 @@ export function useStockTargets() {
 
   const applyPresetMutation = useMutation({
     mutationFn: async (presetTargets: PresetTarget[]) => {
-      const { error } = await supabase.rpc("apply_preset_to_targets", {
-        p_user_id: user!.id,
+      const { error } = await client.rpc("apply_preset_to_targets", {
+        p_user_id: effectiveUserId,
         p_targets: JSON.parse(JSON.stringify(presetTargets)),
       });
       if (error) throw error;

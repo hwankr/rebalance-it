@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import type { PlanTier } from "@/lib/subscription/plans";
 
 interface SubscriptionData {
@@ -38,6 +39,7 @@ export function setDevPlanOverride(plan: PlanTier | null) {
 
 export function useSubscription() {
   const { user } = useAuth();
+  const { isGuest } = useGuestMode();
 
   const devOverride = useSyncExternalStore(
     subscribeDevOverride,
@@ -47,7 +49,7 @@ export function useSubscription() {
 
   const { data: subscription, isLoading, refetch } = useQuery({
     queryKey: ["subscription", user?.id],
-    enabled: !!user,
+    enabled: !!user && !isGuest,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<SubscriptionData> => {
       const res = await fetch("/api/subscription");
@@ -58,10 +60,10 @@ export function useSubscription() {
     },
   });
 
-  const realPlan: PlanTier = subscription?.plan_tier ?? "free";
+  const realPlan: PlanTier = isGuest ? "free" : (subscription?.plan_tier ?? "free");
   const plan: PlanTier = devOverride ?? realPlan;
   const isPro = plan === "pro";
   const isDevOverride = devOverride !== null;
 
-  return { plan, isPro, isLoading, subscription, refetch, isDevOverride, realPlan };
+  return { plan, isPro, isLoading: isGuest ? false : isLoading, subscription, refetch, isDevOverride, realPlan };
 }

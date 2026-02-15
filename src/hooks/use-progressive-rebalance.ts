@@ -2,8 +2,9 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import type {
   RebalanceExecution,
   ExecutionOrderResult,
@@ -17,17 +18,15 @@ interface StartSessionParams {
   presetName?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SupabaseRpc = { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: any; error: any }> };
-
 export function useProgressiveRebalance() {
-  const supabase = createClient();
-  const rpc = supabase as unknown as SupabaseRpc;
+  const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isGuest } = useGuestMode();
+  const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
 
-  const activeSessionKey = ["active-session", user?.id];
-  const historyKey = ["history", user?.id];
+  const activeSessionKey = ["active-session", effectiveUserId];
+  const historyKey = ["history", effectiveUserId];
 
   // 활성 세션 조회
   const {
@@ -36,14 +35,14 @@ export function useProgressiveRebalance() {
     refetch: refetchActiveSession,
   } = useQuery({
     queryKey: activeSessionKey,
-    enabled: !!user,
+    enabled: !!user || isGuest,
     staleTime: 0, // 활성 세션은 항상 최신 상태 유지
     refetchOnMount: "always",
     queryFn: async (): Promise<RebalanceExecution | null> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("executions")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", effectiveUserId!)
         .eq("status", "in_progress")
         .limit(1)
         .maybeSingle();
@@ -57,13 +56,13 @@ export function useProgressiveRebalance() {
   function useSession(executionId: string | undefined) {
     return useQuery({
       queryKey: ["execution", executionId],
-      enabled: !!executionId && !!user,
+      enabled: !!executionId && (!!user || isGuest),
       queryFn: async (): Promise<RebalanceExecution | null> => {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from("executions")
           .select("*")
           .eq("id", executionId!)
-          .eq("user_id", user!.id)
+          .eq("user_id", effectiveUserId!)
           .maybeSingle();
         if (error) throw error;
         if (!data) return null;
@@ -86,7 +85,7 @@ export function useProgressiveRebalance() {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const insertPayload: any = {
-        user_id: user!.id,
+        user_id: effectiveUserId!,
         profile_id: null,
         profile_name: "리밸런싱",
         executed_at: new Date().toISOString(),
@@ -105,7 +104,7 @@ export function useProgressiveRebalance() {
         insertPayload.preset_name = presetName;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("executions")
         .insert(insertPayload)
         .select("id")
@@ -133,7 +132,7 @@ export function useProgressiveRebalance() {
       stockCode: string;
       executed: boolean;
     }) => {
-      const { data, error } = await rpc.rpc("toggle_execution_order", {
+      const { data, error } = await client.rpc("toggle_execution_order", {
         p_execution_id: executionId,
         p_stock_code: stockCode,
         p_executed: executed,
@@ -196,7 +195,7 @@ export function useProgressiveRebalance() {
   // 세션 완료
   const completeMutation = useMutation({
     mutationFn: async (executionId: string) => {
-      const { error } = await rpc.rpc("complete_rebalance_session", {
+      const { error } = await client.rpc("complete_rebalance_session", {
         p_execution_id: executionId,
       });
       if (error) throw error;
@@ -210,7 +209,7 @@ export function useProgressiveRebalance() {
   // 세션 포기
   const abandonMutation = useMutation({
     mutationFn: async (executionId: string) => {
-      const { error } = await rpc.rpc("abandon_rebalance_session", {
+      const { error } = await client.rpc("abandon_rebalance_session", {
         p_execution_id: executionId,
       });
       if (error) throw error;

@@ -32,13 +32,26 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (
-    !user &&
-    pathname !== "/" &&
-    !pathname.startsWith("/login") &&
-    !pathname.startsWith("/auth") &&
-    !pathname.startsWith("/api")
-  ) {
+  // Public routes: accessible without authentication (guest mode support)
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/auth",
+    "/api",
+    "/pricing",
+    "/portfolio",
+    "/manual-portfolio",
+    "/rebalance",
+    "/presets",
+    "/history",
+    "/settings",
+  ];
+
+  const isPublicRoute = publicRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + "/"),
+  );
+
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

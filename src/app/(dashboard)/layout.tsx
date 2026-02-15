@@ -1,6 +1,8 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { GuestBanner } from "@/components/guest/guest-banner";
+import { AuthGuard } from "@/components/guest/auth-guard";
 
 export default function DashboardLayout({
   children,
@@ -16,7 +18,12 @@ export default function DashboardLayout({
           {/* Decorative mesh gradient + dot grid background */}
           <div className="fixed inset-0 md:left-64 top-14 bg-mesh pointer-events-none -z-10" />
           <div className="fixed inset-0 md:left-64 top-14 bg-dot-grid opacity-30 pointer-events-none -z-10" />
-          <div className="relative z-10">{children}</div>
+          <div className="relative z-10">
+            <AuthGuard>
+              <GuestBanner />
+              {children}
+            </AuthGuard>
+          </div>
         </main>
         <BottomNav />
       </div>

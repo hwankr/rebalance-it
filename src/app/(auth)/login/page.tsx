@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { m } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import {
   Card,
   CardHeader,
@@ -18,6 +19,7 @@ import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { enterGuestMode } = useGuestMode();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -212,6 +214,36 @@ export default function LoginPage() {
                   ? "계정이 없으신가요? 회원가입"
                   : "이미 계정이 있으신가요? 로그인"}
               </button>
+            </m.div>
+
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.7 }}
+              className="space-y-2"
+            >
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <span className="relative bg-card px-3 text-xs text-muted-foreground">
+                  또는
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-11"
+                onClick={() => {
+                  enterGuestMode();
+                  router.push("/portfolio");
+                }}
+              >
+                비회원으로 시작
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                데이터는 브라우저에만 저장됩니다
+              </p>
             </m.div>
           </CardContent>
         </Card>

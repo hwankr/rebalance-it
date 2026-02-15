@@ -14,6 +14,7 @@ import { ko } from "date-fns/locale";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 import { simulateRebalance } from "@/lib/rebalance/calculator";
 import { toPortfolioItems } from "@/lib/rebalance/helpers";
@@ -43,6 +44,7 @@ import { ProgressSummary } from "@/components/rebalance/progress-summary";
 
 export default function RebalancePage() {
   const { user } = useAuth();
+  const { isGuest } = useGuestMode();
   const {
     data: balance,
     isLoading,
@@ -110,7 +112,7 @@ export default function RebalancePage() {
 
   // Single action: calculate + start session
   async function handleStartRebalancing() {
-    if (!balance || !user) return;
+    if (!balance) return;
 
     // Guard: if active session already exists, don't try to create another
     if (activeSession) {

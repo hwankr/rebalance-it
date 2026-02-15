@@ -2,25 +2,28 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import { validateTargets } from "@/lib/rebalance/calculator";
 import type { Preset, PresetTarget } from "@/lib/rebalance/preset-types";
 
 export function usePresets() {
-  const supabase = createClient();
+  const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const queryKey = ["presets", user?.id];
+  const { isGuest } = useGuestMode();
+  const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
+  const queryKey = ["presets", effectiveUserId];
 
   const { data: presets = [], isLoading } = useQuery({
     queryKey,
-    enabled: !!user,
+    enabled: !!user || isGuest,
     queryFn: async (): Promise<Preset[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("presets")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", effectiveUserId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).map(
@@ -49,10 +52,10 @@ export function usePresets() {
         throw new Error(validation.message);
       }
       const now = new Date().toISOString();
-      const { error } = await supabase
+      const { error } = await client
         .from("presets")
         .insert({
-          user_id: user!.id,
+          user_id: effectiveUserId,
           name,
           targets: targets as unknown as Record<string, unknown>[],
           created_at: now,
@@ -87,7 +90,7 @@ export function usePresets() {
         updateData.targets =
           updates.targets as unknown as Record<string, unknown>[];
 
-      const { error } = await supabase
+      const { error } = await client
         .from("presets")
         .update(updateData as never)
         .eq("id", id);
@@ -100,7 +103,7 @@ export function usePresets() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await client
         .from("presets")
         .delete()
         .eq("id", id);

@@ -4,8 +4,11 @@ import { Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/supabase/auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 
 export function Header() {
+  const { isGuest } = useGuestMode();
+
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border/50 bg-background/80 backdrop-blur-md px-4 md:px-6">
       {/* Mobile: app logo */}
@@ -13,14 +16,18 @@ export function Header() {
 
       <div className="flex-1" />
 
-      {/* Connection status indicator */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive/60 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
-        </span>
-        미연결
-      </div>
+      {/* Connection status / Guest indicator */}
+      {isGuest ? (
+        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">게스트</span>
+      ) : (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive/60 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+          </span>
+          미연결
+        </div>
+      )}
 
       {/* Mobile: settings gear icon */}
       <Link href="/settings" className="md:hidden">
@@ -29,13 +36,21 @@ export function Header() {
         </Button>
       </Link>
 
-      {/* Desktop: logout button */}
-      <form action={signOut} className="hidden md:block">
-        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
-          <LogOut className="size-4" />
-          로그아웃
-        </Button>
-      </form>
+      {/* Desktop: logout or signup button */}
+      {isGuest ? (
+        <Link href="/login" className="hidden md:block">
+          <Button variant="gradient" size="sm" className="gap-2">
+            회원가입
+          </Button>
+        </Link>
+      ) : (
+        <form action={signOut} className="hidden md:block">
+          <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+            <LogOut className="size-4" />
+            로그아웃
+          </Button>
+        </form>
+      )}
     </header>
   );
 }

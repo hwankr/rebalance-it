@@ -10,6 +10,7 @@ import { m } from "framer-motion";
 
 import { useHistory } from "@/hooks/use-history";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import { PLAN_LIMITS } from "@/lib/subscription/plans";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,7 @@ const STATUS_MAP: Record<
 
 export default function HistoryPage() {
   const router = useRouter();
+  const { isGuest } = useGuestMode();
   const { history, deleteExecution, clearHistory } = useHistory();
   const { isPro } = useSubscription();
   const [clearOpen, setClearOpen] = useState(false);

@@ -2,8 +2,9 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 
 export interface AppSettings {
   account: string;
@@ -14,20 +15,22 @@ const SETTINGS_ROW_KEY = "app_settings";
 const DEFAULT_SETTINGS: AppSettings = { account: "", isConnected: false };
 
 export function useSettings() {
-  const supabase = createClient();
+  const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const queryKey = ["settings", user?.id];
+  const { isGuest } = useGuestMode();
+  const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
+  const queryKey = ["settings", effectiveUserId];
 
   const { data: settings = DEFAULT_SETTINGS, isLoading } = useQuery({
     queryKey,
-    enabled: !!user,
+    enabled: !!user || isGuest,
     queryFn: async (): Promise<AppSettings> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("settings")
         .select("value")
         .eq("key", SETTINGS_ROW_KEY)
-        .eq("user_id", user!.id)
+        .eq("user_id", effectiveUserId!)
         .maybeSingle();
       if (error) throw error;
       if (!data) return DEFAULT_SETTINGS;
@@ -41,11 +44,11 @@ export function useSettings() {
   const updateMutation = useMutation({
     mutationFn: async (partial: Partial<AppSettings>) => {
       const newSettings = { ...settings, ...partial };
-      const { error } = await supabase
+      const { error } = await client
         .from("settings")
         .upsert(
           {
-            user_id: user!.id,
+            user_id: effectiveUserId,
             key: SETTINGS_ROW_KEY,
             value: JSON.parse(JSON.stringify(newSettings)),
             updated_at: new Date().toISOString(),
@@ -61,11 +64,11 @@ export function useSettings() {
 
   const clearMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
+      const { error } = await client
         .from("settings")
         .delete()
         .eq("key", SETTINGS_ROW_KEY)
-        .eq("user_id", user!.id);
+        .eq("user_id", effectiveUserId!);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -2,8 +2,9 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestMode } from "@/contexts/guest-mode-context";
 import type { RebalanceSettings } from "@/lib/rebalance/preset-types";
 
 const DEFAULT_SETTINGS: Omit<RebalanceSettings, "id"> = {
@@ -13,19 +14,21 @@ const DEFAULT_SETTINGS: Omit<RebalanceSettings, "id"> = {
 };
 
 export function useRebalanceSettings() {
-  const supabase = createClient();
+  const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const queryKey = ["rebalance-settings", user?.id];
+  const { isGuest } = useGuestMode();
+  const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
+  const queryKey = ["rebalance-settings", effectiveUserId];
 
   const { data: settings, isLoading } = useQuery({
     queryKey,
-    enabled: !!user,
+    enabled: !!user || isGuest,
     queryFn: async (): Promise<RebalanceSettings> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("rebalance_settings")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", effectiveUserId!)
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -49,11 +52,11 @@ export function useRebalanceSettings() {
         Pick<RebalanceSettings, "strategy" | "threshold_pct" | "calendar_interval">
       >,
     ) => {
-      const { error } = await supabase
+      const { error } = await client
         .from("rebalance_settings")
         .upsert(
           {
-            user_id: user!.id,
+            user_id: effectiveUserId,
             data_source: "manual",
             ...updates,
             updated_at: new Date().toISOString(),
