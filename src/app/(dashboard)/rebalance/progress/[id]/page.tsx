@@ -34,7 +34,7 @@ export default function ProgressPage() {
   const {
     activeSession,
     useSession,
-    toggleOrder,
+    updateOrderQuantity,
     completeSession,
     abandonSession,
     getProgress,
@@ -111,12 +111,13 @@ export default function ProgressPage() {
       setCompleteOpen(false);
       toast.success(
         progress.completed >= progress.total
-          ? "리밸런싱이 완료되었습니다!"
-          : "리밸런싱이 부분 완료로 저장되었습니다."
+          ? "리밸런싱이 완료되었습니다! 포트폴리오가 업데이트되었습니다."
+          : "리밸런싱이 부분 완료되었습니다. 체결된 주문만 포트폴리오에 반영되었습니다."
       );
       router.push("/history");
-    } catch {
-      toast.error("완료 처리에 실패했습니다.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+      toast.error(`완료 처리에 실패했습니다: ${msg}`);
     }
   }
 
@@ -131,8 +132,8 @@ export default function ProgressPage() {
     }
   }
 
-  function handleToggle(stockCode: string, executed: boolean) {
-    toggleOrder(executionId, stockCode, executed);
+  function handleQuantityChange(stockCode: string, executedQuantity: number) {
+    updateOrderQuantity(executionId, stockCode, executedQuantity);
   }
 
   return (
@@ -175,7 +176,7 @@ export default function ProgressPage() {
             </div>
             <p className="text-muted-foreground">
               {isInProgress
-                ? "증권사 앱에서 주문을 실행하고, 완료된 주문을 체크하세요."
+                ? "증권사 앱에서 주문을 실행하고, 체결 수량을 입력하세요."
                 : "리밸런싱 기록을 확인합니다."}
             </p>
           </div>
@@ -238,7 +239,7 @@ export default function ProgressPage() {
             orders={session.orders}
             side="sell"
             stepNumber={1}
-            onToggle={handleToggle}
+            onQuantityChange={handleQuantityChange}
             disabled={!isInProgress}
           />
         )}
@@ -249,7 +250,7 @@ export default function ProgressPage() {
             orders={session.orders}
             side="buy"
             stepNumber={sellOrders.length > 0 ? 2 : 1}
-            onToggle={handleToggle}
+            onQuantityChange={handleQuantityChange}
             disabled={!isInProgress}
           />
         )}
@@ -318,8 +319,8 @@ export default function ProgressPage() {
             <DialogTitle>리밸런싱 완료</DialogTitle>
             <DialogDescription>
               {progress.completed >= progress.total
-                ? "모든 주문이 완료되었습니다. 리밸런싱을 완료하시겠습니까?"
-                : `${progress.total}건 중 ${progress.completed}건만 완료되었습니다. 부분 완료로 저장됩니다. 계속하시겠습니까?`}
+                ? "모든 주문이 완료되었습니다. 리밸런싱을 완료하시겠습니까? 포트폴리오 보유 수량과 예수금이 자동 업데이트됩니다."
+                : `${progress.total}건 중 ${progress.completed}건만 체결되었습니다. 부분 완료로 저장되며, 체결된 주문만 포트폴리오에 반영됩니다.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
@@ -27,6 +27,10 @@ export function useProgressiveRebalance() {
 
   const activeSessionKey = ["active-session", effectiveUserId];
   const historyKey = ["history", effectiveUserId];
+  const manualPortfolioKey = ["manual-portfolio", effectiveUserId];
+
+  // "Latest wins" counter for mutation cancellation per stock_code
+  const mutationCounterRef = useRef<Map<string, number>>(new Map());
 
   // 활성 세션 조회
   const {
@@ -36,7 +40,7 @@ export function useProgressiveRebalance() {
   } = useQuery({
     queryKey: activeSessionKey,
     enabled: !!user || isGuest,
-    staleTime: 0, // 활성 세션은 항상 최신 상태 유지
+    staleTime: 0,
     refetchOnMount: "always",
     queryFn: async (): Promise<RebalanceExecution | null> => {
       const { data, error } = await client
@@ -80,6 +84,7 @@ export function useProgressiveRebalance() {
           ...o,
           success: false,
           executed: false,
+          executed_quantity: 0,
         })
       );
 
@@ -121,78 +126,69 @@ export function useProgressiveRebalance() {
     },
   });
 
-  // 주문 토글 (optimistic update)
-  const toggleMutation = useMutation({
+  // 체결 수량 업데이트 (optimistic update + latest wins pattern)
+  const updateQuantityMutation = useMutation({
     mutationFn: async ({
       executionId,
       stockCode,
-      executed,
+      executedQuantity,
+      callId,
     }: {
       executionId: string;
       stockCode: string;
-      executed: boolean;
+      executedQuantity: number;
+      callId: number;
     }) => {
-      const { data, error } = await client.rpc("toggle_execution_order", {
+      const { data, error } = await client.rpc("update_execution_order", {
         p_execution_id: executionId,
         p_stock_code: stockCode,
-        p_executed: executed,
+        p_executed_quantity: executedQuantity,
       });
       if (error) throw error;
-      return data as unknown as ExecutionOrderResult[];
+      return { orders: data as unknown as ExecutionOrderResult[], callId, stockCode };
     },
-    onMutate: async ({ executionId, stockCode, executed }) => {
-      // Cancel outgoing queries
+    onMutate: async ({ stockCode, executedQuantity }) => {
       await queryClient.cancelQueries({
-        queryKey: ["execution", executionId],
+        queryKey: activeSessionKey,
       });
 
-      // Snapshot previous value
-      const previous = queryClient.getQueryData<RebalanceExecution | null>([
-        "execution",
-        executionId,
-      ]);
+      const previous = queryClient.getQueryData<RebalanceExecution | null>(activeSessionKey);
 
-      // Optimistically update
       if (previous) {
-        queryClient.setQueryData<RebalanceExecution>(
-          ["execution", executionId],
-          {
-            ...previous,
-            orders: previous.orders.map((o) =>
-              o.stock_code === stockCode
-                ? {
-                    ...o,
-                    executed,
-                    executed_at: executed
-                      ? new Date().toISOString()
-                      : undefined,
-                  }
-                : o
-            ),
-          }
-        );
+        queryClient.setQueryData<RebalanceExecution>(activeSessionKey, {
+          ...previous,
+          orders: previous.orders.map((o) =>
+            o.stock_code === stockCode
+              ? {
+                  ...o,
+                  executed_quantity: executedQuantity,
+                  executed: executedQuantity > 0,
+                  executed_at: executedQuantity > 0
+                    ? new Date().toISOString()
+                    : undefined,
+                }
+              : o
+          ),
+        });
       }
 
-      return { previous, executionId };
+      return { previous };
     },
     onError: (_err, _vars, context) => {
-      // Rollback on error
       if (context?.previous) {
-        queryClient.setQueryData(
-          ["execution", context.executionId],
-          context.previous
-        );
+        queryClient.setQueryData(activeSessionKey, context.previous);
       }
     },
     onSettled: (_data, _err, vars) => {
-      queryClient.invalidateQueries({
-        queryKey: ["execution", vars.executionId],
-      });
-      queryClient.invalidateQueries({ queryKey: activeSessionKey });
+      // Only invalidate if this is still the latest call for this stock
+      const currentCount = mutationCounterRef.current.get(vars.stockCode) ?? 0;
+      if (vars.callId === currentCount) {
+        queryClient.invalidateQueries({ queryKey: activeSessionKey });
+      }
     },
   });
 
-  // 세션 완료
+  // 세션 완료 (포트폴리오 자동 업데이트 포함)
   const completeMutation = useMutation({
     mutationFn: async (executionId: string) => {
       const { error } = await client.rpc("complete_rebalance_session", {
@@ -203,6 +199,11 @@ export function useProgressiveRebalance() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: activeSessionKey });
       queryClient.invalidateQueries({ queryKey: historyKey });
+      // 포트폴리오 캐시 무효화 (자산 업데이트 반영)
+      queryClient.invalidateQueries({ queryKey: manualPortfolioKey });
+    },
+    onError: (error) => {
+      console.error("[Rebalance] completeSession failed:", error);
     },
   });
 
@@ -223,7 +224,10 @@ export function useProgressiveRebalance() {
   // Progress 계산
   function getProgress(orders: ExecutionOrderResult[]) {
     const total = orders.length;
-    const completed = orders.filter((o) => o.executed).length;
+    const completed = orders.filter((o) => {
+      if (o.executed_quantity !== undefined) return o.executed_quantity > 0;
+      return o.executed === true;
+    }).length;
     return {
       completed,
       total,
@@ -236,10 +240,27 @@ export function useProgressiveRebalance() {
     [startMutation]
   );
 
+  const updateOrderQuantity = useCallback(
+    (executionId: string, stockCode: string, executedQuantity: number) => {
+      // Increment counter for this stock (latest wins pattern)
+      const prev = mutationCounterRef.current.get(stockCode) ?? 0;
+      const callId = prev + 1;
+      mutationCounterRef.current.set(stockCode, callId);
+
+      updateQuantityMutation.mutate({ executionId, stockCode, executedQuantity, callId });
+    },
+    [updateQuantityMutation]
+  );
+
+  // Backward compat wrapper
   const toggleOrder = useCallback(
-    (executionId: string, stockCode: string, executed: boolean) =>
-      toggleMutation.mutate({ executionId, stockCode, executed }),
-    [toggleMutation]
+    (executionId: string, stockCode: string, executed: boolean) => {
+      if (!activeSession) return;
+      const order = activeSession.orders.find((o) => o.stock_code === stockCode);
+      const qty = executed ? (order?.quantity ?? 0) : 0;
+      updateOrderQuantity(executionId, stockCode, qty);
+    },
+    [activeSession, updateOrderQuantity]
   );
 
   const completeSession = useCallback(
@@ -258,12 +279,14 @@ export function useProgressiveRebalance() {
     refetchActiveSession,
     useSession,
     startSession,
+    updateOrderQuantity,
     toggleOrder,
     completeSession,
     abandonSession,
     getProgress,
     isStarting: startMutation.isPending,
-    isToggling: toggleMutation.isPending,
+    isUpdatingQuantity: updateQuantityMutation.isPending,
+    isToggling: updateQuantityMutation.isPending,
     isCompleting: completeMutation.isPending,
     isAbandoning: abandonMutation.isPending,
   };

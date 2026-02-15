@@ -15,19 +15,34 @@ interface ProgressSummaryProps {
   totalSellAmount: number;
 }
 
+function getExecutedQty(order: ExecutionOrderResult): number {
+  if (order.executed_quantity !== undefined) return order.executed_quantity;
+  return order.executed ? order.quantity : 0;
+}
+
 export function ProgressSummary({
   orders,
   totalBuyAmount,
   totalSellAmount,
 }: ProgressSummaryProps) {
   const total = orders.length;
-  const completed = orders.filter((o) => o.executed).length;
+  const completed = orders.filter((o) => getExecutedQty(o) > 0).length;
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const sellOrders = orders.filter((o) => o.side === "sell");
   const buyOrders = orders.filter((o) => o.side === "buy");
-  const sellCompleted = sellOrders.filter((o) => o.executed).length;
-  const buyCompleted = buyOrders.filter((o) => o.executed).length;
+  const sellCompleted = sellOrders.filter((o) => getExecutedQty(o) > 0).length;
+  const buyCompleted = buyOrders.filter((o) => getExecutedQty(o) > 0).length;
+
+  // Amount-based progress
+  const totalOrderAmount = orders.reduce((sum, o) => sum + o.estimated_amount, 0);
+  const executedAmount = orders.reduce(
+    (sum, o) => sum + getExecutedQty(o) * o.estimated_price,
+    0
+  );
+  const amountPercentage = totalOrderAmount > 0
+    ? Math.round((executedAmount / totalOrderAmount) * 100)
+    : 0;
 
   return (
     <m.div
@@ -53,7 +68,7 @@ export function ProgressSummary({
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm mt-3 text-muted-foreground">
             <span className="tabular-nums">
-              전체 {total}건 중 <span className="text-foreground font-medium">{completed}건</span> 완료
+              전체 {total}건 중 <span className="text-foreground font-medium">{completed}건</span> 체결
             </span>
             <span className="tabular-nums">
               매도{" "}
@@ -70,6 +85,11 @@ export function ProgressSummary({
               {" "}({formatCurrency(totalBuyAmount)})
             </span>
           </div>
+          {amountPercentage !== percentage && (
+            <div className="text-xs text-muted-foreground mt-1 tabular-nums">
+              금액 기준 진행률: {amountPercentage}% ({formatCurrency(executedAmount)} / {formatCurrency(totalOrderAmount)})
+            </div>
+          )}
         </CardHeader>
       </Card>
     </m.div>

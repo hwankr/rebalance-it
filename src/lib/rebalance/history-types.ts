@@ -12,6 +12,7 @@ export interface ExecutionOrderResult {
   // Progressive rebalancing fields
   executed?: boolean;
   executed_at?: string;
+  executed_quantity?: number;
 }
 
 export interface PortfolioSnapshot {

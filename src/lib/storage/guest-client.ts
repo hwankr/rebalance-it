@@ -371,11 +371,11 @@ function handleRpc(
       return { data: null, error: null };
     }
 
-    case "toggle_execution_order": {
-      // Toggle an order's executed status in a progressive rebalancing session
+    case "update_execution_order": {
+      // Update an order's executed quantity in a progressive rebalancing session
       const executionId = params.p_execution_id as string;
       const stockCode = params.p_stock_code as string;
-      const executed = params.p_executed as boolean;
+      const executedQuantity = params.p_executed_quantity as number;
       const executions = readTable("executions");
       const exec = executions.find((e) => e.id === executionId);
       if (!exec) {
@@ -385,8 +385,11 @@ function handleRpc(
       const orders = (exec.orders ?? []) as Array<Record<string, unknown>>;
       for (let i = 0; i < orders.length; i++) {
         if (orders[i].stock_code === stockCode) {
-          orders[i].executed = executed;
-          orders[i].executed_at = executed ? nowISO() : null;
+          const orderQty = (orders[i].quantity as number) ?? 0;
+          const clampedQty = Math.max(0, Math.min(executedQuantity, orderQty));
+          orders[i].executed_quantity = clampedQty;
+          orders[i].executed = clampedQty > 0;
+          orders[i].executed_at = clampedQty > 0 ? nowISO() : null;
         }
       }
       exec.orders = orders;
@@ -400,8 +403,30 @@ function handleRpc(
       return { data: orders, error: null };
     }
 
+    case "toggle_execution_order": {
+      // Backward compat wrapper: calls update_execution_order logic
+      const executionId = params.p_execution_id as string;
+      const stockCode = params.p_stock_code as string;
+      const executed = params.p_executed as boolean;
+      const executions = readTable("executions");
+      const exec = executions.find((e) => e.id === executionId);
+      if (!exec) {
+        return { data: null, error: { message: "Execution not found" } };
+      }
+
+      const orders = (exec.orders ?? []) as Array<Record<string, unknown>>;
+      const order = orders.find((o) => o.stock_code === stockCode);
+      const orderQty = order ? (order.quantity as number) ?? 0 : 0;
+
+      return handleRpc("update_execution_order", {
+        p_execution_id: executionId,
+        p_stock_code: stockCode,
+        p_executed_quantity: executed ? orderQty : 0,
+      });
+    }
+
     case "complete_rebalance_session": {
-      // Mark a progressive rebalancing session as completed or partial
+      // Mark a progressive rebalancing session as completed or partial + update portfolio
       const executionId = params.p_execution_id as string;
       const executions = readTable("executions");
       const exec = executions.find((e) => e.id === executionId);
@@ -410,11 +435,84 @@ function handleRpc(
       }
 
       const orders = (exec.orders ?? []) as Array<Record<string, unknown>>;
-      const allExecuted = orders.every((o) => o.executed);
-      exec.status = allExecuted ? "completed" : "partial";
+
+      // Count executed orders (backward compat: support both executed_quantity and executed)
+      const executedCount = orders.filter((o) => {
+        const execQty = o.executed_quantity as number | undefined;
+        if (execQty !== undefined) return execQty > 0;
+        return o.executed === true;
+      }).length;
+
+      exec.status = executedCount >= orders.length ? "completed" : "partial";
       exec.completed_at = nowISO();
+      exec.success_count = executedCount;
+      exec.fail_count = orders.length - executedCount;
 
       writeTable("executions", executions);
+
+      // Portfolio auto-update: adjust stock quantities and cash
+      const portfolios = readTable("manual_portfolios");
+      const portfolio = portfolios.find((p) => p.user_id === GUEST_USER_ID);
+
+      if (portfolio) {
+        const stocks = readTable("manual_stocks");
+        let netCashChange = 0;
+
+        for (const order of orders) {
+          // Backward compat: derive executed quantity
+          const execQty = (order.executed_quantity as number | undefined) !== undefined
+            ? (order.executed_quantity as number)
+            : (order.executed === true ? (order.quantity as number) ?? 0 : 0);
+
+          if (execQty <= 0) continue;
+
+          const side = order.side as string;
+          const stockCode = order.stock_code as string;
+          const stockName = order.stock_name as string;
+          const estimatedPrice = (order.estimated_price as number) ?? 0;
+          const stockIdx = stocks.findIndex(
+            (s: any) => s.portfolio_id === portfolio.id && s.stock_code === stockCode,
+          );
+
+          if (side === "sell") {
+            if (stockIdx >= 0) {
+              stocks[stockIdx].quantity = Math.max(0, (stocks[stockIdx].quantity as number) - execQty);
+              stocks[stockIdx].updated_at = nowISO();
+            }
+            netCashChange += execQty * estimatedPrice;
+          } else if (side === "buy") {
+            if (stockIdx >= 0) {
+              stocks[stockIdx].quantity = (stocks[stockIdx].quantity as number) + execQty;
+              stocks[stockIdx].updated_at = nowISO();
+            } else {
+              // New stock: insert
+              stocks.push({
+                id: generateId(),
+                portfolio_id: portfolio.id,
+                stock_code: stockCode,
+                stock_name: stockName,
+                quantity: execQty,
+                avg_price: estimatedPrice,
+                current_price: estimatedPrice,
+                currency: "KRW",
+                target_pct: 0,
+                price_updated_at: null,
+                created_at: nowISO(),
+                updated_at: nowISO(),
+              });
+            }
+            netCashChange -= execQty * estimatedPrice;
+          }
+        }
+
+        writeTable("manual_stocks", stocks);
+
+        // Update cash
+        portfolio.cash = (portfolio.cash as number) + netCashChange;
+        portfolio.updated_at = nowISO();
+        writeTable("manual_portfolios", portfolios);
+      }
+
       return { data: null, error: null };
     }
 

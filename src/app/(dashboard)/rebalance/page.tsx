@@ -64,7 +64,7 @@ export default function RebalancePage() {
     isLoadingSession,
     refetchActiveSession,
     startSession,
-    toggleOrder,
+    updateOrderQuantity,
     completeSession,
     abandonSession,
     getProgress,
@@ -152,7 +152,7 @@ export default function RebalancePage() {
         portfolioSnapshot: snapshot,
       });
 
-      toast.success("리밸런싱이 시작되었습니다. 주문을 체크하세요.");
+      toast.success("리밸런싱이 시작되었습니다. 체결 수량을 입력하세요.");
     } catch (err) {
       // Session creation failed — check if a stale in_progress record exists.
       console.error(
@@ -172,9 +172,9 @@ export default function RebalancePage() {
     }
   }
 
-  function handleToggle(stockCode: string, executed: boolean) {
+  function handleQuantityChange(stockCode: string, executedQuantity: number) {
     if (!activeSession) return;
-    toggleOrder(activeSession.id, stockCode, executed);
+    updateOrderQuantity(activeSession.id, stockCode, executedQuantity);
   }
 
   async function handleComplete() {
@@ -185,11 +185,12 @@ export default function RebalancePage() {
       setCompleteOpen(false);
       toast.success(
         progress.completed >= progress.total
-          ? "리밸런싱이 완료되었습니다!"
-          : "리밸런싱이 부분 완료로 저장되었습니다."
+          ? "리밸런싱이 완료되었습니다! 포트폴리오가 업데이트되었습니다."
+          : "리밸런싱이 부분 완료되었습니다. 체결된 주문만 포트폴리오에 반영되었습니다."
       );
-    } catch {
-      toast.error("완료 처리에 실패했습니다.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+      toast.error(`완료 처리에 실패했습니다: ${msg}`);
     }
   }
 
@@ -295,7 +296,7 @@ export default function RebalancePage() {
               </span>
             </div>
             <p className="text-muted-foreground">
-              증권사 앱에서 주문을 실행하고, 완료된 주문을 체크하세요.
+              증권사 앱에서 주문을 실행하고, 체결 수량을 입력하세요.
             </p>
           </div>
 
@@ -341,7 +342,7 @@ export default function RebalancePage() {
               orders={activeSession.orders}
               side="sell"
               stepNumber={1}
-              onToggle={handleToggle}
+              onQuantityChange={handleQuantityChange}
               disabled={false}
             />
           )}
@@ -352,7 +353,7 @@ export default function RebalancePage() {
               orders={activeSession.orders}
               side="buy"
               stepNumber={sellOrders.length > 0 ? 2 : 1}
-              onToggle={handleToggle}
+              onQuantityChange={handleQuantityChange}
               disabled={false}
             />
           )}
@@ -382,8 +383,8 @@ export default function RebalancePage() {
               <DialogTitle>리밸런싱 완료</DialogTitle>
               <DialogDescription>
                 {progress.completed >= progress.total
-                  ? "모든 주문이 완료되었습니다. 리밸런싱을 완료하시겠습니까?"
-                  : `${progress.total}건 중 ${progress.completed}건만 완료되었습니다. 부분 완료로 저장됩니다.`}
+                  ? "모든 주문이 완료되었습니다. 리밸런싱을 완료하시겠습니까? 포트폴리오 보유 수량과 예수금이 자동 업데이트됩니다."
+                  : `${progress.total}건 중 ${progress.completed}건만 체결되었습니다. 부분 완료로 저장되며, 체결된 주문만 포트폴리오에 반영됩니다.`}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
