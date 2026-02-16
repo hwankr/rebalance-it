@@ -52,7 +52,7 @@ function CustomTooltip({
   const item = payload[0];
   const pct = ((item.payload.percent ?? 0) * 100).toFixed(1);
   return (
-    <div className="rounded-xl border border-border bg-popover/90 backdrop-blur-sm px-3 py-2 shadow-lg">
+    <div className="rounded-xl border border-border bg-popover px-3 py-2 shadow-lg z-50">
       <p className="font-semibold text-sm">{item.name}</p>
       <p className="text-muted-foreground text-xs tabular-nums">
         {formatCurrency(Number(item.value))} · {pct}%
@@ -159,8 +159,8 @@ export function AllocationChart({
           </PieChart>
         </ResponsiveContainer>
 
-        {/* Center overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4">
+        {/* Center overlay - z-0 so tooltip renders above */}
+        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none px-4">
           <span className="text-xs text-muted-foreground font-medium">
             총 평가액
           </span>
