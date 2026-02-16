@@ -15,6 +15,7 @@ import { signOut } from "@/lib/supabase/auth";
 import { PlanBadge } from "@/components/subscription/plan-badge";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 import { useGuestMode } from "@/contexts/guest-mode-context";
+import { useAccounts } from "@/hooks/use-accounts";
 
 const navItems: NavItemProps[] = [
   { href: "/portfolio", label: "내 포트폴리오", icon: LayoutDashboard },
@@ -24,7 +25,9 @@ const navItems: NavItemProps[] = [
 ];
 
 export function Sidebar() {
-  const { activeSession } = useProgressiveRebalance();
+  const { selectedAccountId } = useAccounts();
+  const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
+  const { activeSession } = useProgressiveRebalance(portfolioId);
   const { isGuest } = useGuestMode();
 
   return (

@@ -122,8 +122,9 @@ export default function SettingsPage() {
         return;
       }
 
-      await supabase.from("profiles").delete().eq("user_id", user!.id);
+      // Order matters: executions has ON DELETE RESTRICT to manual_portfolios
       await supabase.from("executions").delete().eq("user_id", user!.id);
+      await supabase.from("profiles").delete().eq("user_id", user!.id);
       await supabase.from("manual_portfolios").delete().eq("user_id", user!.id);
       await supabase.from("settings").delete().eq("user_id", user!.id);
 

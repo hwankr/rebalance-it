@@ -2,7 +2,6 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
 import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
@@ -15,6 +14,8 @@ import { DEFAULT_EXCHANGE_RATE } from "@/lib/utils/format";
 interface ManualPortfolioRow {
   id: string;
   user_id: string;
+  name: string;
+  display_order: number;
   cash: number;
   active_preset_id: string | null;
   created_at: string;
@@ -49,7 +50,7 @@ export interface ManualStockInput {
 
 // --- 변환 로직 ---
 
-function toBalanceResponse(
+export function toBalanceResponse(
   portfolio: ManualPortfolioRow,
   stocks: ManualStockRow[],
   exchangeRate: number = DEFAULT_EXCHANGE_RATE,
@@ -101,64 +102,29 @@ function toBalanceResponse(
   };
 }
 
-// --- 독립 fetch 함수 (usePortfolioData의 queryFn으로 사용) ---
-
-export async function fetchManualPortfolio(
-  exchangeRate: number = DEFAULT_EXCHANGE_RATE,
-): Promise<KiwoomBalanceResponse> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { cash: 0, total_value: 0, total_profit_loss: 0, total_profit_rate: 0, stocks: [] };
-  }
-
-  const { data: portfolio } = await supabase
-    .from("manual_portfolios")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!portfolio) {
-    return { cash: 0, total_value: 0, total_profit_loss: 0, total_profit_rate: 0, stocks: [] };
-  }
-
-  const { data: stocks } = await supabase
-    .from("manual_stocks")
-    .select("*")
-    .eq("portfolio_id", portfolio.id)
-    .order("created_at", { ascending: true });
-
-  return toBalanceResponse(
-    portfolio as ManualPortfolioRow,
-    (stocks ?? []) as ManualStockRow[],
-    exchangeRate,
-  );
-}
-
 // --- Hook ---
 
-export function useManualPortfolio(exchangeRate?: number) {
+export function useManualPortfolio(
+  portfolioId: string | null,
+  exchangeRate?: number,
+) {
   const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
   const rate = exchangeRate ?? DEFAULT_EXCHANGE_RATE;
-  const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
-  const queryKey = ["manual-portfolio", effectiveUserId, rate];
-  // Prefix key for mutation invalidation — clears all rate variants
-  const invalidationKey = ["manual-portfolio", effectiveUserId];
+  const queryKey = ["manual-portfolio", portfolioId, rate];
+  const invalidationKey = ["manual-portfolio", portfolioId];
 
   // 포트폴리오 + 종목 조회
   const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey,
-    enabled: !!user || isGuest,
+    enabled: (!!user || isGuest) && !!portfolioId,
     queryFn: async () => {
       const { data: portfolio } = await client
         .from("manual_portfolios")
         .select("*")
-        .eq("user_id", effectiveUserId!)
+        .eq("id", portfolioId!)
         .maybeSingle();
 
       const stocks: ManualStockRow[] = [];
@@ -185,39 +151,23 @@ export function useManualPortfolio(exchangeRate?: number) {
   const stocks = data?.stocks ?? [];
   const balance = data?.balance ?? null;
 
-  // 예수금 설정 (포트폴리오 없으면 자동 생성)
+  // 예수금 설정
   const setCashMutation = useMutation({
     mutationFn: async (cash: number) => {
-      if (portfolio) {
-        const { error } = await client
-          .from("manual_portfolios")
-          .update({ cash } as never)
-          .eq("id", portfolio.id);
-        if (error) throw error;
-      } else {
-        const { error } = await client
-          .from("manual_portfolios")
-          .insert({ user_id: effectiveUserId, cash } as never);
-        if (error) throw error;
-      }
+      if (!portfolioId) throw new Error("계좌가 선택되지 않았습니다");
+      const { error } = await client
+        .from("manual_portfolios")
+        .update({ cash } as never)
+        .eq("id", portfolioId);
+      if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
-  // 종목 추가
+  // 종목 추가 (portfolioId 필수)
   const addStockMutation = useMutation({
     mutationFn: async (input: ManualStockInput) => {
-      // 포트폴리오가 없으면 먼저 생성
-      let portfolioId = portfolio?.id;
-      if (!portfolioId) {
-        const { data: newPortfolio, error: pErr } = await client
-          .from("manual_portfolios")
-          .insert({ user_id: effectiveUserId, cash: 0 } as never)
-          .select()
-          .single();
-        if (pErr) throw pErr;
-        portfolioId = (newPortfolio as ManualPortfolioRow).id;
-      }
+      if (!portfolioId) throw new Error("계좌가 선택되지 않았습니다");
 
       const { error } = await client.from("manual_stocks").insert({
         portfolio_id: portfolioId,
@@ -232,7 +182,10 @@ export function useManualPortfolio(exchangeRate?: number) {
       } as never);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: invalidationKey });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    },
   });
 
   // 종목 수정
@@ -294,7 +247,7 @@ export function useManualPortfolio(exchangeRate?: number) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
-  // 프리셋 적용 (RPC 트랜잭션 — guest client handles internally)
+  // 프리셋 적용
   const applyPresetMutation = useMutation({
     mutationFn: async ({
       presetTargets,
@@ -303,9 +256,9 @@ export function useManualPortfolio(exchangeRate?: number) {
       presetTargets: PresetTarget[];
       presetId?: string | null;
     }) => {
-      if (!portfolio) throw new Error("포트폴리오가 없습니다");
+      if (!portfolioId) throw new Error("계좌가 선택되지 않았습니다");
       const { error } = await client.rpc("apply_preset_to_manual", {
-        p_portfolio_id: portfolio.id,
+        p_portfolio_id: portfolioId,
         p_targets: JSON.parse(JSON.stringify(presetTargets)),
         p_preset_id: presetId ?? null,
       });

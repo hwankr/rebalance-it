@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/supabase/auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
+import { AccountSelector } from "@/components/account/account-selector";
 
 export function Header() {
   const { isGuest } = useGuestMode();
@@ -13,6 +14,9 @@ export function Header() {
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border/50 bg-background/80 backdrop-blur-md px-4 md:px-6">
       {/* Mobile: app logo */}
       <span className="text-lg font-bold text-gradient md:hidden">Rebalance-it</span>
+
+      {/* Account selector */}
+      <AccountSelector />
 
       <div className="flex-1" />
 

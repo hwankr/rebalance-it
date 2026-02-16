@@ -460,7 +460,10 @@ function handleRpc(
 
       // Portfolio auto-update: adjust stock quantities and cash
       const portfolios = readTable("manual_portfolios");
-      const portfolio = portfolios.find((p) => p.user_id === GUEST_USER_ID);
+      const portfolioId = exec.portfolio_id as string | null;
+      const portfolio = portfolioId
+        ? portfolios.find((p) => p.id === portfolioId)
+        : portfolios.find((p) => p.user_id === GUEST_USER_ID);
 
       if (portfolio) {
         const stocks = readTable("manual_stocks");

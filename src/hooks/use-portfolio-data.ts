@@ -8,10 +8,10 @@ import type { TargetAllocation } from "@/lib/rebalance/types";
 
 /**
  * 포트폴리오 데이터 + 목표 비중을 반환하는 훅.
- * 항상 수동 포트폴리오를 사용합니다.
+ * portfolioId로 특정 계좌의 데이터를 조회합니다.
  * 현금 목표 비중은 100% - 주식 목표 비중 합계로 자동 계산됩니다.
  */
-export function usePortfolioData() {
+export function usePortfolioData(portfolioId: string | null) {
   const { rate: exchangeRate } = useExchangeRate();
   const rate = exchangeRate ?? DEFAULT_EXCHANGE_RATE;
 
@@ -25,7 +25,7 @@ export function usePortfolioData() {
     refetch,
     isFetching,
     dataUpdatedAt,
-  } = useManualPortfolio(rate);
+  } = useManualPortfolio(portfolioId, rate);
 
   // manual_stocks에서 target_pct > 0인 종목을 TargetAllocation으로 변환 + 현금 추가
   const targets = useMemo((): TargetAllocation[] => {

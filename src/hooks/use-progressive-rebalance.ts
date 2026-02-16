@@ -18,35 +18,35 @@ interface StartSessionParams {
   presetName?: string;
 }
 
-export function useProgressiveRebalance() {
+export function useProgressiveRebalance(portfolioId: string | null) {
   const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
   const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
 
-  const activeSessionKey = ["active-session", effectiveUserId];
+  const activeSessionKey = ["active-session", portfolioId];
   const historyKey = ["history", effectiveUserId];
-  const manualPortfolioKey = ["manual-portfolio", effectiveUserId];
+  const manualPortfolioKey = ["manual-portfolio", portfolioId];
 
   // "Latest wins" counter for mutation cancellation per stock_code
   const mutationCounterRef = useRef<Map<string, number>>(new Map());
 
-  // 활성 세션 조회
+  // 활성 세션 조회 (계좌별)
   const {
     data: activeSession,
     isLoading: isLoadingSession,
     refetch: refetchActiveSession,
   } = useQuery({
     queryKey: activeSessionKey,
-    enabled: !!user || isGuest,
+    enabled: (!!user || isGuest) && !!portfolioId,
     staleTime: 0,
     refetchOnMount: "always",
     queryFn: async (): Promise<RebalanceExecution | null> => {
       const { data, error } = await client
         .from("executions")
         .select("*")
-        .eq("user_id", effectiveUserId!)
+        .eq("portfolio_id", portfolioId!)
         .eq("status", "in_progress")
         .limit(1)
         .maybeSingle();
@@ -78,6 +78,7 @@ export function useProgressiveRebalance() {
   // 세션 시작
   const startMutation = useMutation({
     mutationFn: async (params: StartSessionParams): Promise<string> => {
+      if (!portfolioId) throw new Error("계좌가 선택되지 않았습니다");
       const { simulationResult, portfolioSnapshot, presetName } = params;
       const orders: ExecutionOrderResult[] = simulationResult.orders.map(
         (o) => ({
@@ -91,6 +92,7 @@ export function useProgressiveRebalance() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const insertPayload: any = {
         user_id: effectiveUserId!,
+        portfolio_id: portfolioId,
         profile_id: null,
         profile_name: "리밸런싱",
         executed_at: new Date().toISOString(),

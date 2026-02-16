@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requirePlan } from "@/lib/subscription/guard";
 import { fetchStockPrice } from "@/lib/stock-price";
 import { getExchangeRate } from "@/lib/exchange-rate";
 
 const MAX_STOCKS = 50;
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   let user: { id: string };
   let supabase: Awaited<ReturnType<typeof requirePlan>>["supabase"];
 
@@ -19,25 +19,54 @@ export async function POST() {
   }
 
   try {
-    // Get user's manual portfolio
-    const { data: portfolio } = await supabase
-      .from("manual_portfolios")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (!portfolio) {
-      return NextResponse.json(
-        { error: "포트폴리오가 없습니다." },
-        { status: 404 }
-      );
+    // Parse optional portfolio_id from body
+    let portfolioId: string | null = null;
+    try {
+      const body = await request.json();
+      portfolioId = body?.portfolio_id ?? null;
+    } catch {
+      // No body or invalid JSON — refresh all portfolios
     }
 
-    // Get all stocks with market info from stocks table
+    let portfolioIds: string[];
+
+    if (portfolioId) {
+      // Single-account mode: verify ownership
+      const { data: portfolio } = await supabase
+        .from("manual_portfolios")
+        .select("id")
+        .eq("id", portfolioId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!portfolio) {
+        return NextResponse.json(
+          { error: "포트폴리오를 찾을 수 없습니다." },
+          { status: 404 }
+        );
+      }
+      portfolioIds = [portfolio.id];
+    } else {
+      // All-account mode: get all user portfolios
+      const { data: portfolios } = await supabase
+        .from("manual_portfolios")
+        .select("id")
+        .eq("user_id", user.id);
+
+      if (!portfolios || portfolios.length === 0) {
+        return NextResponse.json(
+          { error: "포트폴리오가 없습니다." },
+          { status: 404 }
+        );
+      }
+      portfolioIds = portfolios.map((p) => p.id);
+    }
+
+    // Get all stocks across selected portfolios
     const { data: manualStocks } = await supabase
       .from("manual_stocks")
       .select("id, stock_code, currency")
-      .eq("portfolio_id", portfolio.id)
+      .in("portfolio_id", portfolioIds)
       .limit(MAX_STOCKS);
 
     if (!manualStocks || manualStocks.length === 0) {

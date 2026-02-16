@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
+import { useAccounts } from "@/hooks/use-accounts";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
 import { usePresets } from "@/hooks/use-presets";
@@ -50,6 +51,10 @@ import { PresetSelector } from "@/components/rebalance/preset-selector";
 import { PresetManager } from "@/components/rebalance/preset-manager";
 
 export default function RebalancePage() {
+  const { selectedAccountId } = useAccounts();
+  const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
+  const isAllMode = selectedAccountId === "all";
+
   const {
     data: balance,
     isLoading,
@@ -57,7 +62,7 @@ export default function RebalancePage() {
     error,
     targets,
     exchangeRate,
-  } = usePortfolioData();
+  } = usePortfolioData(portfolioId);
   const {
     stocks: manualStocks,
     portfolio,
@@ -66,7 +71,7 @@ export default function RebalancePage() {
     applyPreset,
     isApplying,
     isLoading: isManualLoading,
-  } = useManualPortfolio(exchangeRate);
+  } = useManualPortfolio(portfolioId, exchangeRate);
   const { getPreset, isLoading: isPresetsLoading } = usePresets();
   const {
     activeSession,
@@ -80,7 +85,7 @@ export default function RebalancePage() {
     isStarting,
     isCompleting,
     isAbandoning,
-  } = useProgressiveRebalance();
+  } = useProgressiveRebalance(portfolioId);
 
   const [isSavingTargets, setIsSavingTargets] = useState(false);
   const [abandonOpen, setAbandonOpen] = useState(false);
@@ -314,6 +319,29 @@ export default function RebalancePage() {
             <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
             <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
           </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  // Must select specific account for rebalancing
+  if (isAllMode) {
+    return (
+      <PageTransition>
+        <div className="space-y-6">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+            리밸런싱
+          </h1>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-4 py-10">
+              <p className="text-muted-foreground">
+                리밸런싱을 실행하려면 특정 계좌를 선택해주세요.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                헤더의 계좌 선택 메뉴에서 개별 계좌를 선택하세요.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </PageTransition>
     );
@@ -802,6 +830,7 @@ export default function RebalancePage() {
         onOpenChange={setPresetManagerOpen}
         onApplyPreset={handleApplyPreset}
         isApplying={isApplying}
+        portfolioId={portfolioId}
       />
     </PageTransition>
   );

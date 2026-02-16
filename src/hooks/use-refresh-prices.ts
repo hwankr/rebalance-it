@@ -9,13 +9,15 @@ interface RefreshResult {
   exchange_rate: number;
 }
 
-export function useRefreshPrices() {
+export function useRefreshPrices(portfolioId?: string | null) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation<RefreshResult>({
     mutationFn: async () => {
       const res = await fetch("/api/manual-portfolio/refresh-prices", {
         method: "POST",
+        headers: portfolioId ? { "Content-Type": "application/json" } : {},
+        body: portfolioId ? JSON.stringify({ portfolio_id: portfolioId }) : undefined,
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -24,7 +26,12 @@ export function useRefreshPrices() {
       return res.json();
     },
     onSuccess: async () => {
-      await queryClient.refetchQueries({ queryKey: ["manual-portfolio"] });
+      if (portfolioId) {
+        await queryClient.refetchQueries({ queryKey: ["manual-portfolio", portfolioId] });
+      } else {
+        await queryClient.refetchQueries({ queryKey: ["manual-portfolio"] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["consolidated-portfolio"] });
       queryClient.invalidateQueries({ queryKey: ["exchange-rate"] });
     },
   });

@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
+import { useAccounts } from "@/hooks/use-accounts";
 import { formatCurrency } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,8 @@ export default function ProgressPage() {
   const params = useParams();
   const router = useRouter();
   const executionId = params.id as string;
+  const { selectedAccountId } = useAccounts();
+  const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
   const {
     activeSession,
     useSession,
@@ -40,7 +43,7 @@ export default function ProgressPage() {
     getProgress,
     isCompleting,
     isAbandoning,
-  } = useProgressiveRebalance();
+  } = useProgressiveRebalance(portfolioId);
 
   const { data: session, isLoading } = useSession(executionId);
 

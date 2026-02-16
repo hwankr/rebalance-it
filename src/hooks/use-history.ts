@@ -9,24 +9,31 @@ import type { RebalanceExecution } from "@/lib/rebalance/history-types";
 
 const MAX_HISTORY = 50;
 
-export function useHistory() {
+export function useHistory(portfolioId?: string | null) {
   const client = useStorageClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
   const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
-  const queryKey = ["history", effectiveUserId];
+  const queryKey = ["history", effectiveUserId, portfolioId ?? "all"];
 
   const { data: history = [], isLoading } = useQuery({
     queryKey,
     enabled: !!user || isGuest,
     queryFn: async (): Promise<RebalanceExecution[]> => {
-      const { data, error } = await client
+      let query = client
         .from("executions")
         .select("*")
         .eq("user_id", effectiveUserId!)
         .order("executed_at", { ascending: false })
         .limit(MAX_HISTORY);
+
+      // 특정 계좌 필터
+      if (portfolioId) {
+        query = query.eq("portfolio_id", portfolioId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []).map((row) => {
         const r = row as Record<string, unknown>;

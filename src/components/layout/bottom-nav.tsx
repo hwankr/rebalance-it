@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LayoutDashboard, RefreshCw, History, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
+import { useAccounts } from "@/hooks/use-accounts";
 
 const tabs = [
   { href: "/portfolio", label: "포트폴리오", icon: LayoutDashboard },
@@ -15,7 +16,9 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { activeSession } = useProgressiveRebalance();
+  const { selectedAccountId } = useAccounts();
+  const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
+  const { activeSession } = useProgressiveRebalance(portfolioId);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-border/50 bg-background/80 backdrop-blur-md md:hidden safe-area-pb">

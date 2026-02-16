@@ -10,6 +10,7 @@ import { m } from "framer-motion";
 
 import { useHistory } from "@/hooks/use-history";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useAccounts } from "@/hooks/use-accounts";
 
 import { PLAN_LIMITS } from "@/lib/subscription/plans";
 import { formatCurrency } from "@/lib/utils/format";
@@ -64,7 +65,9 @@ const STATUS_MAP: Record<
 
 export default function HistoryPage() {
   const router = useRouter();
-  const { history, deleteExecution, clearHistory } = useHistory();
+  const { selectedAccountId } = useAccounts();
+  const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
+  const { history, deleteExecution, clearHistory } = useHistory(portfolioId);
   const { isPro } = useSubscription();
   const [clearOpen, setClearOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);

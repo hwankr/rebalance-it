@@ -50,6 +50,7 @@ interface StockTableProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   exchangeRate?: number;
+  totalPortfolioValue?: number;
 }
 
 function getPriceFreshnessClass(priceUpdatedAt: string | null): string {
@@ -166,7 +167,9 @@ export function StockTable({
   onRefresh,
   isRefreshing,
   exchangeRate,
+  totalPortfolioValue,
 }: StockTableProps) {
+  const showWeight = totalPortfolioValue != null && totalPortfolioValue > 0;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<ManualStockInput>>({});
   const [selectedStock, setSelectedStock] = useState<StockRow | null>(null);
@@ -230,6 +233,7 @@ export function StockTable({
             <TableHead className="text-right">평균매입가</TableHead>
             <TableHead className="text-right">현재가</TableHead>
             <TableHead className="text-right">평가금액</TableHead>
+            {showWeight && <TableHead className="text-right">비중</TableHead>}
             <TableHead className="text-right">손익</TableHead>
             <TableHead className="text-right">수익률</TableHead>
             <TableHead className="w-24" />
@@ -344,6 +348,11 @@ export function StockTable({
                     ? formatEvalAmount(evalAmountKrw, { currency: "USD", nativeEval: evalAmount })
                     : formatCurrency(evalAmount)}
                 </TableCell>
+                {showWeight && (
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {((evalAmountKrw / totalPortfolioValue!) * 100).toFixed(1)}%
+                  </TableCell>
+                )}
                 <TableCell
                   className={`text-right ${profitLoss >= 0 ? "text-green-600" : "text-red-600"}`}
                 >
@@ -536,6 +545,11 @@ export function StockTable({
                         <div className="font-medium tabular-nums text-sm">
                           {isUsd && exchangeRate ? formatCurrency(evalAmountKrw) : formatCurrency(evalAmount)}
                         </div>
+                        {showWeight && (
+                          <div className="text-[10px] text-muted-foreground tabular-nums">
+                            비중 {((evalAmountKrw / totalPortfolioValue!) * 100).toFixed(1)}%
+                          </div>
+                        )}
                         {isUsd && exchangeRate && (
                           <div className="text-[10px] text-muted-foreground tabular-nums">
                             ({formatUsdPrice(evalAmount)})
