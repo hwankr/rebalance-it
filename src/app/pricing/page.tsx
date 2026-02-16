@@ -103,15 +103,12 @@ export default function PricingPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-12">
-        {/* Title with mesh gradient hero */}
-        <div className="mb-12 text-center relative py-8">
-          <div className="absolute inset-0 bg-mesh rounded-2xl opacity-50" />
-          <div className="relative z-10">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gradient">요금제</h1>
-            <p className="mt-3 text-lg text-muted-foreground">
-              필요에 맞는 플랜을 선택하세요.
-            </p>
-          </div>
+        {/* Title */}
+        <div className="mb-12 text-center py-8">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">요금제</h1>
+          <p className="mt-3 text-lg text-muted-foreground">
+            필요에 맞는 플랜을 선택하세요.
+          </p>
         </div>
 
         {/* Plan Cards */}
@@ -161,7 +158,7 @@ export default function PricingPage() {
           </Card>
 
           {/* Pro Plan */}
-          <Card className="relative flex flex-col border-[var(--gradient-start)]/30 bg-gradient-to-br from-[var(--gradient-start)]/5 to-background dark:from-[var(--gradient-start)]/10 card-hover">
+          <Card className="relative flex flex-col ring-2 ring-primary bg-primary/5">
             <div className="absolute -top-3 right-4">
               <Badge variant="gradient" className="gap-1">
                 <Sparkles className="size-3" />
@@ -243,7 +240,7 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {FEATURES.map((feature) => (
-                  <tr key={feature.name} className="border-b last:border-0 hover:bg-accent/30 transition-colors">
+                  <tr key={feature.name} className="border-b last:border-0">
                     <td className="px-4 py-3 font-medium">{feature.name}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center">

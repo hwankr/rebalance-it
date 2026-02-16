@@ -59,3 +59,24 @@ export async function fetchStockPrice(
 
   return { price, marketTime, exchangeName };
 }
+
+/** Batch fetch stock prices for multiple stocks */
+export async function fetchStockPrices(
+  stocks: Array<{ stock_code: string; currency?: string; market?: string }>,
+): Promise<Map<string, StockPriceResult>> {
+  const results = new Map<string, StockPriceResult>();
+  // Fetch in parallel with individual error handling
+  const promises = stocks.map(async (stock) => {
+    try {
+      const result = await fetchStockPrice(stock.stock_code, {
+        currency: stock.currency,
+        market: stock.market,
+      });
+      results.set(stock.stock_code, result);
+    } catch {
+      // Skip stocks that fail to fetch — caller can compare against missing entries
+    }
+  });
+  await Promise.allSettled(promises);
+  return results;
+}

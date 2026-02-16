@@ -28,8 +28,8 @@ function extendColors(base: string[], count: number): string[] {
 
 function Skeleton() {
   return (
-    <div className="flex items-center justify-center h-[300px]">
-      <div className="h-48 w-48 rounded-full skeleton-shimmer" />
+    <div className="flex items-center justify-center h-[260px]">
+      <div className="h-40 w-40 rounded-full skeleton-shimmer" />
     </div>
   );
 }
@@ -67,7 +67,7 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
 
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[260px] text-muted-foreground">
         데이터가 없습니다.
       </div>
     );
@@ -75,14 +75,14 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
 
   return (
     <div className="relative">
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={260}>
         <PieChart>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={60}
-            outerRadius={100}
+            innerRadius={50}
+            outerRadius={85}
             dataKey="value"
             label={({ name, percent }: { name?: string; percent?: number }) => {
               const p = percent ?? 0;
@@ -98,10 +98,10 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
           <Legend />
         </PieChart>
       </ResponsiveContainer>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 30 }}>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 24 }}>
         <div className="text-center">
           <p className="text-xs text-muted-foreground">총 평가액</p>
-          <p className="text-sm font-bold text-gradient tabular-nums">{totalValue.toLocaleString("ko-KR")}원</p>
+          <p className="text-sm font-bold text-foreground tabular-nums">{totalValue.toLocaleString("ko-KR")}원</p>
         </div>
       </div>
     </div>

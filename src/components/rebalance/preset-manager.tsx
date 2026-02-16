@@ -158,7 +158,7 @@ export function PresetManager({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: i * 0.05 }}
                     >
-                      <div className="glass-card card-hover rounded-xl p-4">
+                      <div className="rounded-lg bg-card p-4">
                         {/* Top row: name + metadata */}
                         <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="flex-1 min-w-0">

@@ -52,6 +52,7 @@ import type { RebalancePhase } from "@/components/rebalance/rebalance-stepper";
 import { CompletionReviewSheet } from "@/components/rebalance/completion-review-sheet";
 import { PresetSelector } from "@/components/rebalance/preset-selector";
 import { PresetManager } from "@/components/rebalance/preset-manager";
+import { PRICE_CHANGE_THRESHOLD } from "@/lib/rebalance/constants";
 
 export default function RebalancePage() {
   const { selectedAccountId } = useAccounts();
@@ -85,15 +86,21 @@ export default function RebalancePage() {
     batchFillOrders,
     completeSession,
     abandonSession,
+    recalculateRemaining,
+    resumeSession,
+    latestPartialSession,
     getProgress,
     isStarting,
     isCompleting,
     isAbandoning,
+    isRecalculating,
+    isResuming,
   } = useProgressiveRebalance(portfolioId);
 
   const [isSavingTargets, setIsSavingTargets] = useState(false);
   const [abandonOpen, setAbandonOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [recalcOpen, setRecalcOpen] = useState(false);
   const [presetSelectorOpen, setPresetSelectorOpen] = useState(false);
   const [presetManagerOpen, setPresetManagerOpen] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
@@ -111,6 +118,53 @@ export default function RebalancePage() {
     () => new Set(manualStocks.map((s) => s.stock_code)),
     [manualStocks],
   );
+
+  // Stock currencies map for session start
+  const stockCurrencies = useMemo(
+    () => new Map(manualStocks.map((s) => [s.stock_code, s.currency ?? "KRW"])),
+    [manualStocks],
+  );
+
+  // Price change detection: compare session snapshot prices vs current manual_stocks prices
+  // Note: snapshot prices are KRW-normalized (from balance.stocks which applies exchangeRate)
+  // manualStocks.current_price is in native currency (USD for US stocks)
+  // recalculated_prices are also in native currency (from fetchStockPrice)
+  const priceChanges = useMemo(() => {
+    if (!activeSession?.portfolio_snapshot) return [];
+    const snapshot = activeSession.portfolio_snapshot;
+    const refPrices = activeSession.recalculated_prices;
+    const changes: Array<{
+      stock_code: string;
+      stock_name: string;
+      refPrice: number;
+      currentPrice: number;
+      changePct: number;
+    }> = [];
+    for (const snapStock of snapshot.stocks) {
+      const current = manualStocks.find((s) => s.stock_code === snapStock.stock_code);
+      if (!current) continue;
+      const isUsd = current.currency === "USD";
+      // Normalize current price to KRW (to match snapshot which is KRW-normalized)
+      const currentPriceKrw = isUsd ? current.current_price * exchangeRate : current.current_price;
+      // recalculated_prices are in native currency, snapshot.price is already KRW
+      const recalcNative = refPrices?.[snapStock.stock_code];
+      const refPrice = recalcNative != null
+        ? (isUsd ? recalcNative * exchangeRate : recalcNative)
+        : snapStock.price;
+      if (refPrice <= 0) continue;
+      const changePct = (currentPriceKrw - refPrice) / refPrice;
+      if (Math.abs(changePct) >= PRICE_CHANGE_THRESHOLD) {
+        changes.push({
+          stock_code: snapStock.stock_code,
+          stock_name: snapStock.stock_name,
+          refPrice,
+          currentPrice: currentPriceKrw,
+          changePct,
+        });
+      }
+    }
+    return changes;
+  }, [activeSession, manualStocks, exchangeRate]);
 
   // Capture current time once per render for staleness check
   // eslint-disable-next-line react-hooks/purity
@@ -256,6 +310,7 @@ export default function RebalancePage() {
         simulationResult: result,
         portfolioSnapshot: snapshot,
         presetName: activePreset?.name,
+        stockCurrencies,
       });
 
       toast.success("리밸런싱이 시작되었습니다. 체결 수량을 입력하세요.");
@@ -278,9 +333,21 @@ export default function RebalancePage() {
     }
   }
 
-  function handleQuantityChange(stockCode: string, executedQuantity: number) {
+  function handleQuantityChange(stockCode: string, executedQuantity: number, actualPrice?: number) {
     if (!activeSession) return;
-    updateOrderQuantity(activeSession.id, stockCode, executedQuantity);
+    updateOrderQuantity(activeSession.id, stockCode, executedQuantity, actualPrice);
+  }
+
+  async function handleRecalculate() {
+    if (!activeSession) return;
+    try {
+      await recalculateRemaining(activeSession.id);
+      setRecalcOpen(false);
+      toast.success("잔여 주문이 현재 시세 기준으로 재계산되었습니다.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+      toast.error(`재계산에 실패했습니다: ${msg}`);
+    }
   }
 
   async function handleComplete() {
@@ -311,12 +378,23 @@ export default function RebalancePage() {
     }
   }
 
+  async function handleResumePartial() {
+    if (!latestPartialSession) return;
+    try {
+      await resumeSession(latestPartialSession.id);
+      toast.success("부분완료 세션을 이어서 진행합니다.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+      toast.error(`세션 재개에 실패했습니다: ${msg}`);
+    }
+  }
+
   // Loading (wait for session check too, to avoid showing button when stale session exists)
   if (isLoading || isManualLoading || isLoadingSession) {
     return (
       <PageTransition>
-        <div className="space-y-6">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+        <div className="space-y-3 md:space-y-4">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
           <div className="space-y-3">
@@ -332,12 +410,12 @@ export default function RebalancePage() {
   if (isAllMode) {
     return (
       <PageTransition>
-        <div className="space-y-6">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+        <div className="space-y-3 md:space-y-4">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
           <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-10">
+            <CardContent className="flex flex-col items-center gap-3 py-6">
               <p className="text-muted-foreground">
                 리밸런싱을 실행하려면 특정 계좌를 선택해주세요.
               </p>
@@ -355,12 +433,12 @@ export default function RebalancePage() {
   if (isError) {
     return (
       <PageTransition>
-        <div className="space-y-6">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+        <div className="space-y-3 md:space-y-4">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
           <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-10">
+            <CardContent className="flex flex-col items-center gap-3 py-6">
               <p className="text-destructive">
                 포트폴리오 데이터를 불러오는 데 실패했습니다.
               </p>
@@ -378,12 +456,12 @@ export default function RebalancePage() {
   if (!hasStocks) {
     return (
       <PageTransition>
-        <div className="space-y-6">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+        <div className="space-y-3 md:space-y-4">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
           <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-10">
+            <CardContent className="flex flex-col items-center gap-3 py-6">
               <p className="text-muted-foreground">
                 포트폴리오에 종목을 추가해주세요.
               </p>
@@ -431,106 +509,168 @@ export default function RebalancePage() {
 
     return (
       <PageTransition>
-        <div className="space-y-6">
+        <div className="space-y-3 md:space-y-4">
           {/* Header */}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
-                리밸런싱
-              </h1>
-              <span className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400">
-                <Clock className="size-4" />
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 px-2 py-0.5 h-6">
                 진행중
-              </span>
+              </Badge>
+              <h1 className="text-lg font-bold tracking-tight">
+                리밸런싱 실행
+              </h1>
             </div>
-            <p className="text-muted-foreground">
-              증권사 앱에서 주문을 실행하고, 체결 수량을 입력하세요.
+            <p className="text-muted-foreground text-sm">
+              증권사 앱에서 주문을 실행하고, 실제 체결 수량을 입력하세요.
             </p>
           </div>
 
-          {/* Step indicator */}
-          <RebalanceStepper
-            currentPhase={currentPhase}
-            hasSellOrders={sellOrders.length > 0}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Main Content: Orders */}
+            <div className="lg:col-span-8 space-y-4">
+              {/* Step indicator */}
+              <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                 <RebalanceStepper
+                   currentPhase={currentPhase}
+                   hasSellOrders={sellOrders.length > 0}
+                 />
+              </div>
 
-          {/* Stale warning */}
-          {isStale && (
-            <div className="flex items-start gap-3 rounded-lg border border-orange-500/50 bg-orange-50 p-4 dark:bg-orange-950/30">
-              <Clock className="size-5 shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
-              <div className="text-sm text-orange-800 dark:text-orange-200">
-                <p className="font-medium">오래된 세션입니다</p>
-                <p>
-                  이 리밸런싱 세션이 시작된 지{" "}
-                  {startedAt &&
-                    formatDistanceToNow(startedAt, {
-                      locale: ko,
-                      addSuffix: false,
-                    })}
-                  이 경과했습니다. 시장 가격이 크게 변동되었을 수 있으니 포기
-                  후 새로 시작하는 것을 권장합니다.
-                </p>
+              {/* Price change warning banner */}
+              {priceChanges.length > 0 && (
+                <div className="flex items-start gap-3 rounded-xl border border-orange-500/30 bg-orange-50/50 p-4 dark:bg-orange-950/20">
+                  <AlertTriangle className="size-5 shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
+                  <div className="flex-1 space-y-2">
+                    <div className="text-sm text-orange-800 dark:text-orange-200">
+                      <p className="font-medium">
+                        시세 변동 감지 ({priceChanges.length}개 종목)
+                      </p>
+                      <ul className="mt-1 space-y-0.5 text-xs opacity-90">
+                        {priceChanges.map((pc) => (
+                          <li key={pc.stock_code}>
+                            {pc.stock_name}: {formatCurrency(pc.refPrice)} →{" "}
+                            {formatCurrency(pc.currentPrice)}{" "}
+                            <span
+                              className={cn(
+                                "font-medium",
+                                pc.changePct > 0
+                                  ? "text-red-600 dark:text-red-400"
+                                  : "text-blue-600 dark:text-blue-400",
+                              )}
+                            >
+                              ({pc.changePct > 0 ? "+" : ""}
+                              {(pc.changePct * 100).toFixed(1)}%)
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-xs opacity-80">
+                        미체결 주문의 수량이 현재 시세와 맞지 않을 수 있습니다. 재계산을 권장합니다.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setRecalcOpen(true)}
+                      disabled={isRecalculating}
+                      className="gap-1.5 h-7 text-xs bg-transparent border-orange-200 hover:bg-orange-100 dark:border-orange-800 dark:hover:bg-orange-900/50"
+                    >
+                      <RefreshCw className={cn("size-3", isRecalculating && "animate-spin")} />
+                      {isRecalculating ? "재계산 중..." : "잔여 주문 재계산"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Sell orders */}
+              {sellOrders.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    <span className="flex items-center justify-center size-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-400">1</span>
+                    매도 주문
+                  </h3>
+                   <ProgressiveOrderList
+                    orders={activeSession.orders}
+                    side="sell"
+                    stepNumber={1}
+                    onQuantityChange={handleQuantityChange}
+                    onBatchFill={handleBatchFillSell}
+                    disabled={false}
+                  />
+                </div>
+              )}
+
+              {/* Buy orders */}
+              {buyOrders.length > 0 && (
+                <div className="space-y-4">
+                   <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <span className="flex items-center justify-center size-6 rounded-full bg-red-100 text-red-700 text-xs font-bold dark:bg-red-900/30 dark:text-red-400">
+                      {sellOrders.length > 0 ? 2 : 1}
+                    </span>
+                    매수 주문
+                  </h3>
+                  <ProgressiveOrderList
+                    orders={activeSession.orders}
+                    side="buy"
+                    stepNumber={sellOrders.length > 0 ? 2 : 1}
+                    onQuantityChange={handleQuantityChange}
+                    onBatchFill={handleBatchFillBuy}
+                    disabled={false}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Sidebar: Progress & Actions */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="sticky top-20 space-y-4">
+                 <ProgressSummary
+                  orders={activeSession.orders}
+                  totalBuyAmount={activeSession.total_buy_amount}
+                  totalSellAmount={activeSession.total_sell_amount}
+                />
+
+                <div className="flex flex-col gap-3">
+                  <Button onClick={() => setCompleteOpen(true)} className="w-full gap-2 h-12 text-base shadow-md">
+                    <CheckCircle2 className="size-5" />
+                    리밸런싱 완료
+                  </Button>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setRecalcOpen(true)}
+                      disabled={isRecalculating}
+                      className="gap-2"
+                    >
+                      <RefreshCw className={cn("size-4", isRecalculating && "animate-spin")} />
+                      재계산
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setAbandonOpen(true)}
+                      className="gap-2 hover:bg-destructive/10 hover:text-destructive border-destructive/20 text-destructive/80"
+                    >
+                      <XCircle className="size-4" />
+                      포기
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Stale warning */}
+                {isStale && (
+                  <div className="rounded-lg border border-orange-500/20 bg-orange-50/50 p-4 dark:bg-orange-950/10 text-xs text-orange-800 dark:text-orange-300">
+                    <p className="font-medium mb-1 flex items-center gap-1.5">
+                       <Clock className="size-3.5" /> 오래된 세션
+                    </p>
+                    <p className="opacity-90">
+                      시작된 지 {startedAt && formatDistanceToNow(startedAt, { locale: ko, addSuffix: false })} 경과.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-
-          {/* Reference banner */}
-          <div className="flex items-start gap-3 rounded-lg border border-yellow-500/50 bg-yellow-50 p-4 dark:bg-yellow-950/30">
-            <AlertTriangle className="size-5 shrink-0 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-            <div className="text-sm text-yellow-800 dark:text-yellow-200">
-              <p className="font-medium">참고용 안내입니다</p>
-              <p>실제 주문은 증권사 앱(HTS/MTS)에서 직접 실행해주세요.</p>
-            </div>
           </div>
-
-          {/* Progress summary */}
-          <ProgressSummary
-            orders={activeSession.orders}
-            totalBuyAmount={activeSession.total_buy_amount}
-            totalSellAmount={activeSession.total_sell_amount}
-          />
-
-          {/* Sell orders */}
-          {sellOrders.length > 0 && (
-            <ProgressiveOrderList
-              orders={activeSession.orders}
-              side="sell"
-              stepNumber={1}
-              onQuantityChange={handleQuantityChange}
-              onBatchFill={handleBatchFillSell}
-              disabled={false}
-            />
-          )}
-
-          {/* Buy orders */}
-          {buyOrders.length > 0 && (
-            <ProgressiveOrderList
-              orders={activeSession.orders}
-              side="buy"
-              stepNumber={sellOrders.length > 0 ? 2 : 1}
-              onQuantityChange={handleQuantityChange}
-              onBatchFill={handleBatchFillBuy}
-              disabled={false}
-            />
-          )}
-
-          {/* Action buttons */}
-          <Separator />
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => setCompleteOpen(true)} className="gap-2">
-              <CheckCircle2 className="size-4" />
-              리밸런싱 완료
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setAbandonOpen(true)}
-              className="gap-2 text-destructive hover:text-destructive"
-            >
-              <XCircle className="size-4" />
-              포기
-            </Button>
-          </div>
-        </div>
 
         {/* Completion review sheet */}
         <CompletionReviewSheet
@@ -542,6 +682,51 @@ export default function RebalancePage() {
           onConfirm={handleComplete}
           isCompleting={isCompleting}
         />
+
+        {/* Recalculate confirmation dialog */}
+        <Dialog open={recalcOpen} onOpenChange={setRecalcOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>잔여 주문 재계산</DialogTitle>
+              <DialogDescription>
+                현재 시세를 기준으로 미체결 주문의 수량을 다시 계산합니다.
+                이미 체결된 주문은 유지됩니다.
+              </DialogDescription>
+            </DialogHeader>
+            {priceChanges.length > 0 && (
+              <div className="text-sm space-y-1 rounded-lg border p-3 bg-muted/50">
+                <p className="font-medium text-muted-foreground">변동 감지 종목:</p>
+                {priceChanges.map((pc) => (
+                  <div key={pc.stock_code} className="flex justify-between">
+                    <span>{pc.stock_name}</span>
+                    <span className={cn(
+                      "tabular-nums font-medium",
+                      pc.changePct > 0
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-blue-600 dark:text-blue-400",
+                    )}>
+                      {pc.changePct > 0 ? "+" : ""}
+                      {(pc.changePct * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">취소</Button>
+              </DialogClose>
+              <Button
+                onClick={handleRecalculate}
+                disabled={isRecalculating}
+                className="gap-2"
+              >
+                <RefreshCw className={cn("size-4", isRecalculating && "animate-spin")} />
+                {isRecalculating ? "재계산 중..." : "재계산 실행"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Abandon dialog */}
         <Dialog open={abandonOpen} onOpenChange={setAbandonOpen}>
@@ -567,6 +752,7 @@ export default function RebalancePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
       </PageTransition>
     );
   }
@@ -574,10 +760,10 @@ export default function RebalancePage() {
   // ── Normal view (no active session) ──────────────────────────
   return (
     <PageTransition>
-      <div className="space-y-6">
+      <div className="space-y-3 md:space-y-4">
         {/* Header */}
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
           <p className="text-muted-foreground">
@@ -605,6 +791,37 @@ export default function RebalancePage() {
           </span>
         </div>
 
+        {/* Resume partial session banner */}
+        {latestPartialSession && (
+          <div className="flex items-start gap-3 rounded-lg border border-blue-500/50 bg-blue-50 p-4 dark:bg-blue-950/30">
+            <Clock className="size-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <div className="text-sm text-blue-800 dark:text-blue-200">
+                <p className="font-medium">부분완료된 세션이 있습니다</p>
+                <p>
+                  {latestPartialSession.preset_name
+                    ? `${latestPartialSession.preset_name} · `
+                    : ""}
+                  {getProgress(latestPartialSession.orders).completed}/
+                  {getProgress(latestPartialSession.orders).total}개 체결 완료
+                  {latestPartialSession.completed_at &&
+                    ` · ${formatDistanceToNow(new Date(latestPartialSession.completed_at), { locale: ko, addSuffix: true })}`}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResumePartial}
+                disabled={isResuming}
+                className="gap-1.5"
+              >
+                <RefreshCw className={cn("size-3.5", isResuming && "animate-spin")} />
+                {isResuming ? "재개 중..." : "이어서 진행"}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Deleted preset warning */}
         {presetDeleted && (
           <div className="flex items-start gap-3 rounded-lg border border-orange-500/50 bg-orange-50 p-4 dark:bg-orange-950/30">
@@ -619,7 +836,7 @@ export default function RebalancePage() {
         {!hasTargets && !activePresetId ? (
           /* ── State A: No preset, no targets → prompt ── */
           <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-10">
+            <CardContent className="flex flex-col items-center gap-3 py-6">
               <FolderInput className="size-12 text-muted-foreground" />
               <div className="text-center">
                 <p className="font-medium">프리셋을 선택해주세요</p>
@@ -643,13 +860,13 @@ export default function RebalancePage() {
           <>
             {/* Preset info card */}
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-1 min-w-0">
                     {activePreset ? (
                       <>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <CardTitle className="text-lg">{activePreset.name}</CardTitle>
+                          <CardTitle className="text-base">{activePreset.name}</CardTitle>
                           {isTargetModified && (
                             <Badge variant="secondary" className="text-xs">수정됨</Badge>
                           )}
@@ -661,7 +878,7 @@ export default function RebalancePage() {
                       </>
                     ) : (
                       <>
-                        <CardTitle className="text-lg">수동 비중 설정</CardTitle>
+                        <CardTitle className="text-base">수동 비중 설정</CardTitle>
                         <CardDescription>
                           프리셋 없이 직접 설정한 비중입니다.
                         </CardDescription>

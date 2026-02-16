@@ -29,7 +29,7 @@ interface ProgressiveOrderListProps {
   orders: ExecutionOrderResult[];
   side: "sell" | "buy";
   stepNumber: number;
-  onQuantityChange: (stockCode: string, executedQuantity: number) => void;
+  onQuantityChange: (stockCode: string, executedQuantity: number, actualPrice?: number) => void;
   onBatchFill?: () => void;
   disabled?: boolean;
 }
@@ -72,11 +72,13 @@ function DebouncedQuantityInput({
     String(order.executed_quantity ?? 0)
   );
   const [prevExecutedQty, setPrevExecutedQty] = useState(order.executed_quantity);
+  const [prevOrderQty, setPrevOrderQty] = useState(order.quantity);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync with server data using React-recommended prop-change pattern
-  if (order.executed_quantity !== prevExecutedQty) {
+  if (order.executed_quantity !== prevExecutedQty || order.quantity !== prevOrderQty) {
     setPrevExecutedQty(order.executed_quantity);
+    setPrevOrderQty(order.quantity);
     setLocalValue(String(order.executed_quantity ?? 0));
   }
 
@@ -170,6 +172,87 @@ function DebouncedQuantityInput({
   );
 }
 
+function ActualPriceInput({
+  order,
+  onPriceChange,
+  disabled,
+}: {
+  order: ExecutionOrderResult;
+  onPriceChange: (stockCode: string, price: number | undefined) => void;
+  disabled: boolean;
+}) {
+  const execQty = order.executed_quantity ?? 0;
+  const [localPrice, setLocalPrice] = useState<string>(
+    order.actual_price != null ? String(order.actual_price) : ""
+  );
+  const [isOpen, setIsOpen] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync from server
+  const [prevActualPrice, setPrevActualPrice] = useState(order.actual_price);
+  if (order.actual_price !== prevActualPrice) {
+    setPrevActualPrice(order.actual_price);
+    setLocalPrice(order.actual_price != null ? String(order.actual_price) : "");
+  }
+
+  const handleChange = useCallback((rawValue: string) => {
+    setLocalPrice(rawValue);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const parsed = parseFloat(rawValue);
+      if (!isNaN(parsed) && parsed > 0) {
+        onPriceChange(order.stock_code, parsed);
+      } else if (rawValue === "" || rawValue === "0") {
+        onPriceChange(order.stock_code, undefined);
+      }
+    }, 500);
+  }, [order.stock_code, onPriceChange]);
+
+  const handleBlur = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const parsed = parseFloat(localPrice);
+    if (!isNaN(parsed) && parsed > 0) {
+      onPriceChange(order.stock_code, parsed);
+    }
+  }, [localPrice, order.stock_code, onPriceChange]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  // Only show when executed_quantity > 0
+  if (execQty <= 0) return null;
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        disabled={disabled}
+        className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline disabled:opacity-50"
+      >
+        체결가 입력
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <Input
+        type="number"
+        placeholder={String(order.estimated_price)}
+        value={localPrice}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={handleBlur}
+        disabled={disabled}
+        className="w-24 h-7 text-right tabular-nums text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      />
+    </div>
+  );
+}
+
 export function ProgressiveOrderList({
   orders,
   side,
@@ -181,11 +264,35 @@ export function ProgressiveOrderList({
   const filtered = orders
     .filter((o) => o.side === side)
     .sort((a, b) => b.estimated_amount - a.estimated_amount);
+
+  // Track actual prices per order
+  const actualPriceRef = useRef<Map<string, number | undefined>>(new Map());
+
+  function handlePriceChange(stockCode: string, price: number | undefined) {
+    actualPriceRef.current.set(stockCode, price);
+    // Re-send the current executed_quantity with the new price
+    const order = filtered.find((o) => o.stock_code === stockCode);
+    if (order) {
+      const execQty = order.executed_quantity ?? 0;
+      if (execQty > 0) {
+        onQuantityChange(stockCode, execQty, price);
+      }
+    }
+  }
+
+  function handleQuantityWithPrice(stockCode: string, qty: number) {
+    const storedPrice = actualPriceRef.current.get(stockCode);
+    onQuantityChange(stockCode, qty, storedPrice);
+  }
+
   const completedCount = filtered.filter((o) => {
+    if (o.resolved_by_recalc) return false;
+    if (o.over_executed) return true;
     if (o.executed_quantity !== undefined) return o.executed_quantity >= o.quantity;
     return o.executed === true;
   }).length;
-  const allFilled = completedCount === filtered.length;
+  const activeOrders = filtered.filter((o) => !o.resolved_by_recalc);
+  const allFilled = completedCount === activeOrders.length;
 
   if (filtered.length === 0) return null;
 
@@ -247,16 +354,19 @@ export function ProgressiveOrderList({
               <TableBody>
                 {filtered.map((order) => {
                   const execQty = order.executed_quantity ?? 0;
+                  const isOverExecuted = order.over_executed === true;
+                  const isResolvedByRecalc = order.resolved_by_recalc === true;
                   const isFull = execQty >= order.quantity;
                   const isPartial = execQty > 0 && execQty < order.quantity;
-                  const executedAmount = execQty * order.estimated_price;
+                  const executedAmount = execQty * (order.actual_price ?? order.estimated_price);
 
                   return (
                     <TableRow
                       key={order.stock_code}
                       className={cn(
                         "transition-colors duration-150",
-                        isFull && "opacity-50"
+                        (isFull || isResolvedByRecalc) && "opacity-50",
+                        isResolvedByRecalc && "italic"
                       )}
                     >
                       <TableCell
@@ -265,7 +375,19 @@ export function ProgressiveOrderList({
                           isFull && "line-through"
                         )}
                       >
-                        {order.stock_name}
+                        <div className="flex items-center gap-2">
+                          {order.stock_name}
+                          {isOverExecuted && (
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-600/30 text-xs">
+                              초과체결
+                            </Badge>
+                          )}
+                          {isResolvedByRecalc && (
+                            <Badge variant="outline" className="text-blue-600 border-blue-600/30 text-xs">
+                              가격변동 해소
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -276,18 +398,31 @@ export function ProgressiveOrderList({
                         {order.quantity.toLocaleString("ko-KR")}주
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <DebouncedQuantityInput
-                            order={order}
-                            onQuantityChange={onQuantityChange}
-                            disabled={disabled}
-                          />
-                          <FillButton
-                            order={order}
-                            onQuantityChange={onQuantityChange}
-                            disabled={disabled}
-                          />
-                        </div>
+                        {!isResolvedByRecalc ? (
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="flex items-center justify-end gap-1">
+                              <DebouncedQuantityInput
+                                order={order}
+                                onQuantityChange={handleQuantityWithPrice}
+                                disabled={disabled || isOverExecuted}
+                              />
+                              {!isOverExecuted && (
+                                <FillButton
+                                  order={order}
+                                  onQuantityChange={handleQuantityWithPrice}
+                                  disabled={disabled}
+                                />
+                              )}
+                            </div>
+                            <ActualPriceInput
+                              order={order}
+                              onPriceChange={handlePriceChange}
+                              disabled={disabled}
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-muted-foreground text-sm">-</div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatCurrency(order.estimated_price)}
@@ -311,9 +446,11 @@ export function ProgressiveOrderList({
           <div className="space-y-4 md:hidden">
             {filtered.map((order, i) => {
               const execQty = order.executed_quantity ?? 0;
+              const isOverExecuted = order.over_executed === true;
+              const isResolvedByRecalc = order.resolved_by_recalc === true;
               const isFull = execQty >= order.quantity;
               const isPartial = execQty > 0 && execQty < order.quantity;
-              const executedAmount = execQty * order.estimated_price;
+              const executedAmount = execQty * (order.actual_price ?? order.estimated_price);
 
               return (
                 <m.div
@@ -324,8 +461,9 @@ export function ProgressiveOrderList({
                 >
                   <div
                     className={cn(
-                      "glass-card rounded-xl p-4 transition-opacity",
-                      isFull && "opacity-50"
+                      "rounded-xl border bg-card p-4 transition-opacity",
+                      (isFull || isResolvedByRecalc) && "opacity-50",
+                      isResolvedByRecalc && "italic"
                     )}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -339,7 +477,21 @@ export function ProgressiveOrderList({
                           >
                             {order.stock_name}
                           </span>
-                          {isFull ? (
+                          {isOverExecuted ? (
+                            <Badge
+                              variant="outline"
+                              className="text-yellow-600 border-yellow-600/30"
+                            >
+                              초과체결
+                            </Badge>
+                          ) : isResolvedByRecalc ? (
+                            <Badge
+                              variant="outline"
+                              className="text-blue-600 border-blue-600/30"
+                            >
+                              가격변동 해소
+                            </Badge>
+                          ) : isFull ? (
                             <Badge
                               variant="outline"
                               className="text-green-600 border-green-600/30"
@@ -375,22 +527,35 @@ export function ProgressiveOrderList({
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs text-muted-foreground shrink-0">체결 수량</span>
-                      <DebouncedQuantityInput
-                        order={order}
-                        onQuantityChange={onQuantityChange}
-                        disabled={disabled}
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        / {order.quantity.toLocaleString("ko-KR")}주
-                      </span>
-                      <FillButton
-                        order={order}
-                        onQuantityChange={onQuantityChange}
-                        disabled={disabled}
-                      />
-                    </div>
+                    {!isResolvedByRecalc && (
+                      <div className="space-y-2 mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground shrink-0">체결 수량</span>
+                          <DebouncedQuantityInput
+                            order={order}
+                            onQuantityChange={handleQuantityWithPrice}
+                            disabled={disabled || isOverExecuted}
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            / {order.quantity.toLocaleString("ko-KR")}주
+                          </span>
+                          {!isOverExecuted && (
+                            <FillButton
+                              order={order}
+                              onQuantityChange={handleQuantityWithPrice}
+                              disabled={disabled}
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <ActualPriceInput
+                            order={order}
+                            onPriceChange={handlePriceChange}
+                            disabled={disabled}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </m.div>
               );

@@ -19,7 +19,7 @@ const badgeVariants = cva(
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
         gradient:
-          "bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] text-white border-0",
+          "bg-primary text-primary-foreground border-0",
         success:
           "bg-success text-success-foreground border-0",
       },

@@ -33,7 +33,7 @@ export function UpgradePrompt({
   description = "이 기능을 사용하려면 Pro 플랜으로 업그레이드하세요.",
 }: UpgradePromptProps) {
   return (
-    <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50/50 to-background dark:from-blue-950/20">
+    <Card className="border border-blue-200 dark:border-blue-800 bg-muted/50">
       <CardHeader>
         <div className="flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50">

@@ -384,8 +384,9 @@ function handleRpc(
       const executionId = params.p_execution_id as string;
       const stockCode = params.p_stock_code as string;
       const executedQuantity = params.p_executed_quantity as number;
+      const actualPrice = params.p_actual_price as number | null | undefined;
       const executions = readTable("executions");
-      const exec = executions.find((e) => e.id === executionId);
+      const exec = executions.find((e: any) => e.id === executionId);
       if (!exec) {
         return { data: null, error: { message: "Execution not found" } };
       }
@@ -393,17 +394,21 @@ function handleRpc(
       const orders = (exec.orders ?? []) as Array<Record<string, unknown>>;
       for (let i = 0; i < orders.length; i++) {
         if (orders[i].stock_code === stockCode) {
-          const orderQty = (orders[i].quantity as number) ?? 0;
-          const clampedQty = Math.max(0, Math.min(executedQuantity, orderQty));
+          const clampedQty = Math.max(0, executedQuantity);
           orders[i].executed_quantity = clampedQty;
           orders[i].executed = clampedQty > 0;
           orders[i].executed_at = clampedQty > 0 ? nowISO() : null;
+          // Store actual_price if provided
+          if (actualPrice != null) {
+            orders[i].actual_price = actualPrice;
+            orders[i].actual_amount = clampedQty * actualPrice;
+          }
         }
       }
       exec.orders = orders;
 
       // Update success/fail counts
-      const successCount = orders.filter((o) => o.executed).length;
+      const successCount = orders.filter((o: any) => o.executed).length;
       exec.success_count = successCount;
       exec.fail_count = orders.length - successCount;
 
@@ -468,6 +473,7 @@ function handleRpc(
       if (portfolio) {
         const stocks = readTable("manual_stocks");
         let netCashChange = 0;
+        const exchangeRate = exec.portfolio_snapshot?.exchange_rate ?? 1;
 
         for (const order of orders) {
           // Backward compat: derive executed quantity
@@ -480,7 +486,9 @@ function handleRpc(
           const side = order.side as string;
           const stockCode = order.stock_code as string;
           const stockName = order.stock_name as string;
-          const estimatedPrice = (order.estimated_price as number) ?? 0;
+          const price = (order.actual_price as number) ?? (order.estimated_price as number) ?? 0;
+          const currency = (order.currency as string) ?? "KRW";
+          const cashFactor = currency === "USD" ? exchangeRate : 1;
           const stockIdx = stocks.findIndex(
             (s: any) => s.portfolio_id === portfolio.id && s.stock_code === stockCode,
           );
@@ -490,11 +498,20 @@ function handleRpc(
               stocks[stockIdx].quantity = Math.max(0, (stocks[stockIdx].quantity as number) - execQty);
               stocks[stockIdx].updated_at = nowISO();
             }
-            netCashChange += execQty * estimatedPrice;
+            netCashChange += execQty * price * cashFactor;
           } else if (side === "buy") {
             if (stockIdx >= 0) {
               stocks[stockIdx].quantity = (stocks[stockIdx].quantity as number) + execQty;
               stocks[stockIdx].updated_at = nowISO();
+              // Update avg_price when actual_price is available
+              if (order.actual_price != null) {
+                const existingQty = (stocks[stockIdx].quantity as number) - execQty;
+                const existingAvg = (stocks[stockIdx].avg_price as number) ?? 0;
+                const newAvg = existingQty > 0
+                  ? ((existingAvg * existingQty) + (price * execQty)) / ((stocks[stockIdx].quantity as number))
+                  : price;
+                stocks[stockIdx].avg_price = newAvg;
+              }
             } else {
               // New stock: insert
               stocks.push({
@@ -503,16 +520,16 @@ function handleRpc(
                 stock_code: stockCode,
                 stock_name: stockName,
                 quantity: execQty,
-                avg_price: estimatedPrice,
-                current_price: estimatedPrice,
-                currency: "KRW",
+                avg_price: price,
+                current_price: price,
+                currency: currency,
                 target_pct: 0,
                 price_updated_at: null,
                 created_at: nowISO(),
                 updated_at: nowISO(),
               });
             }
-            netCashChange -= execQty * estimatedPrice;
+            netCashChange -= execQty * price * cashFactor;
           }
         }
 
@@ -538,6 +555,63 @@ function handleRpc(
 
       exec.status = "abandoned";
       exec.completed_at = nowISO();
+
+      writeTable("executions", executions);
+      return { data: null, error: null };
+    }
+
+    case "resume_rebalance_session": {
+      // Resume a partial session back to in_progress
+      const executionId = params.p_execution_id as string;
+      const executions = readTable("executions");
+      const exec = executions.find((e: any) => e.id === executionId);
+      if (!exec) {
+        return { data: null, error: { message: "Execution not found" } };
+      }
+      if (exec.status !== "partial") {
+        return { data: null, error: { message: "Only partial sessions can be resumed" } };
+      }
+      // Check no other in_progress session for this portfolio
+      const hasActive = executions.some(
+        (e: any) => e.portfolio_id === exec.portfolio_id && e.status === "in_progress" && e.id !== executionId
+      );
+      if (hasActive) {
+        return { data: null, error: { message: "Another session is already in progress" } };
+      }
+      exec.status = "in_progress";
+      exec.completed_at = null;
+      writeTable("executions", executions);
+      return { data: null, error: null };
+    }
+
+    case "recalculate_session_orders": {
+      // Recalculate session orders with updated prices
+      const executionId = params.p_execution_id as string;
+      const newOrders = params.p_new_orders as any[];
+      const totalBuyAmount = params.p_total_buy_amount as number;
+      const totalSellAmount = params.p_total_sell_amount as number;
+      const netCashChange = params.p_net_cash_change as number;
+      const recalculatedPrices = params.p_recalculated_prices as Record<string, number> ?? {};
+
+      const executions = readTable("executions");
+      const exec = executions.find((e: any) => e.id === executionId && e.status === "in_progress");
+      if (!exec) {
+        return { data: null, error: { message: "Execution not found or not in progress" } };
+      }
+
+      exec.orders = newOrders;
+      exec.total_buy_amount = totalBuyAmount;
+      exec.total_sell_amount = totalSellAmount;
+      exec.net_cash_change = netCashChange;
+
+      const snapshot = exec.portfolio_snapshot ?? {};
+      const prevCount = snapshot.recalculation_count ?? 0;
+      exec.portfolio_snapshot = {
+        ...snapshot,
+        recalculated_at: nowISO(),
+        recalculation_count: prevCount + 1,
+        recalculated_prices: recalculatedPrices,
+      };
 
       writeTable("executions", executions);
       return { data: null, error: null };

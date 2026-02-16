@@ -25,19 +25,21 @@ export function ProgressSummary({
   totalBuyAmount,
   totalSellAmount,
 }: ProgressSummaryProps) {
-  const total = orders.length;
-  const completed = orders.filter((o) => getExecutedQty(o) >= o.quantity).length;
+  // Filter out resolved orders (no longer needed after recalculation)
+  const activeOrders = orders.filter((o) => !o.resolved_by_recalc);
+  const total = activeOrders.length;
+  const completed = activeOrders.filter((o) => o.over_executed || getExecutedQty(o) >= o.quantity).length;
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const sellOrders = orders.filter((o) => o.side === "sell");
-  const buyOrders = orders.filter((o) => o.side === "buy");
-  const sellCompleted = sellOrders.filter((o) => getExecutedQty(o) >= o.quantity).length;
-  const buyCompleted = buyOrders.filter((o) => getExecutedQty(o) >= o.quantity).length;
+  const sellOrders = activeOrders.filter((o) => o.side === "sell");
+  const buyOrders = activeOrders.filter((o) => o.side === "buy");
+  const sellCompleted = sellOrders.filter((o) => o.over_executed || getExecutedQty(o) >= o.quantity).length;
+  const buyCompleted = buyOrders.filter((o) => o.over_executed || getExecutedQty(o) >= o.quantity).length;
 
-  // Amount-based progress
-  const totalOrderAmount = orders.reduce((sum, o) => sum + o.estimated_amount, 0);
-  const executedAmount = orders.reduce(
-    (sum, o) => sum + getExecutedQty(o) * o.estimated_price,
+  // Amount-based progress (use actual_price if available)
+  const totalOrderAmount = activeOrders.reduce((sum, o) => sum + o.estimated_amount, 0);
+  const executedAmount = activeOrders.reduce(
+    (sum, o) => sum + getExecutedQty(o) * (o.actual_price ?? o.estimated_price),
     0
   );
   const amountPercentage = totalOrderAmount > 0
@@ -60,7 +62,7 @@ export function ProgressSummary({
           </div>
           <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
             <m.div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]"
+              className="h-full rounded-full bg-primary"
               initial={{ width: 0 }}
               animate={{ width: `${percentage}%` }}
               transition={{ duration: 0.5, ease: "easeOut" }}

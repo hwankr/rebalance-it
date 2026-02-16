@@ -13,6 +13,14 @@ export interface ExecutionOrderResult {
   executed?: boolean;
   executed_at?: string;
   executed_quantity?: number;
+  // Actual execution price tracking
+  actual_price?: number;
+  actual_amount?: number;
+  currency?: string; // "KRW" | "USD"
+  // Recalculation support
+  over_executed?: boolean; // true when executed_quantity > quantity after recalc
+  resolved_by_recalc?: boolean; // true when order becomes unnecessary after recalc
+  original_quantity?: number; // pre-recalculation quantity for audit
 }
 
 export interface PortfolioSnapshot {
@@ -44,4 +52,8 @@ export interface RebalanceExecution {
   net_cash_change: number;
   orders: ExecutionOrderResult[];
   portfolio_snapshot?: PortfolioSnapshot;
+  // Recalculation metadata
+  recalculated_at?: string;
+  recalculation_count?: number;
+  recalculated_prices?: Record<string, number>; // stock_code -> price at recalculation time
 }

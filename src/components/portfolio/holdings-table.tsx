@@ -226,7 +226,7 @@ export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTable
       <div className="space-y-3 md:hidden">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="glass-card rounded-xl p-4">
+            <div key={i} className="rounded-lg bg-card p-4">
               <SkeletonBar className="w-32 mb-2" />
               <SkeletonBar className="w-20 mb-3" />
               <div className="grid grid-cols-3 gap-2">
@@ -249,7 +249,7 @@ export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTable
               transition={{ duration: 0.3, delay: i * 0.05 }}
             >
               <div
-                className="glass-card card-hover rounded-xl p-4 cursor-pointer"
+                className="rounded-lg bg-card p-4 cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => setSelectedStock(stock)}
               >
                 {/* Top row: stock name + profit rate badge */}

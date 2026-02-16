@@ -50,7 +50,7 @@ export function TradeGuideSection({
   const buyOrders = orders.filter((o) => o.side === "buy");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4">
       {/* Warning Banner */}
       <m.div
         initial={{ opacity: 0, y: 8 }}
@@ -162,7 +162,7 @@ export function TradeGuideSection({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.2, delay: i * 0.05 }}
                   >
-                    <div className="glass-card rounded-xl p-4">
+                    <div className="rounded-xl border bg-card p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold">{order.stock_name}</span>
                         <Badge className="bg-red-500/10 text-red-600">매도</Badge>
@@ -245,7 +245,7 @@ export function TradeGuideSection({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.2, delay: i * 0.05 }}
                   >
-                    <div className="glass-card rounded-xl p-4">
+                    <div className="rounded-xl border bg-card p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold">{order.stock_name}</span>
                         <Badge className="bg-green-500/10 text-green-600">매수</Badge>

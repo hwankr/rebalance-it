@@ -140,9 +140,9 @@ export default function SettingsPage() {
 
   return (
     <PageTransition>
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">설정</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">설정</h1>
         <p className="text-muted-foreground">
           앱 설정 및 키움증권 API 연결을 관리합니다.
         </p>

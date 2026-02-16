@@ -51,19 +51,21 @@ export function CompletionReviewSheet({
   onConfirm,
   isCompleting,
 }: CompletionReviewSheetProps) {
-  const sellOrders = orders.filter((o) => o.side === "sell");
-  const buyOrders = orders.filter((o) => o.side === "buy");
+  // Filter out resolved orders (no longer needed after recalculation)
+  const activeOrders = orders.filter((o) => !o.resolved_by_recalc);
+  const sellOrders = activeOrders.filter((o) => o.side === "sell");
+  const buyOrders = activeOrders.filter((o) => o.side === "buy");
 
-  const totalOrders = orders.length;
-  const filledOrders = orders.filter((o) => getExecQty(o) >= o.quantity).length;
+  const totalOrders = activeOrders.length;
+  const filledOrders = activeOrders.filter((o) => o.over_executed || getExecQty(o) >= o.quantity).length;
   const unfilledOrders = totalOrders - filledOrders;
   const isPartial = unfilledOrders > 0;
 
   const executedSellAmount = sellOrders.reduce(
-    (sum, o) => sum + getExecQty(o) * o.estimated_price, 0
+    (sum, o) => sum + getExecQty(o) * (o.actual_price ?? o.estimated_price), 0
   );
   const executedBuyAmount = buyOrders.reduce(
-    (sum, o) => sum + getExecQty(o) * o.estimated_price, 0
+    (sum, o) => sum + getExecQty(o) * (o.actual_price ?? o.estimated_price), 0
   );
   const executedNetCash = executedSellAmount - executedBuyAmount;
 

@@ -128,7 +128,7 @@ export function PortfolioEditSection({
       </CardHeader>
 
       {isExpanded && (
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-3 md:space-y-4">
           {/* 종목 추가 섹션 */}
           <div>
             <h3 className="text-sm font-medium mb-3">종목 추가</h3>

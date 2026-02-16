@@ -7,7 +7,6 @@ import { ko } from "date-fns/locale";
 import { m } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -53,23 +52,7 @@ interface StockTableProps {
   totalPortfolioValue?: number;
 }
 
-function getPriceFreshnessClass(priceUpdatedAt: string | null): string {
-  if (!priceUpdatedAt) return "text-muted-foreground";
-  const diffMs = Date.now() - new Date(priceUpdatedAt).getTime();
-  const oneHour = 60 * 60 * 1000;
-  const oneDay = 24 * oneHour;
-  if (diffMs < oneHour) return "text-muted-foreground";
-  if (diffMs < oneDay) return "text-muted-foreground";
-  return "text-yellow-600";
-}
 
-function formatPriceTimestamp(priceUpdatedAt: string | null): string {
-  if (!priceUpdatedAt) return "수동 입력";
-  return formatDistanceToNow(new Date(priceUpdatedAt), {
-    addSuffix: true,
-    locale: ko,
-  });
-}
 
 function StockChartSheet({
   stock,
@@ -203,40 +186,40 @@ export function StockTable({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-0 md:space-y-4">
       {onRefresh && (
-        <div className="flex justify-end">
+        <div className="flex justify-end px-4 md:px-0 mb-2">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={onRefresh}
             disabled={isRefreshing}
+            className="text-xs h-8"
           >
             {isRefreshing ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
+              <Loader2 className="mr-2 size-3 animate-spin" />
             ) : (
-              <RefreshCw className="mr-2 size-4" />
+              <RefreshCw className="mr-2 size-3" />
             )}
-            가격 새로고침
+            가격 정보 업데이트
           </Button>
         </div>
       )}
 
-      {/* Desktop table - hidden on mobile */}
-      <div className="hidden md:block">
+      {/* Desktop table */}
+      <div className="hidden md:block border rounded-xl overflow-hidden">
         <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>종목코드</TableHead>
+        <TableHeader className="bg-muted/50">
+          <TableRow className="hover:bg-transparent border-b-border/50">
             <TableHead>종목명</TableHead>
             <TableHead className="text-right">수량</TableHead>
-            <TableHead className="text-right">평균매입가</TableHead>
+            <TableHead className="text-right">평단가</TableHead>
             <TableHead className="text-right">현재가</TableHead>
             <TableHead className="text-right">평가금액</TableHead>
             {showWeight && <TableHead className="text-right">비중</TableHead>}
             <TableHead className="text-right">손익</TableHead>
             <TableHead className="text-right">수익률</TableHead>
-            <TableHead className="w-24" />
+            <TableHead className="w-20" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -252,27 +235,26 @@ export function StockTable({
                   100
                 : 0;
 
-            // For USD stocks, compute KRW equivalents for display
             const evalAmountKrw =
               isUsd && exchangeRate ? evalAmount * exchangeRate : evalAmount;
             const profitLossKrw =
               isUsd && exchangeRate ? profitLoss * exchangeRate : profitLoss;
 
             return (
-              <TableRow key={stock.id ?? `stock-${index}`}>
-                <TableCell className="font-mono text-sm">
-                  {stock.stock_code}
-                </TableCell>
+              <TableRow key={stock.id ?? `stock-${index}`} className="hover:bg-muted/30 border-b-border/40">
                 <TableCell>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStock(stock)}
-                    className="font-medium text-left hover:text-primary hover:underline underline-offset-4 cursor-pointer transition-colors"
-                  >
-                    {stock.stock_name}
-                  </button>
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStock(stock)}
+                      className="font-medium text-left hover:text-primary transition-colors"
+                    >
+                      {stock.stock_name}
+                    </button>
+                    <span className="text-xs text-muted-foreground font-mono">{stock.stock_code}</span>
+                  </div>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right tabular-nums">
                   {isEditing ? (
                     <Input
                       type="number"
@@ -289,7 +271,7 @@ export function StockTable({
                     stock.quantity.toLocaleString()
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right tabular-nums text-muted-foreground">
                   {isEditing ? (
                     <Input
                       type="number"
@@ -308,7 +290,7 @@ export function StockTable({
                     formatCurrency(stock.avg_price)
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right tabular-nums">
                   {isEditing ? (
                     <Input
                       type="number"
@@ -323,27 +305,13 @@ export function StockTable({
                     />
                   ) : (
                     <div>
-                      <div>
-                        {isUsd
-                          ? formatUsdPrice(stock.current_price)
-                          : formatCurrency(stock.current_price)}
-                      </div>
-                      {isUsd && exchangeRate && (
-                        <div className="text-xs text-muted-foreground">
-                          ({formatCurrency(
-                            Math.round(stock.current_price * exchangeRate)
-                          )})
-                        </div>
-                      )}
-                      <div
-                        className={`text-xs ${getPriceFreshnessClass(stock.price_updated_at)}`}
-                      >
-                        {formatPriceTimestamp(stock.price_updated_at)}
-                      </div>
+                      {isUsd
+                        ? formatUsdPrice(stock.current_price)
+                        : formatCurrency(stock.current_price)}
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right font-medium tabular-nums">
                   {isUsd && exchangeRate
                     ? formatEvalAmount(evalAmountKrw, { currency: "USD", nativeEval: evalAmount })
                     : formatCurrency(evalAmount)}
@@ -354,7 +322,7 @@ export function StockTable({
                   </TableCell>
                 )}
                 <TableCell
-                  className={`text-right ${profitLoss >= 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`text-right tabular-nums ${profitLoss >= 0 ? "text-red-500" : "text-blue-500"}`}
                 >
                   {profitLoss >= 0 ? "+" : ""}
                   {isUsd && exchangeRate
@@ -362,7 +330,7 @@ export function StockTable({
                     : formatCurrency(profitLoss)}
                 </TableCell>
                 <TableCell
-                  className={`text-right ${profitRate >= 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`text-right tabular-nums font-medium ${profitRate >= 0 ? "text-red-500" : "text-blue-500"}`}
                 >
                   {profitRate >= 0 ? "+" : ""}
                   {formatPercent(profitRate)}
@@ -393,12 +361,12 @@ export function StockTable({
                           size="icon-xs"
                           onClick={() => startEdit(stock)}
                         >
-                          <Pencil className="size-4" />
+                          <Pencil className="size-4 text-muted-foreground" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          className="text-destructive"
+                          className="text-destructive/70 hover:text-destructive"
                           onClick={() => onDelete(stock.id)}
                         >
                           <Trash2 className="size-4" />
@@ -414,8 +382,8 @@ export function StockTable({
       </Table>
       </div>
 
-      {/* Mobile card list */}
-      <div className="space-y-3 md:hidden">
+      {/* Mobile Clean List */}
+      <div className="md:hidden">
         {stocks.map((stock, i) => {
           const isEditing = editingId === stock.id;
           const isUsd = stock.currency === "USD";
@@ -429,156 +397,125 @@ export function StockTable({
           return (
             <m.div
               key={stock.id ?? `stock-${i}`}
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
+              transition={{ duration: 0.3, delay: i * 0.03 }}
+              className="border-b border-border/40 last:border-0"
             >
-              <div className="glass-card card-hover rounded-xl p-4">
+              <div 
+                className={cn(
+                  "py-2.5 px-4 active:bg-muted/30 transition-colors",
+                  isEditing ? "bg-muted/30" : ""
+                )}
+                onClick={() => {
+                  if (!isEditing) setSelectedStock(stock);
+                }}
+              >
                 {isEditing ? (
-                  // Edit mode: stacked inputs
-                  <div className="space-y-3">
-                    <div className="font-semibold mb-2">{stock.stock_name}</div>
-                    <div>
-                      <label className="text-xs text-muted-foreground block mb-1">수량</label>
-                      <Input
-                        type="number"
-                        className="w-full"
-                        value={editValues.quantity ?? ""}
-                        onChange={(e) => setEditValues((v) => ({ ...v, quantity: Number(e.target.value) }))}
-                      />
+                  // Edit mode: minimal stacked inputs
+                  <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-lg">{stock.stock_name}</span>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit(stock.id)}>자산수정 완료</Button>
+                        <Button size="sm" variant="ghost" onClick={cancelEdit}>취소</Button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground block mb-1">평균가</label>
-                      <Input
-                        type="number"
-                        className="w-full"
-                        value={editValues.avg_price ?? ""}
-                        onChange={(e) => setEditValues((v) => ({ ...v, avg_price: Number(e.target.value) }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground block mb-1">현재가</label>
-                      <Input
-                        type="number"
-                        className="w-full"
-                        value={editValues.current_price ?? ""}
-                        onChange={(e) => setEditValues((v) => ({ ...v, current_price: Number(e.target.value) }))}
-                      />
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="default"
-                        className="flex-1"
-                        onClick={() => saveEdit(stock.id)}
-                      >
-                        <Check className="size-4 mr-2" />
-                        저장
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={cancelEdit}
-                      >
-                        <X className="size-4 mr-2" />
-                        취소
-                      </Button>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">수량</label>
+                        <Input
+                          type="number"
+                          className="w-full bg-background"
+                          value={editValues.quantity ?? ""}
+                          onChange={(e) => setEditValues((v) => ({ ...v, quantity: Number(e.target.value) }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">평단가</label>
+                        <Input
+                          type="number"
+                          className="w-full bg-background"
+                          value={editValues.avg_price ?? ""}
+                          onChange={(e) => setEditValues((v) => ({ ...v, avg_price: Number(e.target.value) }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">현재가</label>
+                        <Input
+                          type="number"
+                          className="w-full bg-background"
+                          value={editValues.current_price ?? ""}
+                          onChange={(e) => setEditValues((v) => ({ ...v, current_price: Number(e.target.value) }))}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  // View mode: card content
-                  <>
-                    {/* Top row: stock name + action buttons */}
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedStock(stock)}
-                        className="flex-1 text-left"
-                      >
-                        <div className="font-semibold hover:text-primary transition-colors">{stock.stock_name}</div>
-                        <div className="text-xs text-muted-foreground tabular-nums flex items-center gap-2 mt-0.5">
-                          {stock.stock_code}
-                          <Badge variant="outline" className="text-[10px] px-1 py-0">
-                            {stock.currency}
-                          </Badge>
-                        </div>
-                      </button>
-                      <div className="flex gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEdit(stock);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(stock.id);
-                          }}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+                  // View mode: Clean list item
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-sm truncate">{stock.stock_name}</span>
+                        {isUsd && (
+                           <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded">USD</span>
+                        )}
                       </div>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {stock.quantity.toLocaleString()}주 · {isUsd ? formatUsdPrice(stock.current_price) : formatCurrency(stock.current_price)}
+                      </span>
                     </div>
 
-                    {/* Middle row: 3 key values */}
-                    <div className="grid grid-cols-3 gap-2 my-3">
-                      <div>
-                        <div className="text-xs text-muted-foreground mb-0.5">현재가</div>
-                        <div className="font-medium tabular-nums text-sm">
-                          {isUsd ? formatUsdPrice(stock.current_price) : formatCurrency(stock.current_price)}
-                        </div>
-                        {isUsd && exchangeRate && (
-                          <div className="text-[10px] text-muted-foreground tabular-nums">
-                            ({formatCurrency(Math.round(stock.current_price * exchangeRate))})
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground mb-0.5">평가금액</div>
-                        <div className="font-medium tabular-nums text-sm">
-                          {isUsd && exchangeRate ? formatCurrency(evalAmountKrw) : formatCurrency(evalAmount)}
-                        </div>
-                        {showWeight && (
-                          <div className="text-[10px] text-muted-foreground tabular-nums">
-                            비중 {((evalAmountKrw / totalPortfolioValue!) * 100).toFixed(1)}%
-                          </div>
-                        )}
-                        {isUsd && exchangeRate && (
-                          <div className="text-[10px] text-muted-foreground tabular-nums">
-                            ({formatUsdPrice(evalAmount)})
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground mb-0.5">손익</div>
-                        <div className={cn("font-medium tabular-nums text-sm", profitLoss >= 0 ? "text-green-600" : "text-red-600")}>
-                          {profitLoss >= 0 ? "+" : ""}
-                          {isUsd && exchangeRate ? formatCurrency(Math.round(profitLossKrw)) : formatCurrency(profitLoss)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom row: secondary info */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="tabular-nums">
-                        수량 {stock.quantity.toLocaleString()} · 평균 {isUsd ? formatUsdPrice(stock.avg_price) : formatCurrency(stock.avg_price)} ·
-                        <span className={cn("ml-1", profitRate >= 0 ? "text-green-600" : "text-red-600")}>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-semibold tabular-nums text-sm">
+                        {isUsd && exchangeRate ? formatCurrency(evalAmountKrw) : formatCurrency(evalAmount)}
+                      </span>
+                      <div className="flex items-center gap-1.5 text-xs tabular-nums">
+                        <span className={profitRate >= 0 ? "text-red-500" : "text-blue-500"}>
                           {profitRate >= 0 ? "+" : ""}{formatPercent(profitRate)}
                         </span>
-                      </div>
-                      <div className={getPriceFreshnessClass(stock.price_updated_at)}>
-                        {formatPriceTimestamp(stock.price_updated_at)}
+                        <span className="text-muted-foreground/40">|</span>
+                        <span className={profitLoss >= 0 ? "text-red-500" : "text-blue-500"}>
+                           {profitLoss >= 0 ? "+" : ""}{isUsd && exchangeRate ? formatCurrency(Math.round(profitLossKrw)) : formatCurrency(profitLoss)}
+                        </span>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
+                
+                {!isEditing && (
+                  <div className="mt-3 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                     {/* Hidden edit actions on mobile list to act like native app tap-to-view, but keeping long-press or swipe actions in mind for future. For now, rely on tap-to-view sheet for details, maybe put edit there? Or just keep simple tap. */}
+                  </div>
+                )}
+                
+                {/* Swipe-like actions could go here, but for now we put a tiny more menu or just rely on the Detail Sheet to have edit options? 
+                    Let's add a long-press or just a small 'edit' button if needed, but 'Toss' usually hides complex actions.
+                    For this MVP, we will stick to the row tap opening details.
+                    However, we need a way to Delete/Edit. Let's add that to the detail sheet or a small trigger.
+                 */}
+                 {!isEditing && (
+                    <div className="flex justify-end mt-1.5 md:hidden">
+                       <button 
+                         className="text-xs text-muted-foreground px-2 py-1 rounded-md hover:bg-muted"
+                         onClick={(e) => {
+                             e.stopPropagation();
+                             startEdit(stock);
+                         }}
+                       >
+                         수정
+                       </button>
+                       <button 
+                         className="text-xs text-red-500 px-2 py-1 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30"
+                         onClick={(e) => {
+                             e.stopPropagation();
+                             onDelete(stock.id);
+                         }}
+                       >
+                         삭제
+                       </button>
+                    </div>
+                 )}
               </div>
             </m.div>
           );

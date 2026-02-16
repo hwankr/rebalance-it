@@ -59,8 +59,8 @@ export default function ProgressPage() {
   if (isLoading) {
     return (
       <PageTransition>
-        <div className="space-y-6">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+        <div className="space-y-3 md:space-y-4">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱 진행
           </h1>
           <div className="space-y-3">
@@ -75,11 +75,11 @@ export default function ProgressPage() {
   if (!session) {
     return (
       <PageTransition>
-        <div className="space-y-6">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+        <div className="space-y-3 md:space-y-4">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱 진행
           </h1>
-          <Card className="flex flex-col items-center justify-center gap-4 p-12">
+          <Card className="flex flex-col items-center justify-center gap-3 p-8">
             <p className="text-muted-foreground text-lg">
               세션을 찾을 수 없습니다.
             </p>
@@ -141,7 +141,7 @@ export default function ProgressPage() {
 
   return (
     <PageTransition>
-      <div className="space-y-6">
+      <div className="space-y-3 md:space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -149,7 +149,7 @@ export default function ProgressPage() {
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
                 리밸런싱 진행
               </h1>
               {isInProgress && (

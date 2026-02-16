@@ -21,7 +21,7 @@ export function BottomNav() {
   const { activeSession } = useProgressiveRebalance(portfolioId);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-border/50 bg-background/80 backdrop-blur-md md:hidden safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t bg-card md:hidden safe-area-pb">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href));
         const showBadge = tab.href === "/rebalance" && !!activeSession;
@@ -35,19 +35,12 @@ export function BottomNav() {
             )}
           >
             <div className="relative">
-              <tab.icon className={cn("size-5 transition-transform", isActive && "scale-110")} />
+              <tab.icon className="size-5" />
               {showBadge && (
                 <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
               )}
             </div>
-            <span className="text-[11px] font-medium">{tab.label}</span>
-            {/* CSS-only active indicator - no layoutId needed */}
-            <span
-              className={cn(
-                "absolute bottom-1 h-0.5 rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] transition-all duration-300",
-                isActive ? "w-8 opacity-100" : "w-0 opacity-0"
-              )}
-            />
+            <span className={cn("text-[11px]", isActive ? "font-semibold" : "font-medium")}>{tab.label}</span>
           </Link>
         );
       })}

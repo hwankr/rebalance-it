@@ -85,41 +85,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4 overflow-hidden bg-mesh">
-      {/* Animated floating orbs */}
-      <div
-        className="orb w-72 h-72 bg-[var(--gradient-start)] opacity-30 top-[10%] left-[15%]"
-      />
-      <div
-        className="orb w-96 h-96 bg-[var(--gradient-end)] opacity-20 top-[50%] right-[10%]"
-        style={{ animationDelay: "2s" }}
-      />
-      <div
-        className="orb w-64 h-64 opacity-25 bottom-[10%] left-[40%]"
-        style={{
-          animationDelay: "4s",
-          background: "oklch(0.60 0.20 300)",
-        }}
-      />
-
-      {/* Dot grid overlay */}
-      <div className="absolute inset-0 bg-dot-grid opacity-30" />
-
-      {/* Glass auth card */}
+    <div className="relative flex min-h-screen items-center justify-center px-4 overflow-hidden">
+      {/* Clean auth card */}
       <m.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative z-10 w-full max-w-lg"
       >
-        <Card className="glass-card">
+        <Card className="border shadow-sm">
           <CardHeader className="text-center space-y-2">
             <m.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <CardTitle className="text-4xl font-bold text-gradient">
+              <CardTitle className="text-4xl font-bold text-foreground">
                 Rebalance-it
               </CardTitle>
             </m.div>
@@ -132,8 +113,8 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <m.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.3 }}
                 className="flex flex-col gap-2"
               >
@@ -149,8 +130,8 @@ export default function LoginPage() {
                 />
               </m.div>
               <m.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.4 }}
                 className="flex flex-col gap-2"
               >
@@ -188,8 +169,8 @@ export default function LoginPage() {
               )}
 
               <m.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
               >
                 <Button

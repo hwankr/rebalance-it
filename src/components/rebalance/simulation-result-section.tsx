@@ -31,7 +31,7 @@ export function SimulationResultSection({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="space-y-3 md:space-y-4"
     >
       {/* Drift Chart */}
       <Card>

@@ -151,8 +151,8 @@ export default function PortfolioPage() {
   if (isAllMode ? isConsolidatedLoading : isLoading) {
     return (
       <PageTransition>
-        <div className="space-y-6 pb-32 md:pb-0">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+        <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
+          <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
             내 포트폴리오
           </h1>
           <div className="space-y-3">
@@ -168,16 +168,16 @@ export default function PortfolioPage() {
   if (!isAccountsLoading && accounts.length === 0) {
     return (
       <PageTransition>
-        <div className="space-y-6 pb-32 md:pb-0">
+        <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+            <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
               내 포트폴리오
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               포트폴리오를 시작하려면 계좌를 추가해주세요.
             </p>
           </div>
-          <Card className="flex flex-col items-center justify-center gap-4 p-12">
+          <Card className="flex flex-col items-center justify-center gap-3 p-8">
             <p className="text-muted-foreground text-lg">
               아직 계좌가 없습니다.
             </p>
@@ -200,12 +200,12 @@ export default function PortfolioPage() {
 
     return (
       <PageTransition>
-        <div className="space-y-6 pb-32 md:pb-0">
+        <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+            <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
               전체 포트폴리오
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               모든 계좌의 자산을 통합하여 표시합니다.
             </p>
           </div>
@@ -219,7 +219,7 @@ export default function PortfolioPage() {
             isLoading={false}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-1">
               <CardHeader>
                 <CardTitle>자산 배분</CardTitle>
@@ -299,19 +299,19 @@ export default function PortfolioPage() {
   if (stocks.length === 0) {
     return (
       <PageTransition>
-        <div className="space-y-6 pb-32 md:pb-0">
+        <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+            <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
               내 포트폴리오
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               보유 자산과 현재 비중을 확인하고 관리합니다.
             </p>
           </div>
 
           <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-muted-foreground mb-6">
+            <CardContent className="pt-4 text-center">
+              <p className="text-muted-foreground mb-4">
                 포트폴리오에 종목을 추가해주세요.
               </p>
               <PortfolioEditSection
@@ -337,29 +337,29 @@ export default function PortfolioPage() {
 
   return (
     <PageTransition>
-      <div className="space-y-6 pb-32 md:pb-0">
+      <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-1">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+            <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
               내 포트폴리오
             </h1>
-            <p className="text-muted-foreground">
-              보유 자산과 현재 비중을 확인하고 관리합니다.
-              {dataUpdatedAt > 0 && (
-                <span className="ml-2 text-xs">
-                  마지막 갱신: {formatUpdatedAt(dataUpdatedAt)}
-                </span>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {dataUpdatedAt > 0 ? (
+                <span>마지막 갱신: {formatUpdatedAt(dataUpdatedAt)}</span>
+              ) : (
+                <span>보유 자산을 관리하세요</span>
               )}
             </p>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={() => refetch()}
             disabled={isFetching}
+            className="rounded-full hover:bg-muted"
           >
-            <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            <RefreshCw className={isFetching ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
           </Button>
         </div>
 
@@ -373,46 +373,46 @@ export default function PortfolioPage() {
           isLoading={isLoading}
         />
 
-        {/* Allocation Chart + Stock Table Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>자산 배분</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AllocationChart
-                stocks={balance?.stocks ?? []}
-                cash={cash}
-                totalValue={totalValue}
-                isLoading={isLoading}
-              />
-            </CardContent>
-          </Card>
+        {/* Assets & Allocation Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Main Stock List Area */}
+          <div className="lg:col-span-2 order-2 lg:order-1">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <h3 className="text-base font-semibold">보유 종목</h3>
+            </div>
+            
+            <StockTable
+              stocks={stocks}
+              onUpdate={updateStock}
+              onDelete={handleDeleteStock}
+              onRefresh={isPro ? handleRefreshPrices : undefined}
+              isRefreshing={isRefreshing}
+              exchangeRate={exchangeRate}
+              totalPortfolioValue={totalValue}
+            />
+          </div>
 
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>보유 종목</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <StockTable
-                stocks={stocks}
-                onUpdate={updateStock}
-                onDelete={handleDeleteStock}
-                onRefresh={isPro ? handleRefreshPrices : undefined}
-                isRefreshing={isRefreshing}
-                exchangeRate={exchangeRate}
-                totalPortfolioValue={totalValue}
-              />
-            </CardContent>
-          </Card>
+          {/* Side Panel: Allocation Chart */}
+          <div className="lg:col-span-1 order-1 lg:order-2 mb-4 lg:mb-0">
+             <div className="sticky top-20">
+              <h3 className="text-base font-semibold mb-2 px-1">자산 배분</h3>
+              <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
+                <AllocationChart
+                  stocks={balance?.stocks ?? []}
+                  cash={cash}
+                  totalValue={totalValue}
+                  isLoading={isLoading}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 현재 vs 목표 비중 + 프리셋 */}
         {hasTargets && (
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">현재 vs 목표 비중</CardTitle>
+          <div className="space-y-2">
+             <div className="flex items-center justify-between px-1">
+                <h3 className="text-base font-semibold">현재 vs 목표 비중</h3>
                 <div className="flex items-center gap-2">
                   {activePreset ? (
                     <Badge variant="secondary" className="text-xs">
@@ -443,32 +443,31 @@ export default function PortfolioPage() {
                   </Button>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
+
               {/* Desktop table */}
-              <div className="hidden md:block">
+              <div className="hidden md:block border rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-muted-foreground text-xs border-b">
-                      <th className="text-left py-2 font-medium">종목</th>
-                      <th className="text-right py-2 font-medium">현재 비중</th>
-                      <th className="text-right py-2 font-medium">목표 비중</th>
-                      <th className="text-right py-2 font-medium">차이</th>
+                  <thead className="bg-muted/50">
+                    <tr className="text-muted-foreground text-xs border-b border-border/50">
+                      <th className="text-left py-3 px-4 font-medium">종목</th>
+                      <th className="text-right py-3 px-4 font-medium">현재 비중</th>
+                      <th className="text-right py-3 px-4 font-medium">목표 비중</th>
+                      <th className="text-right py-3 px-4 font-medium">차이</th>
                     </tr>
                   </thead>
                   <tbody>
                     {comparisonData
                       .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
                       .map((d) => (
-                        <tr key={d.stock_code} className="border-b last:border-0">
-                          <td className="py-2">
+                        <tr key={d.stock_code} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                          <td className="py-3 px-4">
                             <div className="font-medium">{d.stock_name}</div>
                             <div className="text-xs text-muted-foreground">{d.stock_code}</div>
                           </td>
-                          <td className="text-right tabular-nums">{d.currentPct.toFixed(1)}%</td>
-                          <td className="text-right tabular-nums">{d.targetPct.toFixed(1)}%</td>
+                          <td className="text-right px-4 tabular-nums">{d.currentPct.toFixed(1)}%</td>
+                          <td className="text-right px-4 tabular-nums">{d.targetPct.toFixed(1)}%</td>
                           <td className={cn(
-                            "text-right tabular-nums font-medium",
+                            "text-right px-4 tabular-nums font-medium",
                             d.diff > 0.5 && "text-blue-600 dark:text-blue-400",
                             d.diff < -0.5 && "text-red-600 dark:text-red-400",
                           )}>
@@ -477,12 +476,12 @@ export default function PortfolioPage() {
                         </tr>
                       ))}
                     {/* 현금 행 */}
-                    <tr className="border-t">
-                      <td className="py-2 font-medium text-muted-foreground">현금</td>
-                      <td className="text-right tabular-nums">{cashCurrentPct.toFixed(1)}%</td>
-                      <td className="text-right tabular-nums">{cashTargetPct.toFixed(1)}%</td>
+                    <tr className="bg-muted/20">
+                      <td className="py-3 px-4 font-medium text-muted-foreground">현금</td>
+                      <td className="text-right px-4 tabular-nums">{cashCurrentPct.toFixed(1)}%</td>
+                      <td className="text-right px-4 tabular-nums">{cashTargetPct.toFixed(1)}%</td>
                       <td className={cn(
-                        "text-right tabular-nums font-medium",
+                        "text-right px-4 tabular-nums font-medium",
                         cashDiff > 0.5 && "text-blue-600 dark:text-blue-400",
                         cashDiff < -0.5 && "text-red-600 dark:text-red-400",
                       )}>
@@ -492,13 +491,14 @@ export default function PortfolioPage() {
                   </tbody>
                 </table>
               </div>
+
               {/* Mobile list */}
-              <div className="space-y-2 md:hidden">
+              <div className="space-y-0.5 md:hidden text-sm">
                 {comparisonData
                   .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
                   .map((d) => (
-                    <div key={d.stock_code} className="flex items-center justify-between py-1.5 border-b last:border-0">
-                      <div className="text-sm font-medium truncate flex-1">{d.stock_name}</div>
+                    <div key={d.stock_code} className="flex items-center justify-between py-2.5 px-2 border-b border-border/40 last:border-0">
+                      <div className="font-medium truncate flex-1 pr-2">{d.stock_name}</div>
                       <div className="flex items-center gap-3 text-xs tabular-nums">
                         <span>{d.currentPct.toFixed(1)}%</span>
                         <span className="text-muted-foreground">→</span>
@@ -513,8 +513,8 @@ export default function PortfolioPage() {
                       </div>
                     </div>
                   ))}
-                <div className="flex items-center justify-between py-1.5 border-t">
-                  <div className="text-sm font-medium text-muted-foreground">현금</div>
+                <div className="flex items-center justify-between py-2.5 px-2 bg-muted/20 rounded-lg mt-2">
+                  <div className="font-medium text-muted-foreground">현금</div>
                   <div className="flex items-center gap-3 text-xs tabular-nums">
                     <span>{cashCurrentPct.toFixed(1)}%</span>
                     <span className="text-muted-foreground">→</span>
@@ -526,11 +526,10 @@ export default function PortfolioPage() {
                     )}>
                       {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
                     </span>
-                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </div>
+           </div>
         )}
 
         {/* 프리셋 선택 (타겟 미설정 시) */}
@@ -583,7 +582,7 @@ export default function PortfolioPage() {
         />
 
         {/* Sticky Bottom CTA - Mobile Only */}
-        <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background/95 backdrop-blur-sm border-t border-border p-4 z-10">
+        <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background border-t border-border p-3 z-10">
           <Button asChild className="w-full" size="lg">
             <Link href="/rebalance">리밸런싱으로 이동</Link>
           </Button>

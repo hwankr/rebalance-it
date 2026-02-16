@@ -48,30 +48,16 @@ export default function Home() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 overflow-hidden bg-mesh">
-      {/* Animated floating orbs */}
-      <div className="orb w-72 h-72 bg-[var(--gradient-start)] opacity-30 top-[10%] left-[15%]" />
-      <div
-        className="orb w-96 h-96 bg-[var(--gradient-end)] opacity-20 top-[50%] right-[10%]"
-        style={{ animationDelay: "2s" }}
-      />
-      <div
-        className="orb w-64 h-64 opacity-25 bottom-[10%] left-[40%]"
-        style={{ animationDelay: "4s", background: "oklch(0.60 0.20 300)" }}
-      />
-
-      {/* Dot grid overlay */}
-      <div className="absolute inset-0 bg-dot-grid opacity-30" />
-
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 overflow-hidden bg-muted/30">
       <div className="relative z-10 w-full max-w-2xl space-y-8">
         {/* Hero */}
         <m.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center space-y-4"
         >
-          <h1 className="text-5xl md:text-6xl font-bold text-gradient">
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground">
             Rebalance-it
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground">
@@ -81,8 +67,8 @@ export default function Home() {
 
         {/* CTA Buttons */}
         <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-3"
         >
@@ -118,28 +104,29 @@ export default function Home() {
 
         {/* Feature Highlights */}
         <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl text-left"
         >
-          {features.map((feature, i) => (
-            <m.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 + i * 0.1 }}
-              className="glass-card rounded-xl p-4 space-y-2"
-            >
-              <div className="flex items-center gap-2">
-                <feature.icon className="size-5 text-primary" />
-                <span className="font-semibold">{feature.title}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {feature.description}
-              </p>
-            </m.div>
-          ))}
+          <div className="p-6 bg-muted/30 rounded-2xl hover:bg-muted/50 transition-colors">
+            <h3 className="font-semibold mb-2 text-lg">간편한 자산 관리</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              복잡한 엑셀 없이, 가지고 있는 계좌와 종목을 한눈에 파악하세요.
+            </p>
+          </div>
+          <div className="p-6 bg-muted/30 rounded-2xl hover:bg-muted/50 transition-colors">
+            <h3 className="font-semibold mb-2 text-lg">목표 비중 리밸런싱</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              원하는 비중을 설정하면, 얼마나 사고 팔아야 할지 자동으로 계산해드립니다.
+            </p>
+          </div>
+          <div className="p-6 bg-muted/30 rounded-2xl hover:bg-muted/50 transition-colors">
+            <h3 className="font-semibold mb-2 text-lg">프라이버시 중심</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              로그인 없이 게스트 모드로 즉시 시작할 수 있습니다. 데이터는 안전하게 보호됩니다.
+            </p>
+          </div>
         </m.div>
       </div>
     </div>

@@ -102,11 +102,11 @@ export default function GuidePage() {
   if (!data) {
     return (
       <PageTransition>
-        <div className="space-y-6">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+        <div className="space-y-3 md:space-y-4">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱 가이드
           </h1>
-          <Card className="flex flex-col items-center justify-center gap-4 p-12">
+          <Card className="flex flex-col items-center justify-center gap-3 p-8">
             <p className="text-muted-foreground text-lg">
               시뮬레이션 결과가 없습니다.
             </p>
@@ -121,14 +121,14 @@ export default function GuidePage() {
 
   return (
     <PageTransition>
-      <div className="space-y-6">
+      <div className="space-y-3 md:space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="size-4" />
           </Button>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               리밸런싱 가이드
             </h1>
             <p className="text-muted-foreground">
@@ -248,7 +248,7 @@ export default function GuidePage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.2, delay: i * 0.05 }}
                     >
-                      <div className="glass-card rounded-xl p-4">
+                      <div className="rounded-xl border bg-card p-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-semibold">{order.stock_name}</span>
                           <Badge className="bg-red-500/10 text-red-600">매도</Badge>
@@ -331,7 +331,7 @@ export default function GuidePage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.2, delay: i * 0.05 }}
                     >
-                      <div className="glass-card rounded-xl p-4">
+                      <div className="rounded-xl border bg-card p-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-semibold">{order.stock_name}</span>
                           <Badge className="bg-green-500/10 text-green-600">매수</Badge>

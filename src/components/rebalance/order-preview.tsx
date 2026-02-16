@@ -100,7 +100,7 @@ export function OrderPreview({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: i * 0.05 }}
           >
-            <div className="glass-card card-hover rounded-xl p-4">
+            <div className="rounded-xl border bg-card p-4">
               {/* Top row: stock name + side badge */}
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="font-semibold">{order.stock_name}</div>

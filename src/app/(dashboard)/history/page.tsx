@@ -90,10 +90,10 @@ export default function HistoryPage() {
 
   return (
     <PageTransition>
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gradient">리밸런싱 기록</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">리밸런싱 기록</h1>
           <p className="text-muted-foreground">
             리밸런싱 시뮬레이션 기록을 확인합니다.
           </p>
@@ -106,14 +106,14 @@ export default function HistoryPage() {
       </div>
 
       {history.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center gap-4 p-12">
+        <div className="flex flex-col items-center justify-center gap-3 p-8 bg-muted/30 rounded-lg">
           <p className="text-muted-foreground text-lg">
             아직 리밸런싱 기록이 없습니다.
           </p>
           <Button asChild>
             <Link href="/rebalance/simulate">시뮬레이션 시작하기</Link>
           </Button>
-        </Card>
+        </div>
       ) : (
         <>
           {/* Desktop table - hidden on mobile */}
@@ -197,7 +197,7 @@ export default function HistoryPage() {
           </div>
 
           {/* Mobile card list */}
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-2 md:hidden">
             {visibleHistory.map((exec, i) => {
               const statusInfo = STATUS_MAP[exec.status] ?? STATUS_MAP.completed;
               const isClickable = exec.status === "in_progress";
@@ -210,7 +210,7 @@ export default function HistoryPage() {
                 >
                   <div
                     className={cn(
-                      "glass-card card-hover rounded-xl p-4",
+                      "bg-card rounded-xl p-3 border border-border hover:bg-accent/50 transition-colors",
                       isClickable && "cursor-pointer ring-1 ring-blue-500/30"
                     )}
                     onClick={isClickable ? () => router.push("/rebalance") : undefined}
@@ -229,7 +229,7 @@ export default function HistoryPage() {
                     </div>
 
                     {/* Middle: metrics grid */}
-                    <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="grid grid-cols-3 gap-2 mb-2">
                       <div>
                         <div className="text-xs text-muted-foreground mb-0.5">거래건수</div>
                         <div className="font-medium tabular-nums text-sm">
@@ -251,7 +251,7 @@ export default function HistoryPage() {
                     </div>
 
                     {/* Bottom: financial values */}
-                    <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="grid grid-cols-3 gap-2 mb-2">
                       <div>
                         <div className="text-xs text-muted-foreground mb-0.5">매수</div>
                         <div className="font-medium tabular-nums text-xs">
