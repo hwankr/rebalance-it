@@ -47,14 +47,7 @@ export default function PortfolioPage() {
 
   const { isPro } = useSubscription();
   const { refreshPrices, isRefreshing } = useRefreshPrices(effectivePortfolioId ?? undefined);
-  const {
-    rate: exchangeRate,
-    apiRate,
-    updatedAt,
-    isManualRate,
-    setManualRate,
-    clearManualRate,
-  } = useExchangeRate();
+  const { rate: exchangeRate } = useExchangeRate();
   const {
     portfolio,
     stocks,
@@ -324,12 +317,6 @@ export default function PortfolioPage() {
               <PortfolioEditSection
                 portfolio={portfolio}
                 stocks={stocks}
-                exchangeRate={exchangeRate}
-                apiRate={apiRate}
-                updatedAt={updatedAt}
-                isManualRate={isManualRate}
-                onSetManualRate={setManualRate}
-                onClearManualRate={clearManualRate}
                 onSetCash={setCash}
                 onAddStock={addStock}
                 isAdding={isAdding}
@@ -576,12 +563,6 @@ export default function PortfolioPage() {
         <PortfolioEditSection
           portfolio={portfolio}
           stocks={stocks}
-          exchangeRate={exchangeRate}
-          apiRate={apiRate}
-          updatedAt={updatedAt}
-          isManualRate={isManualRate}
-          onSetManualRate={setManualRate}
-          onClearManualRate={clearManualRate}
           onSetCash={setCash}
           onAddStock={addStock}
           isAdding={isAdding}

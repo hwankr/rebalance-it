@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/supabase/auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import { AccountSelector } from "@/components/account/account-selector";
+import { ExchangeRateWidget } from "@/components/layout/exchange-rate-widget";
 
 export function Header() {
   const { isGuest } = useGuestMode();
@@ -19,6 +20,9 @@ export function Header() {
       <AccountSelector />
 
       <div className="flex-1" />
+
+      {/* Exchange rate widget */}
+      <ExchangeRateWidget />
 
       {/* Connection status / Guest indicator */}
       {isGuest ? (
