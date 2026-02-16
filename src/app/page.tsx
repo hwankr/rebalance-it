@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { m } from "framer-motion";
-import { BarChart3, Target, RefreshCw, Shield } from "lucide-react";
+import { BarChart3, Target, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,6 @@ const features = [
     icon: RefreshCw,
     title: "리밸런싱 시뮬레이션",
     description: "최적의 매수/매도 주문을 자동으로 계산합니다.",
-  },
-  {
-    icon: Shield,
-    title: "프리셋 저장",
-    description: "자주 사용하는 목표 비중을 프리셋으로 저장하세요.",
   },
 ];
 

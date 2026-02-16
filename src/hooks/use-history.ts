@@ -63,14 +63,13 @@ export function useHistory(portfolioId?: string | null) {
 
   const addMutation = useMutation({
     mutationFn: async (data: Omit<RebalanceExecution, "id" | "executed_at">) => {
-      const displayName = data.preset_name ?? data.profile_name ?? "직접 설정";
+      const displayName = data.profile_name ?? "직접 설정";
       const { error } = await client
         .from("executions")
         .insert({
           user_id: effectiveUserId,
           profile_id: null,
           profile_name: displayName,
-          preset_name: data.preset_name ?? null,
           executed_at: new Date().toISOString(),
           status: data.status,
           total_orders: data.total_orders,

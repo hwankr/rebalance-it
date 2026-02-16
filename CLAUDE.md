@@ -35,7 +35,6 @@ src/
 │   ├── (dashboard)/            # Dashboard (Sidebar + Header + BottomNav)
 │   │   ├── portfolio/          # Portfolio overview
 │   │   ├── manual-portfolio/    # Portfolio management (add/edit stocks)
-│   │   ├── presets/             # Rebalancing preset CRUD
 │   │   ├── rebalance/          # Simulation & guide
 │   │   │   ├── simulate/
 │   │   │   └── guide/
@@ -116,5 +115,4 @@ See `.env.example`:
 5. **Stock Search**: Autocomplete + live price refresh (KR/US stocks)
 6. **Subscription System**: PortOne payments, feature gating
 7. **Exchange Rate Management**: Manual setting + last refresh timestamp
-8. **Rebalancing Presets**: Save and load target allocation presets
 

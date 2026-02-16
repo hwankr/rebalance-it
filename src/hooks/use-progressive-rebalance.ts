@@ -15,7 +15,6 @@ import type { RebalanceResult } from "@/lib/rebalance/types";
 interface StartSessionParams {
   simulationResult: RebalanceResult;
   portfolioSnapshot: PortfolioSnapshot;
-  presetName?: string;
   stockCurrencies?: Map<string, string>; // stock_code -> "KRW" | "USD"
 }
 
@@ -80,7 +79,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
   const startMutation = useMutation({
     mutationFn: async (params: StartSessionParams): Promise<string> => {
       if (!portfolioId) throw new Error("계좌가 선택되지 않았습니다");
-      const { simulationResult, portfolioSnapshot, presetName, stockCurrencies } = params;
+      const { simulationResult, portfolioSnapshot, stockCurrencies } = params;
       const orders: ExecutionOrderResult[] = simulationResult.orders.map(
         (o) => ({
           ...o,
@@ -109,10 +108,6 @@ export function useProgressiveRebalance(portfolioId: string | null) {
         orders: JSON.parse(JSON.stringify(orders)),
         portfolio_snapshot: JSON.parse(JSON.stringify(portfolioSnapshot)),
       };
-      if (presetName) {
-        insertPayload.preset_name = presetName;
-      }
-
       const { data, error } = await client
         .from("executions")
         .insert(insertPayload)

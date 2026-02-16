@@ -1,5 +1,5 @@
 export * from "./types";
-export * from "./preset-types";
+export * from "./settings-types";
 export * from "./drift";
 export * from "./price-unit";
 export * from "./order-generator";

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
-import type { RebalanceSettings } from "@/lib/rebalance/preset-types";
+import type { RebalanceSettings } from "@/lib/rebalance/settings-types";
 
 const DEFAULT_SETTINGS: Omit<RebalanceSettings, "id"> = {
   strategy: "threshold",

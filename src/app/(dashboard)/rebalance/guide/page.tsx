@@ -75,7 +75,6 @@ export default function GuidePage() {
     addExecution({
       profile_id: "",
       profile_name: "시뮬레이션",
-      preset_name: "시뮬레이션",
       status: "completed",
       total_orders: data.orders.length,
       success_count: data.orders.length,
