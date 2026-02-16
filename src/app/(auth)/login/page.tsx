@@ -59,12 +59,20 @@ export default function LoginPage() {
         setIsSubmitting(false);
         return;
       }
-      exitGuestMode();
-      router.push("/portfolio");
+      try {
+        exitGuestMode();
+        router.refresh();
+        router.push("/portfolio");
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
       if (error) {
         setError(error.message);
