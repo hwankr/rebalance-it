@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const price = await fetchStockPrice(code, { currency, market });
-    return NextResponse.json({ price, currency });
+    const { price, marketTime, exchangeName } = await fetchStockPrice(code, { currency, market });
+    return NextResponse.json({ price, currency, marketTime, exchangeName });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "가격 조회 실패" },

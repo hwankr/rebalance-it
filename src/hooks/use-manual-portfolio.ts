@@ -44,6 +44,7 @@ export interface ManualStockInput {
   current_price: number;
   currency?: string;
   target_pct?: number;
+  price_updated_at?: string | null;
 }
 
 // --- 변환 로직 ---
@@ -227,6 +228,7 @@ export function useManualPortfolio(exchangeRate?: number) {
         current_price: input.current_price,
         currency: input.currency ?? "KRW",
         target_pct: input.target_pct ?? 0,
+        price_updated_at: input.price_updated_at ?? null,
       } as never);
       if (error) throw error;
     },

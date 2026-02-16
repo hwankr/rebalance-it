@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,6 +15,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { StockCombobox } from "@/components/stock-combobox";
 import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 
@@ -52,6 +57,10 @@ export function StockForm({
 }: StockFormProps) {
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
   const [currency, setCurrency] = useState("KRW");
+  const [priceMetadata, setPriceMetadata] = useState<{
+    marketTime: string;
+    exchangeName: string;
+  } | null>(null);
 
   const form = useForm<StockFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,6 +77,7 @@ export function StockForm({
 
   async function fetchCurrentPrice(code: string, currency: string, market?: string) {
     setIsFetchingPrice(true);
+    setPriceMetadata(null);
     try {
       const params = new URLSearchParams({ code, currency });
       if (market) params.set("market", market);
@@ -76,6 +86,12 @@ export function StockForm({
       const data = await res.json();
       if (typeof data.price === "number") {
         form.setValue("current_price", data.price, { shouldValidate: true });
+        if (data.marketTime && data.exchangeName) {
+          setPriceMetadata({
+            marketTime: data.marketTime,
+            exchangeName: data.exchangeName,
+          });
+        }
       }
     } catch {
       // silently fail - user can still enter manually
@@ -85,10 +101,15 @@ export function StockForm({
   }
 
   function handleSubmit(values: StockFormValues) {
-    onSubmit({ ...values, currency });
+    onSubmit({
+      ...values,
+      currency,
+      price_updated_at: priceMetadata?.marketTime,
+    });
     if (!defaultValues) {
       form.reset();
       setCurrency("KRW");
+      setPriceMetadata(null);
     }
   }
 
@@ -152,10 +173,40 @@ export function StockForm({
           name="current_price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>현재가</FormLabel>
+              <div className="flex items-center gap-1">
+                <FormLabel>현재가</FormLabel>
+                {priceMetadata && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="가격 출처 정보"
+                      >
+                        <Info className="size-3.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto px-3 py-2 text-xs" side="top" align="start">
+                      <p className="text-muted-foreground">
+                        Yahoo Finance · {priceMetadata.exchangeName}
+                        {priceMetadata.marketTime &&
+                          ` · ${new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }).format(new Date(priceMetadata.marketTime))} 기준`}
+                      </p>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
               <FormControl>
                 <div className="relative">
-                  <Input type="number" placeholder="65000" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="65000"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      setPriceMetadata(null);
+                    }}
+                  />
                   {isFetchingPrice && (
                     <Loader2 className="absolute right-2 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
                   )}

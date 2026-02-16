@@ -74,13 +74,13 @@ export async function POST() {
         const currency = (stock as { currency?: string }).currency ?? "KRW";
         const market = marketMap.get(stock.stock_code);
 
-        const price = await fetchStockPrice(stock.stock_code, { currency, market });
+        const result = await fetchStockPrice(stock.stock_code, { currency, market });
 
         const { error: updateError } = await supabase
           .from("manual_stocks")
           .update({
-            current_price: price,
-            price_updated_at: new Date().toISOString(),
+            current_price: result.price,
+            price_updated_at: result.marketTime ?? new Date().toISOString(),
           } as never)
           .eq("id", stock.id);
 
