@@ -1,15 +1,21 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { KiwoomChartResponse } from "@/lib/kiwoom/types";
+import type { ChartResponse } from "@/lib/rebalance/types";
 
-async function fetchStockChart(
+async function fetchChart(
   code: string,
-  period: string,
-  count: number
-): Promise<KiwoomChartResponse> {
+  period: "day" | "week" | "month",
+  count: number,
+  market?: string,
+): Promise<ChartResponse> {
+  const params = new URLSearchParams({
+    period,
+    count: String(count),
+    ...(market ? { market } : {}),
+  });
   const res = await fetch(
-    `/api/kiwoom/chart/${encodeURIComponent(code)}?period=${period}&count=${count}`
+    `/api/stocks/chart/${encodeURIComponent(code)}?${params}`,
   );
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -21,12 +27,13 @@ async function fetchStockChart(
 export function useStockChart(
   code: string | null,
   period: "day" | "week" | "month" = "day",
-  count: number = 60
+  count: number = 60,
+  market?: string,
 ) {
   return useQuery({
     queryKey: ["stock-chart", code, period, count],
-    queryFn: () => fetchStockChart(code!, period, count),
+    queryFn: () => fetchChart(code!, period, count, market),
     enabled: !!code,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 }

@@ -93,7 +93,7 @@ export function AccountManager({ open, onOpenChange }: AccountManagerProps) {
             {/* Create new account */}
             <div className="flex gap-2">
               <Input
-                placeholder="새 계좌 이름 (예: 키움증권)"
+                placeholder="새 계좌 이름 (예: 첫 번째 계좌)"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}

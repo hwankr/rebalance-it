@@ -8,7 +8,7 @@ import { useGuestMode } from "@/contexts/guest-mode-context";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 import { toBalanceResponse, type ManualStockRow } from "@/hooks/use-manual-portfolio";
 import { DEFAULT_EXCHANGE_RATE } from "@/lib/utils/format";
-import type { KiwoomBalanceResponse } from "@/lib/kiwoom/types";
+import type { BalanceResponse } from "@/lib/rebalance/types";
 
 interface PortfolioRow {
   id: string;
@@ -145,7 +145,7 @@ export function useConsolidatedPortfolio() {
       const totalProfitRate =
         totalCost > 0 ? (totalProfitLoss / totalCost) * 100 : 0;
 
-      const consolidatedBalance: KiwoomBalanceResponse = {
+      const consolidatedBalance: BalanceResponse = {
         cash: totalCash,
         total_value: totalEval + totalCash,
         total_profit_loss: totalProfitLoss,

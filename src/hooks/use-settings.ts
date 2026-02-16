@@ -8,11 +8,10 @@ import { useGuestMode } from "@/contexts/guest-mode-context";
 
 export interface AppSettings {
   account: string;
-  isConnected: boolean;
 }
 
 const SETTINGS_ROW_KEY = "app_settings";
-const DEFAULT_SETTINGS: AppSettings = { account: "", isConnected: false };
+const DEFAULT_SETTINGS: AppSettings = { account: "" };
 
 export function useSettings() {
   const client = useStorageClient();

@@ -43,3 +43,45 @@ export interface TargetAllocation {
   target_pct: number;
   is_cash?: boolean; // 현금 자산 여부
 }
+
+// --- 포트폴리오 데이터 모델 ---
+
+export interface Stock {
+  stock_code: string;
+  stock_name: string;
+  quantity: number;
+  avg_price: number;
+  current_price: number;
+  eval_amount: number;
+  profit_loss: number;
+  profit_rate: number;
+  currency?: string;
+  native_price?: number;
+  native_avg_price?: number;
+}
+
+export interface BalanceResponse {
+  cash: number;
+  total_value: number;
+  total_profit_loss: number;
+  total_profit_rate: number;
+  stocks: Stock[];
+}
+
+// --- 차트 데이터 ---
+
+export interface ChartData {
+  date: string; // YYYYMMDD
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface ChartResponse {
+  stock_code: string;
+  stock_name: string;
+  period: "day" | "week" | "month";
+  data: ChartData[];
+}

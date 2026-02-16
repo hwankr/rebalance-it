@@ -223,36 +223,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      stock_targets: {
-        Row: {
-          id: string;
-          user_id: string;
-          stock_code: string;
-          stock_name: string;
-          target_pct: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          stock_code: string;
-          stock_name: string;
-          target_pct?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          stock_code?: string;
-          stock_name?: string;
-          target_pct?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
       subscriptions: {
         Row: {
           id: string;

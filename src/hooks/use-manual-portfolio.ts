@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
-import type { KiwoomBalanceResponse, KiwoomStock } from "@/lib/kiwoom/types";
+import type { BalanceResponse, Stock } from "@/lib/rebalance/types";
 import { DEFAULT_EXCHANGE_RATE } from "@/lib/utils/format";
 
 // --- DB row types ---
@@ -52,8 +52,8 @@ export function toBalanceResponse(
   portfolio: ManualPortfolioRow,
   stocks: ManualStockRow[],
   exchangeRate: number = DEFAULT_EXCHANGE_RATE,
-): KiwoomBalanceResponse {
-  const kiwoomStocks: KiwoomStock[] = stocks.map((s) => {
+): BalanceResponse {
+  const convertedStocks: Stock[] = stocks.map((s) => {
     const isUsd = s.currency === "USD";
     const rate = isUsd ? exchangeRate : 1;
     const priceKrw = s.current_price * rate;
@@ -79,12 +79,12 @@ export function toBalanceResponse(
     };
   });
 
-  const total_eval = kiwoomStocks.reduce((sum, s) => sum + s.eval_amount, 0);
-  const total_cost = kiwoomStocks.reduce(
+  const total_eval = convertedStocks.reduce((sum, s) => sum + s.eval_amount, 0);
+  const total_cost = convertedStocks.reduce(
     (sum, s) => sum + s.avg_price * s.quantity,
     0,
   );
-  const total_profit_loss = kiwoomStocks.reduce(
+  const total_profit_loss = convertedStocks.reduce(
     (sum, s) => sum + s.profit_loss,
     0,
   );
@@ -96,7 +96,7 @@ export function toBalanceResponse(
     total_value: total_eval + Number(portfolio.cash),
     total_profit_loss,
     total_profit_rate,
-    stocks: kiwoomStocks,
+    stocks: convertedStocks,
   };
 }
 

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Wifi, WifiOff, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Trash2, CheckCircle2, XCircle } from "lucide-react";
 
 import { useSettings } from "@/hooks/use-settings";
 import { useAuth } from "@/hooks/use-auth";
@@ -57,7 +57,6 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
   const { isPro, subscription, isDevOverride, realPlan } = useSubscription();
-  const [checking, setChecking] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const queryClient = useQueryClient();
 
@@ -78,26 +77,6 @@ export default function SettingsPage() {
     resolver: zodResolver(accountSchema),
     values: { account: settings.account },
   });
-
-  async function handleCheckConnection() {
-    setChecking(true);
-    try {
-      const res = await fetch("/api/kiwoom/token", { method: "POST" });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        updateSettings({ isConnected: true });
-        toast.success("API 연결이 확인되었습니다.");
-      } else {
-        updateSettings({ isConnected: false });
-        toast.error(data.error || "API 연결에 실패했습니다.");
-      }
-    } catch {
-      updateSettings({ isConnected: false });
-      toast.error("API 연결에 실패했습니다.");
-    } finally {
-      setChecking(false);
-    }
-  }
 
   function onAccountSubmit(values: AccountFormValues) {
     updateSettings({ account: values.account });
@@ -144,41 +123,11 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">설정</h1>
         <p className="text-muted-foreground">
-          앱 설정 및 키움증권 API 연결을 관리합니다.
+          앱 설정을 관리합니다.
         </p>
       </div>
 
-      {/* 섹션 1: API 연결 상태 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            키움증권 API 연결
-            {settings.isConnected ? (
-              <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                <Wifi className="size-3" />
-                연결됨
-              </Badge>
-            ) : (
-              <Badge variant="destructive">
-                <WifiOff className="size-3" />
-                미연결
-              </Badge>
-            )}
-          </CardTitle>
-          <CardDescription>
-            키움 REST API 포털에서 발급받은 App Key와 Secret을 서버
-            환경변수(.env.local)에 설정해주세요.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={handleCheckConnection} disabled={checking}>
-            {checking && <Loader2 className="animate-spin" />}
-            연결 확인
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* 섹션 2: 계좌 설정 */}
+      {/* 섹션 1: 계좌 설정 */}
       <Card>
         <CardHeader>
           <CardTitle>계좌 설정</CardTitle>
@@ -202,7 +151,7 @@ export default function SettingsPage() {
                       <Input placeholder="00000000-00" {...field} />
                     </FormControl>
                     <FormDescription>
-                      키움증권 계좌번호를 입력해주세요.
+                      리밸런싱에 사용할 계좌번호를 입력해주세요.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -317,7 +266,7 @@ export default function SettingsPage() {
             <dt className="text-muted-foreground">버전</dt>
             <dd>0.1.0</dd>
             <dt className="text-muted-foreground">기술 스택</dt>
-            <dd>Next.js, TypeScript, 키움 REST API (읽기 전용)</dd>
+            <dd>Next.js, TypeScript, Supabase</dd>
           </dl>
 
           <div className="pt-2">

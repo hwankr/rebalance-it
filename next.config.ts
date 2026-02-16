@@ -40,18 +40,6 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // 키움 API 프록시 (CORS 우회 + IP 고정용)
-  async rewrites() {
-    const kiwoomProxy = process.env.KIWOOM_PROXY_URL;
-    if (!kiwoomProxy) return [];
-    return [
-      {
-        source: "/api/kiwoom-proxy/:path*",
-        destination: `${kiwoomProxy}/:path*`,
-      },
-    ];
-  },
-
   // 이미지 최적화
   images: {
     formats: ["image/avif", "image/webp"],

@@ -24,12 +24,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatEvalAmount, formatPercent, formatStockCode, formatStockPrice, formatAvgPrice } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
-import type { KiwoomStock } from "@/lib/kiwoom/types";
+import type { Stock } from "@/lib/rebalance/types";
 import { useStockChart } from "@/hooks/use-stock-chart";
 import { StockPriceChart } from "./stock-price-chart";
 
 interface HoldingsTableProps {
-  stocks: KiwoomStock[];
+  stocks: Stock[];
   isLoading: boolean;
   exchangeRate?: number;
 }
@@ -55,7 +55,7 @@ function StockChartSheet({
   open,
   onOpenChange,
 }: {
-  stock: KiwoomStock;
+  stock: Stock;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -116,7 +116,7 @@ function StockChartSheet({
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTableProps) {
-  const [selectedStock, setSelectedStock] = useState<KiwoomStock | null>(null);
+  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
 
   return (
     <>

@@ -1,6 +1,6 @@
 # Rebalance-it
 
-Portfolio rebalancing simulation & guide tool. Manual portfolio is the primary mode; Kiwoom Securities REST API is available as a read-only portfolio import feature (Pro only).
+Portfolio rebalancing simulation & guide tool. Manual portfolio is the primary mode.
 
 ## Tech Stack
 
@@ -38,12 +38,11 @@ src/
 │   │   ├── rebalance/          # Simulation & guide
 │   │   │   ├── simulate/
 │   │   │   └── guide/
-│   │   ├── settings/           # Settings (Kiwoom API keys, exchange rate, etc.)
+│   │   ├── settings/           # Settings (exchange rate, etc.)
 │   │   └── history/            # Rebalancing records
 │   ├── pricing/                # Pricing page
 │   └── api/
-│       ├── kiwoom/             # Kiwoom API proxy (balance, token, stock, chart — read-only)
-│       ├── stocks/             # Stock list & current price lookup
+│       ├── stocks/             # Stock list, current price, chart data (Yahoo Finance)
 │       ├── rebalance/          # Rebalancing calculate
 │       ├── portone/            # Payments (checkout, webhook, cancel)
 │       ├── subscription/       # Subscription management
@@ -51,17 +50,16 @@ src/
 ├── components/
 │   ├── ui/                     # shadcn base components
 │   ├── layout/                 # sidebar, header, nav, bottom-nav, page-transition
-│   ├── portfolio/              # allocation-chart, summary-cards, stock-price-chart
+│   ├── portfolio/              # allocation-chart, summary-cards, stock-price-chart, holdings-table
 │   ├── rebalance/              # drift-chart, order-preview
 │   ├── subscription/           # plan-gate, plan-badge, upgrade-prompt
-│   ├── manual-portfolio/       # stock-form
+│   ├── manual-portfolio/       # stock-form, stock-table
 │   ├── stock-combobox.tsx      # Stock search autocomplete
 │   └── providers.tsx           # QueryClient, ThemeProvider
 ├── hooks/
 │   ├── use-auth.ts             # Supabase auth
-│   ├── use-settings.ts         # User settings (account, connection status)
+│   ├── use-settings.ts         # User settings (account)
 │   ├── use-profiles.ts         # Rebalancing profiles
-│   ├── use-portfolio.ts        # Kiwoom portfolio (read-only import)
 │   ├── use-portfolio-data.ts   # Portfolio data (always manual mode)
 │   ├── use-manual-portfolio.ts # Manual portfolio management
 │   ├── use-rebalance.ts        # Rebalancing simulation
@@ -70,18 +68,17 @@ src/
 │   ├── use-subscription.ts     # Subscription state
 │   ├── use-stock-search.ts     # Stock search
 │   ├── use-stock-list.ts       # Stock list
-│   ├── use-stock-chart.ts      # Chart data
+│   ├── use-stock-chart.ts      # Chart data (Yahoo Finance)
 │   └── use-theme-colors.ts     # Theme colors
 ├── lib/
-│   ├── kiwoom/                 # Kiwoom REST API client — read-only (client, auth, types, constants, errors)
 │   ├── supabase/               # Supabase client (client, server, middleware, auth, types)
 │   ├── rebalance/              # Rebalancing engine (calculator, drift, order-generator, price-unit, helpers, types)
 │   ├── subscription/           # Subscription system (plans, guard)
-│   ├── stock-price.ts          # Stock price utility
+│   ├── stock-price.ts          # Stock price + chart utility (Yahoo Finance)
 │   └── utils/                  # Formatting utilities
 └── middleware.ts               # Supabase auth middleware
 
-supabase/migrations/            # DB schema (001~008)
+supabase/migrations/            # DB schema (001~016)
 ```
 
 ## Path Alias
@@ -101,8 +98,6 @@ supabase/migrations/            # DB schema (001~008)
 ## Environment Variables
 
 See `.env.example`:
-- `KIWOOM_APP_KEY`, `KIWOOM_APP_SECRET`, `KIWOOM_BASE_URL` — Kiwoom REST API
-- `KIWOOM_PROXY_URL` — Fixed-IP proxy (optional)
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase client
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase server only
 
@@ -111,8 +106,7 @@ See `.env.example`:
 1. **Manual Portfolio**: Enter stocks/quantities manually, set target weights
 2. **Rebalancing Simulation**: Drift calculation against target weights, order generation
 3. **Rebalancing Guide**: Step-by-step guide for manual trading (sell first, then buy)
-4. **Kiwoom API Import (Pro)**: Read-only portfolio import from Kiwoom Securities
+4. **Stock Price Chart**: Historical OHLCV chart via Yahoo Finance (KR/US stocks)
 5. **Stock Search**: Autocomplete + live price refresh (KR/US stocks)
 6. **Subscription System**: PortOne payments, feature gating
 7. **Exchange Rate Management**: Manual setting + last refresh timestamp
-

@@ -23,21 +23,6 @@ export async function GET() {
       required: true,
     },
     {
-      name: "KIWOOM_APP_KEY",
-      configured: !!process.env.KIWOOM_APP_KEY,
-      required: true,
-    },
-    {
-      name: "KIWOOM_APP_SECRET",
-      configured: !!process.env.KIWOOM_APP_SECRET,
-      required: true,
-    },
-    {
-      name: "KIWOOM_PROXY_URL",
-      configured: !!process.env.KIWOOM_PROXY_URL,
-      required: false,
-    },
-    {
       name: "SUPABASE_SERVICE_ROLE_KEY",
       configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       required: false,

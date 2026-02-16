@@ -30,6 +30,7 @@ import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 import { useStockChart } from "@/hooks/use-stock-chart";
 import { StockPriceChart } from "@/components/portfolio/stock-price-chart";
 
+
 interface StockRow {
   id: string;
   stock_code: string;

@@ -57,11 +57,10 @@ export function useRebalanceSettings() {
         .upsert(
           {
             user_id: effectiveUserId,
-            data_source: "manual",
             ...updates,
             updated_at: new Date().toISOString(),
           } as never,
-          { onConflict: "user_id,data_source" },
+          { onConflict: "user_id" },
         );
       if (error) throw error;
     },

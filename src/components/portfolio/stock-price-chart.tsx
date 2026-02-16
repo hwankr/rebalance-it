@@ -9,10 +9,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { KiwoomChartData } from "@/lib/kiwoom/types";
+import type { ChartData } from "@/lib/rebalance/types";
 
 interface StockPriceChartProps {
-  chartData: KiwoomChartData[];
+  chartData: ChartData[];
   stockName: string;
   isLoading?: boolean;
 }
@@ -36,7 +36,7 @@ function formatPrice(value: number): string {
 
 interface ChartTooltipProps {
   active?: boolean;
-  payload?: Array<{ payload: KiwoomChartData }>;
+  payload?: Array<{ payload: ChartData }>;
 }
 
 function ChartTooltip({ active, payload }: ChartTooltipProps) {

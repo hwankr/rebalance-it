@@ -60,6 +60,89 @@ export async function fetchStockPrice(
   return { price, marketTime, exchangeName };
 }
 
+/** Yahoo Finance 차트 데이터 (OHLCV) 조회 */
+export async function fetchStockChart(
+  stockCode: string,
+  options?: {
+    market?: string;
+    period?: "day" | "week" | "month";
+    count?: number;
+  },
+): Promise<{
+  stock_code: string;
+  stock_name: string;
+  period: "day" | "week" | "month";
+  data: Array<{
+    date: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>;
+}> {
+  const period = options?.period ?? "day";
+  const count = options?.count ?? 60;
+
+  // Yahoo Finance interval/range mapping
+  const intervalMap = { day: "1d", week: "1wk", month: "1mo" } as const;
+  const interval = intervalMap[period];
+  // Request enough range to cover requested count
+  const rangeMap = { day: "1y", week: "5y", month: "10y" } as const;
+  const range = rangeMap[period];
+
+  const ticker = toYahooTicker(stockCode, options?.market);
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Yahoo Finance chart API error: ${res.status} for ${ticker}`);
+  const json = await res.json();
+
+  const result = json?.chart?.result?.[0];
+  if (!result) throw new Error(`차트 데이터를 파싱할 수 없습니다: ${ticker}`);
+
+  const meta = result.meta;
+  const timestamps: number[] = result.timestamp ?? [];
+  const quote = result.indicators?.quote?.[0] ?? {};
+
+  const data = timestamps
+    .map((ts: number, i: number) => {
+      const open = quote.open?.[i];
+      const high = quote.high?.[i];
+      const low = quote.low?.[i];
+      const close = quote.close?.[i];
+      const volume = quote.volume?.[i];
+      if (open == null || close == null) return null;
+      const d = new Date(ts * 1000);
+      const date = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+      return {
+        date,
+        open: Math.round(open * 100) / 100,
+        high: Math.round((high ?? open) * 100) / 100,
+        low: Math.round((low ?? open) * 100) / 100,
+        close: Math.round(close * 100) / 100,
+        volume: volume ?? 0,
+      };
+    })
+    .filter(Boolean) as Array<{
+      date: string;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      volume: number;
+    }>;
+
+  // Trim to requested count (take latest N entries)
+  const trimmed = data.slice(-count);
+
+  return {
+    stock_code: stockCode,
+    stock_name: meta?.shortName ?? meta?.symbol ?? stockCode,
+    period,
+    data: trimmed,
+  };
+}
+
 /** Batch fetch stock prices for multiple stocks */
 export async function fetchStockPrices(
   stocks: Array<{ stock_code: string; currency?: string; market?: string }>,

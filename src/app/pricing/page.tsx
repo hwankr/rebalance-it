@@ -45,11 +45,6 @@ const FEATURES: FeatureRow[] = [
     pro: true,
   },
   {
-    name: "키움 포트폴리오 가져오기",
-    free: false,
-    pro: true,
-  },
-  {
     name: "고급 포트폴리오 분석",
     free: false,
     pro: true,
@@ -176,10 +171,6 @@ export default function PricingPage() {
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
                   실행 내역 <strong>전체</strong> 조회
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                  키움 포트폴리오 가져오기
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />

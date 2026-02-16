@@ -1,9 +1,8 @@
-import type { KiwoomStock } from "@/lib/kiwoom/types";
-import type { PortfolioItem, TargetAllocation } from "./types";
+import type { PortfolioItem, Stock, TargetAllocation } from "./types";
 
-/** KiwoomStock[] → PortfolioItem[] 변환 (현금 포함) */
+/** Stock[] → PortfolioItem[] 변환 (현금 포함) */
 export function toPortfolioItems(
-  stocks: KiwoomStock[],
+  stocks: Stock[],
   targets: TargetAllocation[],
   cashAmount: number
 ): PortfolioItem[] {
@@ -40,7 +39,7 @@ export function toPortfolioItems(
 
 /** 균등 배분 목표 생성 */
 export function createEqualTargets(
-  stocks: KiwoomStock[]
+  stocks: Stock[]
 ): TargetAllocation[] {
   const pct =
     stocks.length > 0
