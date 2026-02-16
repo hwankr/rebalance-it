@@ -7,6 +7,7 @@ ALTER TABLE executions ADD CONSTRAINT executions_status_check
   CHECK (status IN ('completed', 'partial', 'failed', 'in_progress', 'abandoned'));
 
 -- 2. UPDATE RLS 정책 추가 (기존에 누락됨)
+DROP POLICY IF EXISTS "Users can update own executions" ON executions;
 CREATE POLICY "Users can update own executions"
   ON executions FOR UPDATE USING (auth.uid() = user_id);
 

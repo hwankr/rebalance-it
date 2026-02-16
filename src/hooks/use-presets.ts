@@ -116,21 +116,21 @@ export function usePresets() {
 
   const addPreset = useCallback(
     (name: string, targets: PresetTarget[]) => {
-      addMutation.mutate({ name, targets });
+      return addMutation.mutateAsync({ name, targets });
     },
     [addMutation],
   );
 
   const updatePreset = useCallback(
     (id: string, updates: Partial<Pick<Preset, "name" | "targets">>) => {
-      updateMutation.mutate({ id, updates });
+      return updateMutation.mutateAsync({ id, updates });
     },
     [updateMutation],
   );
 
   const deletePreset = useCallback(
     (id: string) => {
-      deleteMutation.mutate(id);
+      return deleteMutation.mutateAsync(id);
     },
     [deleteMutation],
   );
@@ -150,5 +150,7 @@ export function usePresets() {
     deletePreset,
     getPreset,
     isAdding: addMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 }

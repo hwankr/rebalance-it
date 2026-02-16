@@ -24,10 +24,11 @@ import type { ManualStockRow } from "@/hooks/use-manual-portfolio";
 interface PresetFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (name: string, targets: PresetTarget[]) => void;
+  onSubmit: (name: string, targets: PresetTarget[]) => void | Promise<void>;
   isSubmitting?: boolean;
   portfolioStocks?: ManualStockRow[];
   isPortfolioLoading?: boolean;
+  portfolioName?: string;
   // Edit mode props (new)
   mode?: "create" | "edit";
   editPresetId?: string;
@@ -42,6 +43,7 @@ export function PresetFormDialog({
   isSubmitting = false,
   portfolioStocks,
   isPortfolioLoading = false,
+  portfolioName,
   mode = "create",
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   editPresetId,
@@ -120,8 +122,11 @@ export function PresetFormDialog({
       return;
     }
     setTargets((prev) => [...prev, ...newTargets]);
+    if (!name.trim() && portfolioName) {
+      setName(portfolioName);
+    }
     toast.success(`${newTargets.length}개 종목을 불러왔습니다.`);
-  }, [portfolioStocks, targets]);
+  }, [portfolioStocks, targets, name, portfolioName]);
 
   const handlePctChange = useCallback((stockCode: string, value: string) => {
     const num = parseFloat(value);
@@ -142,15 +147,19 @@ export function PresetFormDialog({
     );
   }, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isValid) return;
     const validTargets = targets.filter((t) => t.target_pct > 0);
     if (validTargets.length === 0) {
       toast.error("목표 비중이 0%보다 큰 종목이 필요합니다.");
       return;
     }
-    onSubmit(name.trim(), validTargets);
-    handleReset();
+    try {
+      await onSubmit(name.trim(), validTargets);
+      handleReset();
+    } catch {
+      // Error is handled by the parent (PresetManager shows toast.error)
+    }
   };
 
   return (

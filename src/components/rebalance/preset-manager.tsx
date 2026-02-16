@@ -30,6 +30,7 @@ interface PresetManagerProps {
   onOpenChange: (open: boolean) => void;
   onApplyPreset: (targets: PresetTarget[], presetId: string) => void;
   isApplying: boolean;
+  portfolioId: string | null;
 }
 
 export function PresetManager({
@@ -37,10 +38,11 @@ export function PresetManager({
   onOpenChange,
   onApplyPreset,
   isApplying,
+  portfolioId,
 }: PresetManagerProps) {
-  const { presets, isLoading, addPreset, updatePreset, deletePreset, isAdding } = usePresets();
+  const { presets, isLoading, addPreset, updatePreset, deletePreset, isAdding, isUpdating, isDeleting } = usePresets();
   const { isPro } = useSubscription();
-  const { stocks: portfolioStocks, isLoading: isPortfolioLoading } = useManualPortfolio();
+  const { stocks: portfolioStocks, portfolio, isLoading: isPortfolioLoading } = useManualPortfolio(portfolioId);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -53,17 +55,25 @@ export function PresetManager({
 
   const atLimit = !isPro && presets.length >= PLAN_LIMITS.free.maxPresets;
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return;
-    deletePreset(deleteTarget);
-    setDeleteTarget(null);
-    toast.success("프리셋이 삭제되었습니다.");
+    try {
+      await deletePreset(deleteTarget);
+      setDeleteTarget(null);
+      toast.success("프리셋이 삭제되었습니다.");
+    } catch (error) {
+      toast.error(`프리셋 삭제에 실패했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`);
+    }
   };
 
-  const handleCreate = (name: string, targets: PresetTarget[]) => {
-    addPreset(name, targets);
-    setCreateOpen(false);
-    toast.success("프리셋이 생성되었습니다.");
+  const handleCreate = async (name: string, targets: PresetTarget[]) => {
+    try {
+      await addPreset(name, targets);
+      setCreateOpen(false);
+      toast.success("프리셋이 생성되었습니다.");
+    } catch (error) {
+      toast.error(`프리셋 생성에 실패했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`);
+    }
   };
 
   const handleEdit = (id: string, name: string, targets: PresetTarget[]) => {
@@ -71,12 +81,16 @@ export function PresetManager({
     setEditOpen(true);
   };
 
-  const handleEditSubmit = (name: string, targets: PresetTarget[]) => {
+  const handleEditSubmit = async (name: string, targets: PresetTarget[]) => {
     if (!editingPreset) return;
-    updatePreset(editingPreset.id, { name, targets });
-    setEditOpen(false);
-    setEditingPreset(null);
-    toast.success("프리셋이 수정되었습니다.");
+    try {
+      await updatePreset(editingPreset.id, { name, targets });
+      setEditOpen(false);
+      setEditingPreset(null);
+      toast.success("프리셋이 수정되었습니다.");
+    } catch (error) {
+      toast.error(`프리셋 수정에 실패했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`);
+    }
   };
 
   const handleApply = (targets: PresetTarget[], presetId: string) => {
@@ -269,6 +283,7 @@ export function PresetManager({
         isSubmitting={isAdding}
         portfolioStocks={portfolioStocks}
         isPortfolioLoading={isPortfolioLoading}
+        portfolioName={portfolio?.name}
         mode="create"
       />
 
@@ -277,7 +292,7 @@ export function PresetManager({
         open={editOpen}
         onOpenChange={setEditOpen}
         onSubmit={handleEditSubmit}
-        isSubmitting={isAdding}
+        isSubmitting={isUpdating}
         portfolioStocks={portfolioStocks}
         isPortfolioLoading={isPortfolioLoading}
         mode="edit"
@@ -302,8 +317,8 @@ export function PresetManager({
             <DialogClose asChild>
               <Button variant="outline">취소</Button>
             </DialogClose>
-            <Button variant="destructive" onClick={handleDelete}>
-              삭제
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? "삭제 중..." : "삭제"}
             </Button>
           </DialogFooter>
         </DialogContent>
