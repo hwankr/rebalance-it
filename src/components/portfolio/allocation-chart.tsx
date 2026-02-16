@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -69,6 +69,7 @@ export function AllocationChart({
 }: AllocationChartProps) {
   const themeColors = useThemeColors();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const instanceId = useId();
 
   if (isLoading) {
     return <Skeleton />;
@@ -108,7 +109,7 @@ export function AllocationChart({
               {dataWithPercent.map((_, index) => (
                 <linearGradient
                   key={`grad-${index}`}
-                  id={`alloc-grad-${index}`}
+                  id={`alloc-grad-${instanceId}-${index}`}
                   x1="0"
                   y1="0"
                   x2="1"
@@ -143,7 +144,7 @@ export function AllocationChart({
               {dataWithPercent.map((_, index) => (
                 <Cell
                   key={index}
-                  fill={`url(#alloc-grad-${index})`}
+                  fill={`url(#alloc-grad-${instanceId}-${index})`}
                   style={{
                     filter:
                       activeIndex === index
@@ -159,18 +160,18 @@ export function AllocationChart({
         </ResponsiveContainer>
 
         {/* Center overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4">
           <span className="text-xs text-muted-foreground font-medium">
             총 평가액
           </span>
-          <span className="text-lg font-bold text-foreground tabular-nums tracking-tight mt-0.5">
+          <span className="text-base font-bold text-foreground tabular-nums tracking-tight mt-0.5 max-w-[100px] truncate">
             {formatCurrency(totalValue)}
           </span>
         </div>
       </div>
 
       {/* Custom Legend */}
-      <div className="space-y-1 px-0.5">
+      <div className="max-h-[320px] overflow-y-auto space-y-1 px-0.5">
         {dataWithPercent.map((item, index) => {
           const pct = (item.percent * 100).toFixed(1);
           const isActive = activeIndex === index;
