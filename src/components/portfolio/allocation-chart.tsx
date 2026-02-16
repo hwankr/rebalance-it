@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
+  type PieLabelRenderProps,
 } from "recharts";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 import { formatCurrency } from "@/lib/utils/format";
@@ -27,9 +28,57 @@ function extendColors(base: string[], count: number): string[] {
   return extended;
 }
 
+const RADIAN = Math.PI / 180;
+const MAX_NAME_LENGTH = 5;
+const MIN_PERCENT_FOR_LABEL = 0.05;
+const MAX_LABELED_SEGMENTS = 6;
+
+function truncateName(name: string): string {
+  if (name.length <= MAX_NAME_LENGTH) return name;
+  return name.slice(0, MAX_NAME_LENGTH) + "...";
+}
+
+function renderCustomLabel(
+  props: PieLabelRenderProps,
+  labelledIndices: Set<number>,
+) {
+  const cx = Number(props.cx ?? 0);
+  const cy = Number(props.cy ?? 0);
+  const midAngle = Number(props.midAngle ?? 0);
+  const outerRadius = Number(props.outerRadius ?? 0);
+  const percent = Number(props.percent ?? 0);
+  const name = String(props.name ?? "");
+  const index = Number(props.index ?? 0);
+
+  if (percent < MIN_PERCENT_FOR_LABEL || !labelledIndices.has(index)) {
+    return null;
+  }
+
+  const radius = outerRadius + 16;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const textAnchor = midAngle > 90 && midAngle < 270 ? "end" : "start";
+
+  const displayName = truncateName(name);
+  const displayPercent = `${(percent * 100).toFixed(1)}%`;
+
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor={textAnchor}
+      dominantBaseline="central"
+      fontSize={11}
+      className="fill-foreground"
+    >
+      {displayName} {displayPercent}
+    </text>
+  );
+}
+
 function Skeleton() {
   return (
-    <div className="flex items-center justify-center h-[260px]">
+    <div className="flex items-center justify-center h-[280px]">
       <div className="h-40 w-40 rounded-full skeleton-shimmer" />
     </div>
   );
@@ -68,28 +117,39 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
 
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-[260px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[280px] text-muted-foreground">
         데이터가 없습니다.
       </div>
     );
   }
 
+  // Determine which segments get labels (top N by value, above threshold)
+  const labelledIndices = new Set<number>();
+  if (data.length <= MAX_LABELED_SEGMENTS) {
+    data.forEach((_, i) => labelledIndices.add(i));
+  } else {
+    const sorted = data
+      .map((d, i) => ({ value: d.value, index: i }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, MAX_LABELED_SEGMENTS);
+    sorted.forEach((s) => labelledIndices.add(s.index));
+  }
+
   return (
-    <div className="relative">
-      <ResponsiveContainer width="100%" height={260}>
-        <PieChart>
+    <div className="relative" style={{ overflow: "visible" }}>
+      <ResponsiveContainer width="100%" height={280}>
+        <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={50}
-            outerRadius={85}
+            innerRadius={38}
+            outerRadius={70}
             dataKey="value"
-            label={({ name, percent }: { name?: string; percent?: number }) => {
-              const p = percent ?? 0;
-              return p >= 0.05 ? `${name ?? ""} ${(p * 100).toFixed(1)}%` : "";
-            }}
-            labelLine={true}
+            label={(props: PieLabelRenderProps) =>
+              renderCustomLabel(props, labelledIndices)
+            }
+            labelLine={{ strokeWidth: 1 }}
           >
             {data.map((_, index) => (
               <Cell key={index} fill={colors[index]} />
@@ -99,7 +159,7 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
           <Legend />
         </PieChart>
       </ResponsiveContainer>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 24 }}>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 40 }}>
         <div className="text-center">
           <p className="text-xs text-muted-foreground">총 평가액</p>
           <p className="text-sm font-bold text-foreground tabular-nums">{formatCurrency(totalValue)}</p>
