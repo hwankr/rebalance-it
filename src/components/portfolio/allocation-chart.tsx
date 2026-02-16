@@ -159,8 +159,12 @@ export function AllocationChart({
           </PieChart>
         </ResponsiveContainer>
 
-        {/* Center overlay - z-0 so tooltip renders above */}
-        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none px-4">
+        {/* Center overlay - hidden on hover to avoid tooltip overlap */}
+        <div
+          className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4 transition-opacity duration-200 ${
+            activeIndex !== null ? "opacity-0" : "opacity-100"
+          }`}
+        >
           <span className="text-xs text-muted-foreground font-medium">
             총 평가액
           </span>
