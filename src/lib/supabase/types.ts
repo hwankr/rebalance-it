@@ -125,7 +125,7 @@ export interface Database {
           id: string;
           user_id: string;
           cash: number;
-          active_preset_id: string | null;
+
           created_at: string;
           updated_at: string;
         };
@@ -133,7 +133,6 @@ export interface Database {
           id?: string;
           user_id: string;
           cash?: number;
-          active_preset_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -141,7 +140,6 @@ export interface Database {
           id?: string;
           user_id?: string;
           cash?: number;
-          active_preset_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -250,33 +248,6 @@ export interface Database {
           stock_code?: string;
           stock_name?: string;
           target_pct?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      presets: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          targets: Json;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          targets?: Json;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          targets?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -404,21 +375,7 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      apply_preset_to_targets: {
-        Args: {
-          p_user_id: string;
-          p_targets: Json;
-        };
-        Returns: undefined;
-      };
-      apply_preset_to_manual: {
-        Args: {
-          p_portfolio_id: string;
-          p_targets: Json;
-          p_preset_id?: string | null;
-        };
-        Returns: undefined;
-      };
+      [_ in never]: never;
     };
     Enums: {
       [_ in never]: never;

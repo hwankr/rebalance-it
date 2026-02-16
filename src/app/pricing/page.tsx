@@ -30,11 +30,6 @@ interface FeatureRow {
 
 const FEATURES: FeatureRow[] = [
   {
-    name: "리밸런싱 프리셋",
-    free: `최대 ${PLAN_LIMITS.free.maxPresets}개`,
-    pro: "무제한",
-  },
-  {
     name: "실행 내역 조회",
     free: `최근 ${PLAN_LIMITS.free.maxSimulationHistory}건`,
     pro: "전체",
@@ -128,10 +123,6 @@ export default function PricingPage() {
               <ul className="space-y-3 text-sm">
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-green-600 dark:text-green-400" />
-                  리밸런싱 프리셋 최대 {PLAN_LIMITS.free.maxPresets}개
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 shrink-0 text-green-600 dark:text-green-400" />
                   실행 내역 최근 {PLAN_LIMITS.free.maxSimulationHistory}건 조회
                 </li>
                 <li className="flex items-center gap-2">
@@ -182,10 +173,6 @@ export default function PricingPage() {
             </CardHeader>
             <CardContent className="flex-1">
               <ul className="space-y-3 text-sm">
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                  <strong>무제한</strong> 리밸런싱 프리셋
-                </li>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
                   실행 내역 <strong>전체</strong> 조회

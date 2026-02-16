@@ -15,7 +15,6 @@ export interface AccountSummary {
   name: string;
   display_order: number;
   cash: number;
-  active_preset_id: string | null;
   created_at: string;
 }
 

@@ -6,7 +6,6 @@ import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import type { KiwoomBalanceResponse, KiwoomStock } from "@/lib/kiwoom/types";
-import type { PresetTarget } from "@/lib/rebalance/preset-types";
 import { DEFAULT_EXCHANGE_RATE } from "@/lib/utils/format";
 
 // --- DB row types ---
@@ -17,7 +16,6 @@ interface ManualPortfolioRow {
   name: string;
   display_order: number;
   cash: number;
-  active_preset_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -247,26 +245,6 @@ export function useManualPortfolio(
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
-  // 프리셋 적용
-  const applyPresetMutation = useMutation({
-    mutationFn: async ({
-      presetTargets,
-      presetId,
-    }: {
-      presetTargets: PresetTarget[];
-      presetId?: string | null;
-    }) => {
-      if (!portfolioId) throw new Error("계좌가 선택되지 않았습니다");
-      const { error } = await client.rpc("apply_preset_to_manual", {
-        p_portfolio_id: portfolioId,
-        p_targets: JSON.parse(JSON.stringify(presetTargets)),
-        p_preset_id: presetId ?? null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
-  });
-
   const setCash = useCallback(
     (cash: number) => setCashMutation.mutate(cash),
     [setCashMutation],
@@ -303,27 +281,10 @@ export function useManualPortfolio(
     [updateBatchTargetsMutation],
   );
 
-  const applyPreset = useCallback(
-    (
-      presetTargets: PresetTarget[],
-      options?: {
-        presetId?: string | null;
-        onSuccess?: () => void;
-        onError?: (error: Error) => void;
-      },
-    ) =>
-      applyPresetMutation.mutate(
-        { presetTargets, presetId: options?.presetId },
-        { onSuccess: options?.onSuccess, onError: options?.onError },
-      ),
-    [applyPresetMutation],
-  );
-
   return {
     portfolio,
     stocks,
     balance,
-    activePresetId: portfolio?.active_preset_id ?? null,
     isLoading,
     isError,
     error,
@@ -333,12 +294,10 @@ export function useManualPortfolio(
     deleteStock,
     updateTargetPct,
     updateBatchTargets,
-    applyPreset,
     refetch,
     isFetching,
     dataUpdatedAt,
     isAdding: addStockMutation.isPending,
     isUpdating: updateStockMutation.isPending,
-    isApplying: applyPresetMutation.isPending,
   };
 }

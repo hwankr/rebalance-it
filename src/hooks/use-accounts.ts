@@ -37,7 +37,6 @@ export function useAccounts() {
           name: (row.name as string) ?? "내 계좌",
           display_order: Number(row.display_order ?? 0),
           cash: Number(row.cash ?? 0),
-          active_preset_id: (row.active_preset_id as string | null) ?? null,
           created_at: row.created_at as string,
         }),
       );

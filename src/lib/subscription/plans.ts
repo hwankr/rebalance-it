@@ -2,7 +2,6 @@ export type PlanTier = 'free' | 'pro';
 
 export const PLAN_LIMITS = {
   free: {
-    maxPresets: 3,
     maxSimulationHistory: 10,
     maxPortfolios: 1,
     allowKiwoomImport: false,
@@ -10,7 +9,6 @@ export const PLAN_LIMITS = {
     allowAdvancedAnalytics: false,
   },
   pro: {
-    maxPresets: Infinity,
     maxSimulationHistory: Infinity,
     maxPortfolios: 5,
     allowKiwoomImport: true,

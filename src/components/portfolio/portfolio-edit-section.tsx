@@ -38,7 +38,6 @@ interface ManualPortfolioRow {
   id: string;
   user_id: string;
   cash: number;
-  active_preset_id: string | null;
   created_at: string;
   updated_at: string;
 }

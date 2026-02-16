@@ -1,23 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { RefreshCw, FolderInput, Settings2 } from "lucide-react";
+import { useState } from "react";
+import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useRefreshPrices } from "@/hooks/use-refresh-prices";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
-import { usePresets } from "@/hooks/use-presets";
 import { SummaryCards } from "@/components/portfolio/summary-cards";
 import { AllocationChart } from "@/components/portfolio/allocation-chart";
 import { StockTable } from "@/components/manual-portfolio/stock-table";
 import { PortfolioEditSection } from "@/components/portfolio/portfolio-edit-section";
-import { PresetSelector } from "@/components/rebalance/preset-selector";
-import { PresetManager } from "@/components/rebalance/preset-manager";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/layout/page-transition";
 import { toast } from "sonner";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -57,28 +55,18 @@ export default function PortfolioPage() {
     addStock,
     updateStock,
     deleteStock,
-    activePresetId,
-    applyPreset,
-    isApplying,
     isAdding,
     dataUpdatedAt,
     refetch,
     isFetching,
+    updateBatchTargets,
   } = useManualPortfolio(effectivePortfolioId, exchangeRate);
-  const { getPreset, isLoading: isPresetsLoading } = usePresets();
   const {
     balance: consolidatedBalance,
     isLoading: isConsolidatedLoading,
   } = useConsolidatedPortfolio();
 
-  const [presetSelectorOpen, setPresetSelectorOpen] = useState(false);
-  const [presetManagerOpen, setPresetManagerOpen] = useState(false);
-
-  const activePreset = activePresetId ? getPreset(activePresetId) : null;
-  const portfolioStockCodes = useMemo(
-    () => new Set(stocks.map((s) => s.stock_code)),
-    [stocks],
-  );
+  const [isSavingTargets, setIsSavingTargets] = useState(false);
 
   function handleRefreshPrices() {
     refreshPrices(undefined, {
@@ -103,46 +91,24 @@ export default function PortfolioPage() {
   const totalProfitRate = balance?.total_profit_rate ?? 0;
   const cash = Number(portfolio?.cash ?? 0);
 
-  const hasTargets = stocks.some((s) => s.target_pct > 0);
-  const comparisonData = useMemo(() => {
-    if (!balance || !stocks.length) return [];
-    return stocks.map((stock) => {
-      const evalAmount =
-        stock.currency === "USD"
-          ? stock.current_price * (exchangeRate ?? 1) * stock.quantity
-          : stock.current_price * stock.quantity;
-      const currentPct = totalValue > 0 ? (evalAmount / totalValue) * 100 : 0;
-      return {
-        stock_name: stock.stock_name,
-        stock_code: stock.stock_code,
-        currentPct,
-        targetPct: stock.target_pct,
-        diff: stock.target_pct - currentPct,
-      };
-    });
-  }, [stocks, balance, exchangeRate, totalValue]);
-  const cashCurrentPct = totalValue > 0 ? (cash / totalValue) * 100 : 0;
-  const totalStockTargetPct = stocks.reduce((sum, s) => sum + s.target_pct, 0);
-  const cashTargetPct = Math.max(0, 100 - totalStockTargetPct);
-  const cashDiff = cashTargetPct - cashCurrentPct;
-
   function handleDeleteStock(id: string) {
     const stock = stocks.find((s) => s.id === id);
     deleteStock(id);
     toast.success(`${stock?.stock_name ?? "종목"}이 삭제되었습니다.`);
   }
 
-  function handleApplyPreset(
-    presetTargets: import("@/lib/rebalance/preset-types").PresetTarget[],
-    presetId: string,
-  ) {
-    applyPreset(presetTargets, {
-      presetId,
+  function handleSaveTargets(updates: { id: string; targetPct: number }[]) {
+    setIsSavingTargets(true);
+    updateBatchTargets(updates, {
       onSuccess: () => {
-        toast.success("프리셋이 적용되었습니다.");
-        setPresetSelectorOpen(false);
+        toast.success("목표 비중이 저장되었습니다.");
+        setIsSavingTargets(false);
       },
-      onError: (err) => toast.error(err.message),
+      onError: (error) => {
+        const msg = error instanceof Error ? error.message : "알 수 없는 오류";
+        toast.error(`목표 비중 저장에 실패했습니다: ${msg}`);
+        setIsSavingTargets(false);
+      },
     });
   }
 
@@ -221,9 +187,6 @@ export default function PortfolioPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle>자산 배분</CardTitle>
-              </CardHeader>
               <CardContent>
                 <AllocationChart
                   stocks={allStocks}
@@ -235,9 +198,6 @@ export default function PortfolioPage() {
             </Card>
 
             <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>전체 보유 종목</CardTitle>
-              </CardHeader>
               <CardContent>
                 {allStocks.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
@@ -376,7 +336,7 @@ export default function PortfolioPage() {
             <div className="flex items-center justify-between mb-2 px-1">
               <h3 className="text-base font-semibold">보유 종목</h3>
             </div>
-            
+
             <StockTable
               stocks={stocks}
               onUpdate={updateStock}
@@ -404,160 +364,15 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        {/* 현재 vs 목표 비중 + 프리셋 */}
-        {hasTargets && (
-          <div className="space-y-2">
-             <div className="flex items-center justify-between px-1">
-                <h3 className="text-base font-semibold">현재 vs 목표 비중</h3>
-                <div className="flex items-center gap-2">
-                  {activePreset ? (
-                    <Badge variant="secondary" className="text-xs">
-                      {activePreset.name}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">
-                      프리셋 없음
-                    </Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => setPresetSelectorOpen(true)}
-                  >
-                    <FolderInput className="size-3.5" />
-                    프리셋
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => setPresetManagerOpen(true)}
-                  >
-                    <Settings2 className="size-3.5" />
-                    관리
-                  </Button>
-                </div>
-              </div>
-
-              {/* Desktop table */}
-              <div className="hidden md:block border rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr className="text-muted-foreground text-xs border-b border-border/50">
-                      <th className="text-left py-3 px-4 font-medium">종목</th>
-                      <th className="text-right py-3 px-4 font-medium">현재 비중</th>
-                      <th className="text-right py-3 px-4 font-medium">목표 비중</th>
-                      <th className="text-right py-3 px-4 font-medium">차이</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {comparisonData
-                      .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
-                      .map((d) => (
-                        <tr key={d.stock_code} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
-                          <td className="py-3 px-4">
-                            <div className="font-medium">{d.stock_name}</div>
-                            <div className="text-xs text-muted-foreground">{d.stock_code}</div>
-                          </td>
-                          <td className="text-right px-4 tabular-nums">{d.currentPct.toFixed(1)}%</td>
-                          <td className="text-right px-4 tabular-nums">{d.targetPct.toFixed(1)}%</td>
-                          <td className={cn(
-                            "text-right px-4 tabular-nums font-medium",
-                            d.diff > 0.5 && "text-blue-600 dark:text-blue-400",
-                            d.diff < -0.5 && "text-red-600 dark:text-red-400",
-                          )}>
-                            {d.diff > 0 ? "+" : ""}{d.diff.toFixed(1)}%
-                          </td>
-                        </tr>
-                      ))}
-                    {/* 현금 행 */}
-                    <tr className="bg-muted/20">
-                      <td className="py-3 px-4 font-medium text-muted-foreground">현금</td>
-                      <td className="text-right px-4 tabular-nums">{cashCurrentPct.toFixed(1)}%</td>
-                      <td className="text-right px-4 tabular-nums">{cashTargetPct.toFixed(1)}%</td>
-                      <td className={cn(
-                        "text-right px-4 tabular-nums font-medium",
-                        cashDiff > 0.5 && "text-blue-600 dark:text-blue-400",
-                        cashDiff < -0.5 && "text-red-600 dark:text-red-400",
-                      )}>
-                        {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile list */}
-              <div className="space-y-0.5 md:hidden text-sm">
-                {comparisonData
-                  .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
-                  .map((d) => (
-                    <div key={d.stock_code} className="flex items-center justify-between py-2.5 px-2 border-b border-border/40 last:border-0">
-                      <div className="font-medium truncate flex-1 pr-2">{d.stock_name}</div>
-                      <div className="flex items-center gap-3 text-xs tabular-nums">
-                        <span>{d.currentPct.toFixed(1)}%</span>
-                        <span className="text-muted-foreground">→</span>
-                        <span>{d.targetPct.toFixed(1)}%</span>
-                        <span className={cn(
-                          "font-medium min-w-[3.5rem] text-right",
-                          d.diff > 0.5 && "text-blue-600 dark:text-blue-400",
-                          d.diff < -0.5 && "text-red-600 dark:text-red-400",
-                        )}>
-                          {d.diff > 0 ? "+" : ""}{d.diff.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                <div className="flex items-center justify-between py-2.5 px-2 bg-muted/20 rounded-lg mt-2">
-                  <div className="font-medium text-muted-foreground">현금</div>
-                  <div className="flex items-center gap-3 text-xs tabular-nums">
-                    <span>{cashCurrentPct.toFixed(1)}%</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span>{cashTargetPct.toFixed(1)}%</span>
-                    <span className={cn(
-                      "font-medium min-w-[3.5rem] text-right",
-                      cashDiff > 0.5 && "text-blue-600 dark:text-blue-400",
-                      cashDiff < -0.5 && "text-red-600 dark:text-red-400",
-                    )}>
-                      {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
-                    </span>
-                </div>
-              </div>
-              </div>
-           </div>
-        )}
-
-        {/* 프리셋 선택 (타겟 미설정 시) */}
-        {!hasTargets && stocks.length > 0 && (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-3 py-6">
-              <p className="text-sm text-muted-foreground">
-                프리셋을 적용하면 목표 비중과 현재 비중을 비교할 수 있습니다.
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => setPresetSelectorOpen(true)}
-                >
-                  <FolderInput className="size-4" />
-                  프리셋 적용
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => setPresetManagerOpen(true)}
-                >
-                  <Settings2 className="size-4" />
-                  프리셋 관리
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* 인라인 목표 비중 편집기 (TargetWeightEditor) */}
+        <TargetWeightEditor
+          mode="inline"
+          stocks={stocks}
+          cashAmount={cash}
+          exchangeRate={exchangeRate ?? 1}
+          onSave={handleSaveTargets}
+          isSaving={isSavingTargets}
+        />
 
         {/* Portfolio Edit Section (Collapsible) */}
         <PortfolioEditSection
@@ -586,21 +401,6 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* Preset Dialogs */}
-      <PresetSelector
-        open={presetSelectorOpen}
-        onOpenChange={setPresetSelectorOpen}
-        onApply={handleApplyPreset}
-        isApplying={isApplying}
-        portfolioStockCodes={portfolioStockCodes}
-      />
-      <PresetManager
-        open={presetManagerOpen}
-        onOpenChange={setPresetManagerOpen}
-        onApplyPreset={handleApplyPreset}
-        isApplying={isApplying}
-        portfolioId={effectivePortfolioId}
-      />
     </PageTransition>
   );
 }

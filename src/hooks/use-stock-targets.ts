@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
-import type { StockTarget, PresetTarget } from "@/lib/rebalance/preset-types";
+import type { StockTarget } from "@/lib/rebalance/preset-types";
 import type { TargetAllocation } from "@/lib/rebalance/types";
 
 export function useStockTargets() {
@@ -78,19 +78,6 @@ export function useStockTargets() {
     },
   });
 
-  const applyPresetMutation = useMutation({
-    mutationFn: async (presetTargets: PresetTarget[]) => {
-      const { error } = await client.rpc("apply_preset_to_targets", {
-        p_user_id: effectiveUserId,
-        p_targets: JSON.parse(JSON.stringify(presetTargets)),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
-    },
-  });
-
   const setTarget = useCallback(
     (stockCode: string, stockName: string, targetPct: number) => {
       setTargetMutation.mutate({ stockCode, stockName, targetPct });
@@ -103,13 +90,6 @@ export function useStockTargets() {
       removeTargetMutation.mutate(stockCode);
     },
     [removeTargetMutation],
-  );
-
-  const applyPreset = useCallback(
-    (presetTargets: PresetTarget[]) => {
-      applyPresetMutation.mutate(presetTargets);
-    },
-    [applyPresetMutation],
   );
 
   const getTargetsAsAllocations = useCallback((): TargetAllocation[] => {
@@ -127,8 +107,6 @@ export function useStockTargets() {
     isLoading,
     setTarget,
     removeTarget,
-    applyPreset,
     getTargetsAsAllocations,
-    isApplying: applyPresetMutation.isPending,
   };
 }

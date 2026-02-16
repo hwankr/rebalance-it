@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Pencil } from "lucide-react";
 import { m } from "framer-motion";
 import {
   Table,
@@ -31,6 +32,8 @@ interface TargetWeightEditorProps {
   exchangeRate: number;
   onSave: (updates: { id: string; targetPct: number }[]) => void;
   isSaving: boolean;
+  /** "always-edit": 항상 입력 모드 (기존 동작). "inline": 읽기전용 → 편집 토글. */
+  mode?: "always-edit" | "inline";
 }
 
 export function TargetWeightEditor({
@@ -39,11 +42,11 @@ export function TargetWeightEditor({
   exchangeRate,
   onSave,
   isSaving,
+  mode = "always-edit",
 }: TargetWeightEditorProps) {
-  // Only store user edits (overrides). Unedited stocks use prop values.
+  const [isEditing, setIsEditing] = useState(mode === "always-edit");
   const [edits, setEdits] = useState<Record<string, number>>({});
 
-  // Track which stocks have been modified
   const modifiedStocks = useMemo(() => {
     return new Set(
       stocks
@@ -52,37 +55,30 @@ export function TargetWeightEditor({
     );
   }, [stocks, edits]);
 
-  // Calculate evaluation amounts and percentages
   const stockData = useMemo(() => {
     return stocks.map((stock) => {
       const evalAmount =
         stock.currency === "USD"
           ? stock.current_price * exchangeRate * stock.quantity
           : stock.current_price * stock.quantity;
-
-      return {
-        ...stock,
-        evalAmount,
-      };
+      return { ...stock, evalAmount };
     });
   }, [stocks, exchangeRate]);
 
   const totalValue = useMemo(() => {
-    const stockTotal = stockData.reduce((sum, s) => sum + s.evalAmount, 0);
-    return stockTotal + cashAmount;
+    return stockData.reduce((sum, s) => sum + s.evalAmount, 0) + cashAmount;
   }, [stockData, cashAmount]);
 
   const stocksWithPcts = useMemo(() => {
     return stockData.map((stock) => ({
       ...stock,
-      currentPct: (stock.evalAmount / totalValue) * 100,
+      currentPct: totalValue > 0 ? (stock.evalAmount / totalValue) * 100 : 0,
       targetPct: edits[stock.id] ?? stock.target_pct ?? 0,
     }));
   }, [stockData, totalValue, edits]);
 
-  const cashCurrentPct = (cashAmount / totalValue) * 100;
+  const cashCurrentPct = totalValue > 0 ? (cashAmount / totalValue) * 100 : 0;
 
-  // Calculate cash target percentage (auto-calculated)
   const totalStockTargetPct = useMemo(() => {
     return stocks.reduce(
       (sum, s) => sum + (edits[s.id] ?? s.target_pct ?? 0),
@@ -90,10 +86,11 @@ export function TargetWeightEditor({
     );
   }, [stocks, edits]);
 
-  const cashTargetPct = 100 - totalStockTargetPct;
-
+  const cashTargetPct = Math.max(0, 100 - totalStockTargetPct);
+  const cashDiff = cashTargetPct - cashCurrentPct;
   const isValid = totalStockTargetPct <= 100;
   const hasChanges = modifiedStocks.size > 0;
+  const hasAnyTargets = stocks.some((s) => s.target_pct > 0);
 
   const handleTargetPctChange = (stockId: string, value: string) => {
     const numValue = parseFloat(value);
@@ -114,10 +111,219 @@ export function TargetWeightEditor({
     }));
     onSave(updates);
     setEdits({});
+    if (mode === "inline") setIsEditing(false);
   };
 
+  const handleCancel = () => {
+    setEdits({});
+    setIsEditing(false);
+  };
+
+  const handleStartEditing = () => {
+    setEdits({});
+    setIsEditing(true);
+  };
+
+  // ── Inline 모드: 타겟 미설정 시 빈 상태 프롬프트 ──
+  if (mode === "inline" && !isEditing && !hasAnyTargets) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-base font-semibold">목표 비중</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={handleStartEditing}
+          >
+            <Pencil className="size-3.5" />
+            비중 설정
+          </Button>
+        </div>
+        <Card className="border-dashed">
+          <div className="flex flex-col items-center gap-3 py-6 px-4">
+            <p className="text-sm text-muted-foreground text-center">
+              목표 비중을 설정하면 현재 포트폴리오와 비교하여 리밸런싱을 실행할 수 있습니다.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // ── Inline 모드: 읽기전용 뷰 ──
+  if (mode === "inline" && !isEditing) {
+    return (
+      <div className="space-y-2">
+        {/* Header */}
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-base font-semibold">현재 vs 목표 비중</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={handleStartEditing}
+          >
+            <Pencil className="size-3.5" />
+            편집
+          </Button>
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block border rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr className="text-muted-foreground text-xs border-b border-border/50">
+                <th className="text-left py-3 px-4 font-medium">종목</th>
+                <th className="text-right py-3 px-4 font-medium">현재 비중</th>
+                <th className="text-right py-3 px-4 font-medium">목표 비중</th>
+                <th className="text-right py-3 px-4 font-medium">차이</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stocksWithPcts
+                .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
+                .map((d) => {
+                  const diff = d.targetPct - d.currentPct;
+                  return (
+                    <tr
+                      key={d.id}
+                      className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                    >
+                      <td className="py-3 px-4">
+                        <div className="font-medium">{d.stock_name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {d.stock_code}
+                        </div>
+                      </td>
+                      <td className="text-right px-4 tabular-nums">
+                        {d.currentPct.toFixed(1)}%
+                      </td>
+                      <td className="text-right px-4 tabular-nums">
+                        {d.targetPct.toFixed(1)}%
+                      </td>
+                      <td
+                        className={cn(
+                          "text-right px-4 tabular-nums font-medium",
+                          diff > 0.5 && "text-blue-600 dark:text-blue-400",
+                          diff < -0.5 && "text-red-600 dark:text-red-400"
+                        )}
+                      >
+                        {diff > 0 ? "+" : ""}
+                        {diff.toFixed(1)}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              {/* 현금 행 */}
+              <tr className="bg-muted/20">
+                <td className="py-3 px-4 font-medium text-muted-foreground">
+                  현금
+                </td>
+                <td className="text-right px-4 tabular-nums">
+                  {cashCurrentPct.toFixed(1)}%
+                </td>
+                <td className="text-right px-4 tabular-nums">
+                  {cashTargetPct.toFixed(1)}%
+                </td>
+                <td
+                  className={cn(
+                    "text-right px-4 tabular-nums font-medium",
+                    cashDiff > 0.5 && "text-blue-600 dark:text-blue-400",
+                    cashDiff < -0.5 && "text-red-600 dark:text-red-400"
+                  )}
+                >
+                  {cashDiff > 0 ? "+" : ""}
+                  {cashDiff.toFixed(1)}%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile list */}
+        <div className="space-y-0.5 md:hidden text-sm">
+          {stocksWithPcts
+            .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
+            .map((d) => {
+              const diff = d.targetPct - d.currentPct;
+              return (
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between py-2.5 px-2 border-b border-border/40 last:border-0"
+                >
+                  <div className="font-medium truncate flex-1 pr-2">
+                    {d.stock_name}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs tabular-nums">
+                    <span>{d.currentPct.toFixed(1)}%</span>
+                    <span className="text-muted-foreground">&rarr;</span>
+                    <span>{d.targetPct.toFixed(1)}%</span>
+                    <span
+                      className={cn(
+                        "font-medium min-w-[3.5rem] text-right",
+                        diff > 0.5 && "text-blue-600 dark:text-blue-400",
+                        diff < -0.5 && "text-red-600 dark:text-red-400"
+                      )}
+                    >
+                      {diff > 0 ? "+" : ""}
+                      {diff.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          <div className="flex items-center justify-between py-2.5 px-2 bg-muted/20 rounded-lg mt-2">
+            <div className="font-medium text-muted-foreground">현금</div>
+            <div className="flex items-center gap-3 text-xs tabular-nums">
+              <span>{cashCurrentPct.toFixed(1)}%</span>
+              <span className="text-muted-foreground">&rarr;</span>
+              <span>{cashTargetPct.toFixed(1)}%</span>
+              <span
+                className={cn(
+                  "font-medium min-w-[3.5rem] text-right",
+                  cashDiff > 0.5 && "text-blue-600 dark:text-blue-400",
+                  cashDiff < -0.5 && "text-red-600 dark:text-red-400"
+                )}
+              >
+                {cashDiff > 0 ? "+" : ""}
+                {cashDiff.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 편집 모드 (always-edit 또는 inline 편집 중) ──
   return (
     <div className="space-y-4">
+      {/* Inline 모드 편집 헤더 */}
+      {mode === "inline" && (
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-base font-semibold">목표 비중 편집</h3>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={handleCancel}
+            >
+              취소
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={handleSave}
+              disabled={!hasChanges || !isValid || isSaving}
+            >
+              {isSaving ? "저장 중..." : "저장"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
         <Table>
@@ -205,12 +411,12 @@ export function TargetWeightEditor({
               <TableCell className="text-right">
                 <span
                   className={cn(
-                    cashTargetPct - cashCurrentPct > 0 && "text-blue-600",
-                    cashTargetPct - cashCurrentPct < 0 && "text-red-600"
+                    cashDiff > 0 && "text-blue-600",
+                    cashDiff < 0 && "text-red-600"
                   )}
                 >
-                  {cashTargetPct - cashCurrentPct > 0 ? "+" : ""}
-                  {(cashTargetPct - cashCurrentPct).toFixed(2)}%
+                  {cashDiff > 0 ? "+" : ""}
+                  {cashDiff.toFixed(2)}%
                 </span>
               </TableCell>
             </TableRow>
@@ -350,12 +556,12 @@ export function TargetWeightEditor({
             <div
               className={cn(
                 "font-medium",
-                cashTargetPct - cashCurrentPct > 0 && "text-blue-600",
-                cashTargetPct - cashCurrentPct < 0 && "text-red-600"
+                cashDiff > 0 && "text-blue-600",
+                cashDiff < 0 && "text-red-600"
               )}
             >
-              {cashTargetPct - cashCurrentPct > 0 ? "+" : ""}
-              {(cashTargetPct - cashCurrentPct).toFixed(2)}%
+              {cashDiff > 0 ? "+" : ""}
+              {cashDiff.toFixed(2)}%
             </div>
           </div>
         </Card>
@@ -376,28 +582,37 @@ export function TargetWeightEditor({
         </Card>
       </div>
 
-      {/* Validation & Save */}
-      <div className="flex flex-col gap-3">
-        {!isValid && (
-          <div className="text-sm text-destructive">
-            목표 비중 합계가 100%를 초과할 수 없습니다.
-          </div>
-        )}
+      {/* Validation & Save (always-edit 모드에서만) */}
+      {mode === "always-edit" && (
+        <div className="flex flex-col gap-3">
+          {!isValid && (
+            <div className="text-sm text-destructive">
+              목표 비중 합계가 100%를 초과할 수 없습니다.
+            </div>
+          )}
 
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {hasChanges
-              ? `${modifiedStocks.size}개 종목 수정됨`
-              : "변경 사항 없음"}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {hasChanges
+                ? `${modifiedStocks.size}개 종목 수정됨`
+                : "변경 사항 없음"}
+            </div>
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges || !isValid || isSaving}
+            >
+              {isSaving ? "저장 중..." : "목표 비중 저장"}
+            </Button>
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges || !isValid || isSaving}
-          >
-            {isSaving ? "저장 중..." : "목표 비중 저장"}
-          </Button>
         </div>
-      </div>
+      )}
+
+      {/* Inline 모드 유효성 에러 */}
+      {mode === "inline" && !isValid && (
+        <div className="text-sm text-destructive px-1">
+          목표 비중 합계가 100%를 초과할 수 없습니다.
+        </div>
+      )}
     </div>
   );
 }

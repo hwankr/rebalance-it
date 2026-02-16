@@ -18,7 +18,6 @@ export function usePortfolioData(portfolioId: string | null) {
   const {
     stocks: manualStocks,
     balance: manualBalance,
-    activePresetId,
     isLoading,
     isError,
     error,
@@ -64,6 +63,5 @@ export function usePortfolioData(portfolioId: string | null) {
     isMarketOpen: false,
     exchangeRate: rate,
     targets,
-    activePresetId,
   };
 }
