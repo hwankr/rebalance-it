@@ -54,7 +54,7 @@ function renderCustomLabel(
     return null;
   }
 
-  const radius = outerRadius + 14;
+  const radius = outerRadius + 22;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   const textAnchor = midAngle > 90 && midAngle < 270 ? "end" : "start";
@@ -68,7 +68,8 @@ function renderCustomLabel(
       y={y}
       textAnchor={textAnchor}
       dominantBaseline="central"
-      fontSize={11}
+      fontSize={12}
+      fontWeight={500}
       className="fill-foreground"
     >
       {displayName} {displayPercent}
