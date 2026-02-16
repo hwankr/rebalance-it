@@ -29,7 +29,7 @@ function extendColors(base: string[], count: number): string[] {
 }
 
 const RADIAN = Math.PI / 180;
-const MAX_NAME_LENGTH = 5;
+const MAX_NAME_LENGTH = 4;
 const MIN_PERCENT_FOR_LABEL = 0.05;
 const MAX_LABELED_SEGMENTS = 6;
 
@@ -54,7 +54,7 @@ function renderCustomLabel(
     return null;
   }
 
-  const radius = outerRadius + 16;
+  const radius = outerRadius + 14;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   const textAnchor = midAngle > 90 && midAngle < 270 ? "end" : "start";
@@ -78,7 +78,7 @@ function renderCustomLabel(
 
 function Skeleton() {
   return (
-    <div className="flex items-center justify-center h-[280px]">
+    <div className="flex items-center justify-center h-[300px]">
       <div className="h-40 w-40 rounded-full skeleton-shimmer" />
     </div>
   );
@@ -117,7 +117,7 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
 
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
         데이터가 없습니다.
       </div>
     );
@@ -137,14 +137,14 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
 
   return (
     <div className="relative" style={{ overflow: "visible" }}>
-      <ResponsiveContainer width="100%" height={280}>
-        <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={38}
-            outerRadius={70}
+            innerRadius={46}
+            outerRadius={80}
             dataKey="value"
             label={(props: PieLabelRenderProps) =>
               renderCustomLabel(props, labelledIndices)
@@ -159,7 +159,7 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
           <Legend />
         </PieChart>
       </ResponsiveContainer>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 40 }}>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 36 }}>
         <div className="text-center">
           <p className="text-xs text-muted-foreground">총 평가액</p>
           <p className="text-sm font-bold text-foreground tabular-nums">{formatCurrency(totalValue)}</p>
