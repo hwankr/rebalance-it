@@ -26,13 +26,13 @@ export function ProgressSummary({
   totalSellAmount,
 }: ProgressSummaryProps) {
   const total = orders.length;
-  const completed = orders.filter((o) => getExecutedQty(o) > 0).length;
+  const completed = orders.filter((o) => getExecutedQty(o) >= o.quantity).length;
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const sellOrders = orders.filter((o) => o.side === "sell");
   const buyOrders = orders.filter((o) => o.side === "buy");
-  const sellCompleted = sellOrders.filter((o) => getExecutedQty(o) > 0).length;
-  const buyCompleted = buyOrders.filter((o) => getExecutedQty(o) > 0).length;
+  const sellCompleted = sellOrders.filter((o) => getExecutedQty(o) >= o.quantity).length;
+  const buyCompleted = buyOrders.filter((o) => getExecutedQty(o) >= o.quantity).length;
 
   // Amount-based progress
   const totalOrderAmount = orders.reduce((sum, o) => sum + o.estimated_amount, 0);

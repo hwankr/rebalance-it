@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { m } from "framer-motion";
-import { Check, Minus } from "lucide-react";
+import { Check, Minus, CheckCheck, Plus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ExecutionOrderResult } from "@/lib/rebalance/history-types";
 
@@ -29,10 +30,34 @@ interface ProgressiveOrderListProps {
   side: "sell" | "buy";
   stepNumber: number;
   onQuantityChange: (stockCode: string, executedQuantity: number) => void;
+  onBatchFill?: () => void;
   disabled?: boolean;
 }
 
 const DEBOUNCE_MS = 500;
+
+function FillButton({
+  order,
+  onQuantityChange,
+  disabled,
+}: {
+  order: ExecutionOrderResult;
+  onQuantityChange: (stockCode: string, qty: number) => void;
+  disabled: boolean;
+}) {
+  const isFull = (order.executed_quantity ?? 0) >= order.quantity;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={disabled || isFull}
+      onClick={() => onQuantityChange(order.stock_code, order.quantity)}
+      className="h-8 px-2 text-xs shrink-0"
+    >
+      전량
+    </Button>
+  );
+}
 
 function DebouncedQuantityInput({
   order,
@@ -93,8 +118,28 @@ function DebouncedQuantityInput({
   const isFull = executedQty >= order.quantity;
   const isPartial = executedQty > 0 && executedQty < order.quantity;
 
+  const handleStep = useCallback(
+    (delta: number) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      const current = parseInt(localValue, 10) || 0;
+      const next = Math.max(0, Math.min(current + delta, order.quantity));
+      setLocalValue(String(next));
+      onQuantityChange(order.stock_code, next);
+    },
+    [localValue, order.stock_code, order.quantity, onQuantityChange]
+  );
+
   return (
     <div className="flex items-center gap-1.5">
+      {/* -1 stepper (desktop only) */}
+      <button
+        type="button"
+        disabled={disabled || executedQty <= 0}
+        onClick={() => handleStep(-1)}
+        className="hidden md:flex items-center justify-center size-8 rounded-md border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none shrink-0"
+      >
+        <Minus className="size-3.5" />
+      </button>
       <Input
         type="number"
         min={0}
@@ -104,8 +149,17 @@ function DebouncedQuantityInput({
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}
         disabled={disabled}
-        className="w-20 h-8 text-right tabular-nums text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        className="w-full md:w-20 h-8 text-right tabular-nums text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
+      {/* +1 stepper (desktop only) */}
+      <button
+        type="button"
+        disabled={disabled || executedQty >= order.quantity}
+        onClick={() => handleStep(1)}
+        className="hidden md:flex items-center justify-center size-8 rounded-md border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none shrink-0"
+      >
+        <Plus className="size-3.5" />
+      </button>
       {isFull && (
         <Check className="size-4 text-green-600 dark:text-green-400 shrink-0" />
       )}
@@ -121,13 +175,17 @@ export function ProgressiveOrderList({
   side,
   stepNumber,
   onQuantityChange,
+  onBatchFill,
   disabled = false,
 }: ProgressiveOrderListProps) {
-  const filtered = orders.filter((o) => o.side === side);
+  const filtered = orders
+    .filter((o) => o.side === side)
+    .sort((a, b) => b.estimated_amount - a.estimated_amount);
   const completedCount = filtered.filter((o) => {
-    if (o.executed_quantity !== undefined) return o.executed_quantity > 0;
+    if (o.executed_quantity !== undefined) return o.executed_quantity >= o.quantity;
     return o.executed === true;
   }).length;
+  const allFilled = completedCount === filtered.length;
 
   if (filtered.length === 0) return null;
 
@@ -153,9 +211,23 @@ export function ProgressiveOrderList({
               <Badge className={badgeColor}>{stepNumber}단계</Badge>
               <CardTitle>{title}</CardTitle>
             </div>
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {completedCount}/{filtered.length} 완료
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {completedCount}/{filtered.length} 완료
+              </span>
+              {onBatchFill && !disabled && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={allFilled}
+                  onClick={onBatchFill}
+                  className="h-7 text-xs gap-1"
+                >
+                  <CheckCheck className="size-3.5" />
+                  전체 체결
+                </Button>
+              )}
+            </div>
           </div>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
@@ -204,11 +276,18 @@ export function ProgressiveOrderList({
                         {order.quantity.toLocaleString("ko-KR")}주
                       </TableCell>
                       <TableCell className="text-right">
-                        <DebouncedQuantityInput
-                          order={order}
-                          onQuantityChange={onQuantityChange}
-                          disabled={disabled}
-                        />
+                        <div className="flex items-center justify-end gap-1">
+                          <DebouncedQuantityInput
+                            order={order}
+                            onQuantityChange={onQuantityChange}
+                            disabled={disabled}
+                          />
+                          <FillButton
+                            order={order}
+                            onQuantityChange={onQuantityChange}
+                            disabled={disabled}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatCurrency(order.estimated_price)}
@@ -229,7 +308,7 @@ export function ProgressiveOrderList({
           </div>
 
           {/* Mobile cards */}
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-4 md:hidden">
             {filtered.map((order, i) => {
               const execQty = order.executed_quantity ?? 0;
               const isFull = execQty >= order.quantity;
@@ -306,6 +385,11 @@ export function ProgressiveOrderList({
                       <span className="text-xs text-muted-foreground">
                         / {order.quantity.toLocaleString("ko-KR")}주
                       </span>
+                      <FillButton
+                        order={order}
+                        onQuantityChange={onQuantityChange}
+                        disabled={disabled}
+                      />
                     </div>
                   </div>
                 </m.div>

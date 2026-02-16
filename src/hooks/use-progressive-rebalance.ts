@@ -223,11 +223,11 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     },
   });
 
-  // Progress 계산
+  // Progress 계산 (전량 체결된 주문만 completed로 카운트)
   function getProgress(orders: ExecutionOrderResult[]) {
     const total = orders.length;
     const completed = orders.filter((o) => {
-      if (o.executed_quantity !== undefined) return o.executed_quantity > 0;
+      if (o.executed_quantity !== undefined) return o.executed_quantity >= o.quantity;
       return o.executed === true;
     }).length;
     return {
@@ -265,6 +265,59 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     [activeSession, updateOrderQuantity]
   );
 
+  // 배치 전량 체결 (단일 optimistic update + 병렬 RPC + 단일 캐시 무효화)
+  const batchFillOrders = useCallback(
+    async (
+      executionId: string,
+      ordersToFill: Array<{ stock_code: string; quantity: number }>
+    ) => {
+      if (ordersToFill.length === 0) return;
+
+      // Cancel in-flight queries
+      await queryClient.cancelQueries({ queryKey: activeSessionKey });
+
+      // Single optimistic update for all orders
+      const previous = queryClient.getQueryData<RebalanceExecution | null>(activeSessionKey);
+      if (previous) {
+        const fillMap = new Map(ordersToFill.map((o) => [o.stock_code, o.quantity]));
+        queryClient.setQueryData<RebalanceExecution>(activeSessionKey, {
+          ...previous,
+          orders: previous.orders.map((o) =>
+            fillMap.has(o.stock_code)
+              ? {
+                  ...o,
+                  executed_quantity: fillMap.get(o.stock_code)!,
+                  executed: true,
+                  executed_at: new Date().toISOString(),
+                }
+              : o
+          ),
+        });
+      }
+
+      // Fire all RPCs in parallel
+      const results = await Promise.allSettled(
+        ordersToFill.map((o) =>
+          client.rpc("update_execution_order", {
+            p_execution_id: executionId,
+            p_stock_code: o.stock_code,
+            p_executed_quantity: o.quantity,
+          })
+        )
+      );
+
+      // Rollback on any failure
+      const hasError = results.some((r) => r.status === "rejected" || (r.status === "fulfilled" && r.value.error));
+      if (hasError && previous) {
+        queryClient.setQueryData(activeSessionKey, previous);
+      }
+
+      // Single cache invalidation
+      queryClient.invalidateQueries({ queryKey: activeSessionKey });
+    },
+    [activeSessionKey, client, queryClient]
+  );
+
   const completeSession = useCallback(
     (executionId: string) => completeMutation.mutateAsync(executionId),
     [completeMutation]
@@ -283,6 +336,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     startSession,
     updateOrderQuantity,
     toggleOrder,
+    batchFillOrders,
     completeSession,
     abandonSession,
     getProgress,

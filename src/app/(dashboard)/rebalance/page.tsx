@@ -47,6 +47,9 @@ import { PageTransition } from "@/components/layout/page-transition";
 import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
 import { ProgressiveOrderList } from "@/components/rebalance/progressive-order-list";
 import { ProgressSummary } from "@/components/rebalance/progress-summary";
+import { RebalanceStepper } from "@/components/rebalance/rebalance-stepper";
+import type { RebalancePhase } from "@/components/rebalance/rebalance-stepper";
+import { CompletionReviewSheet } from "@/components/rebalance/completion-review-sheet";
 import { PresetSelector } from "@/components/rebalance/preset-selector";
 import { PresetManager } from "@/components/rebalance/preset-manager";
 
@@ -79,6 +82,7 @@ export default function RebalancePage() {
     refetchActiveSession,
     startSession,
     updateOrderQuantity,
+    batchFillOrders,
     completeSession,
     abandonSession,
     getProgress,
@@ -395,7 +399,6 @@ export default function RebalancePage() {
 
   // ── Active session view ──────────────────────────────────────
   if (hasActiveSession) {
-    const progress = getProgress(activeSession.orders);
     const sellOrders = activeSession.orders.filter((o) => o.side === "sell");
     const buyOrders = activeSession.orders.filter((o) => o.side === "buy");
     const startedAt = activeSession.started_at
@@ -405,6 +408,26 @@ export default function RebalancePage() {
       ? (now - startedAt.getTime()) / (1000 * 60 * 60 * 24)
       : 0;
     const isStale = daysSinceStart > 30;
+
+    // Derive current phase from order data (전량 체결 기준)
+    const allSellsFilled = sellOrders.length === 0 || sellOrders.every((o) => (o.executed_quantity ?? 0) >= o.quantity);
+    const allBuysFilled = buyOrders.length === 0 || buyOrders.every((o) => (o.executed_quantity ?? 0) >= o.quantity);
+    const currentPhase: RebalancePhase =
+      allSellsFilled && allBuysFilled ? "review" :
+      allSellsFilled ? "buy" : "sell";
+
+    const handleBatchFillSell = () => {
+      const unfilled = sellOrders.filter((o) => (o.executed_quantity ?? 0) < o.quantity);
+      if (unfilled.length > 0) {
+        batchFillOrders(activeSession.id, unfilled.map((o) => ({ stock_code: o.stock_code, quantity: o.quantity })));
+      }
+    };
+    const handleBatchFillBuy = () => {
+      const unfilled = buyOrders.filter((o) => (o.executed_quantity ?? 0) < o.quantity);
+      if (unfilled.length > 0) {
+        batchFillOrders(activeSession.id, unfilled.map((o) => ({ stock_code: o.stock_code, quantity: o.quantity })));
+      }
+    };
 
     return (
       <PageTransition>
@@ -424,6 +447,12 @@ export default function RebalancePage() {
               증권사 앱에서 주문을 실행하고, 체결 수량을 입력하세요.
             </p>
           </div>
+
+          {/* Step indicator */}
+          <RebalanceStepper
+            currentPhase={currentPhase}
+            hasSellOrders={sellOrders.length > 0}
+          />
 
           {/* Stale warning */}
           {isStale && (
@@ -468,6 +497,7 @@ export default function RebalancePage() {
               side="sell"
               stepNumber={1}
               onQuantityChange={handleQuantityChange}
+              onBatchFill={handleBatchFillSell}
               disabled={false}
             />
           )}
@@ -479,6 +509,7 @@ export default function RebalancePage() {
               side="buy"
               stepNumber={sellOrders.length > 0 ? 2 : 1}
               onQuantityChange={handleQuantityChange}
+              onBatchFill={handleBatchFillBuy}
               disabled={false}
             />
           )}
@@ -501,27 +532,16 @@ export default function RebalancePage() {
           </div>
         </div>
 
-        {/* Complete dialog */}
-        <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>리밸런싱 완료</DialogTitle>
-              <DialogDescription>
-                {progress.completed >= progress.total
-                  ? "모든 주문이 완료되었습니다. 리밸런싱을 완료하시겠습니까? 포트폴리오 보유 수량과 예수금이 자동 업데이트됩니다."
-                  : `${progress.total}건 중 ${progress.completed}건만 체결되었습니다. 부분 완료로 저장되며, 체결된 주문만 포트폴리오에 반영됩니다.`}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">취소</Button>
-              </DialogClose>
-              <Button onClick={handleComplete} disabled={isCompleting}>
-                {isCompleting ? "처리 중..." : "완료"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Completion review sheet */}
+        <CompletionReviewSheet
+          open={completeOpen}
+          onOpenChange={setCompleteOpen}
+          orders={activeSession.orders}
+          totalBuyAmount={activeSession.total_buy_amount}
+          totalSellAmount={activeSession.total_sell_amount}
+          onConfirm={handleComplete}
+          isCompleting={isCompleting}
+        />
 
         {/* Abandon dialog */}
         <Dialog open={abandonOpen} onOpenChange={setAbandonOpen}>
