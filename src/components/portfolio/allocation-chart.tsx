@@ -7,6 +7,7 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
+  Label,
 } from "recharts";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 import { formatCurrency } from "@/lib/utils/format";
@@ -154,24 +155,39 @@ export function AllocationChart({
                   }}
                 />
               ))}
+              <Label
+                position="center"
+                content={() => (
+                  <text
+                    x="50%"
+                    y="50%"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                  >
+                    <tspan
+                      x="50%"
+                      dy="-10"
+                      fontSize={11}
+                      className="fill-muted-foreground"
+                    >
+                      총 평가액
+                    </tspan>
+                    <tspan
+                      x="50%"
+                      dy="20"
+                      fontSize={14}
+                      fontWeight={700}
+                      className="fill-foreground"
+                    >
+                      {formatCurrency(totalValue)}
+                    </tspan>
+                  </text>
+                )}
+              />
             </Pie>
             <Tooltip content={<CustomTooltip />} />
           </PieChart>
         </ResponsiveContainer>
-
-        {/* Center overlay - hidden on hover to avoid tooltip overlap */}
-        <div
-          className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4 transition-opacity duration-200 ${
-            activeIndex !== null ? "opacity-0" : "opacity-100"
-          }`}
-        >
-          <span className="text-xs text-muted-foreground font-medium">
-            총 평가액
-          </span>
-          <span className="text-base font-bold text-foreground tabular-nums tracking-tight mt-0.5 max-w-[100px] truncate">
-            {formatCurrency(totalValue)}
-          </span>
-        </div>
       </div>
 
       {/* Custom Legend */}
