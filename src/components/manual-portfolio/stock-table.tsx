@@ -322,7 +322,7 @@ export function StockTable({
                   </TableCell>
                 )}
                 <TableCell
-                  className={`text-right tabular-nums ${profitLoss >= 0 ? "text-red-500" : "text-blue-500"}`}
+                  className={cn("text-right tabular-nums", profitLoss > 0 ? "profit-up" : profitLoss < 0 ? "profit-down" : "")}
                 >
                   {profitLoss >= 0 ? "+" : ""}
                   {isUsd && exchangeRate
@@ -330,7 +330,7 @@ export function StockTable({
                     : formatCurrency(profitLoss)}
                 </TableCell>
                 <TableCell
-                  className={`text-right tabular-nums font-medium ${profitRate >= 0 ? "text-red-500" : "text-blue-500"}`}
+                  className={cn("text-right tabular-nums font-medium", profitRate > 0 ? "profit-up" : profitRate < 0 ? "profit-down" : "")}
                 >
                   {profitRate >= 0 ? "+" : ""}
                   {formatPercent(profitRate)}
@@ -471,11 +471,11 @@ export function StockTable({
                         {isUsd && exchangeRate ? formatCurrency(evalAmountKrw) : formatCurrency(evalAmount)}
                       </span>
                       <div className="flex items-center gap-1.5 text-xs tabular-nums">
-                        <span className={profitRate >= 0 ? "text-red-500" : "text-blue-500"}>
+                        <span className={profitRate > 0 ? "profit-up" : profitRate < 0 ? "profit-down" : ""}>
                           {profitRate >= 0 ? "+" : ""}{formatPercent(profitRate)}
                         </span>
                         <span className="text-muted-foreground/40">|</span>
-                        <span className={profitLoss >= 0 ? "text-red-500" : "text-blue-500"}>
+                        <span className={profitLoss > 0 ? "profit-up" : profitLoss < 0 ? "profit-down" : ""}>
                            {profitLoss >= 0 ? "+" : ""}{isUsd && exchangeRate ? formatCurrency(Math.round(profitLossKrw)) : formatCurrency(profitLoss)}
                         </span>
                       </div>

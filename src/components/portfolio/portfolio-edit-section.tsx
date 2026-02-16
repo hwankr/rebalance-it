@@ -173,7 +173,7 @@ export function PortfolioEditSection({
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm text-muted-foreground">USD/KRW</span>
                   {isManualRate && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0">
                       수동
                     </Badge>
                   )}

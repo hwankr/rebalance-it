@@ -30,7 +30,7 @@ export function NavItem({ href, label, icon: Icon, showBadge }: NavItemProps) {
       <Icon className="h-4 w-4" />
       {label}
       {showBadge && (
-        <span className="ml-auto h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+        <span className="ml-auto h-2 w-2 rounded-full bg-primary animate-pulse" />
       )}
     </Link>
   );

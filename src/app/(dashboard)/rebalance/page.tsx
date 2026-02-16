@@ -538,7 +538,7 @@ export default function RebalancePage() {
 
               {/* Price change warning banner */}
               {priceChanges.length > 0 && (
-                <div className="flex items-start gap-3 rounded-xl border border-orange-500/30 bg-orange-50/50 p-4 dark:bg-orange-950/20">
+                <div className="flex items-start gap-3 rounded-lg border border-orange-500/30 bg-orange-50/50 p-4 dark:bg-orange-950/20">
                   <AlertTriangle className="size-5 shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
                   <div className="flex-1 space-y-2">
                     <div className="text-sm text-orange-800 dark:text-orange-200">
@@ -586,7 +586,7 @@ export default function RebalancePage() {
               {sellOrders.length > 0 && (
                 <div className="space-y-2">
                   <h3 className="text-base font-semibold flex items-center gap-2">
-                    <span className="flex items-center justify-center size-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-400">1</span>
+                    <span className="flex items-center justify-center size-6 rounded-full bg-red-100 text-red-700 text-xs font-bold dark:bg-red-900/30 dark:text-red-400">1</span>
                     매도 주문
                   </h3>
                    <ProgressiveOrderList
@@ -603,8 +603,8 @@ export default function RebalancePage() {
               {/* Buy orders */}
               {buyOrders.length > 0 && (
                 <div className="space-y-4">
-                   <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <span className="flex items-center justify-center size-6 rounded-full bg-red-100 text-red-700 text-xs font-bold dark:bg-red-900/30 dark:text-red-400">
+                   <h3 className="text-base font-semibold flex items-center gap-2">
+                    <span className="flex items-center justify-center size-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-400">
                       {sellOrders.length > 0 ? 2 : 1}
                     </span>
                     매수 주문

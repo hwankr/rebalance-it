@@ -152,7 +152,7 @@ export default function PortfolioPage() {
     return (
       <PageTransition>
         <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
-          <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             내 포트폴리오
           </h1>
           <div className="space-y-3">
@@ -170,7 +170,7 @@ export default function PortfolioPage() {
       <PageTransition>
         <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
           <div>
-            <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               내 포트폴리오
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -202,7 +202,7 @@ export default function PortfolioPage() {
       <PageTransition>
         <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
           <div>
-            <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               전체 포트폴리오
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -266,10 +266,8 @@ export default function PortfolioPage() {
                           <div
                             className={cn(
                               "text-xs tabular-nums",
-                              stock.profit_rate > 0 &&
-                                "text-green-600 dark:text-green-400",
-                              stock.profit_rate < 0 &&
-                                "text-red-600 dark:text-red-400",
+                              stock.profit_rate > 0 && "profit-up",
+                              stock.profit_rate < 0 && "profit-down",
                             )}
                           >
                             {stock.profit_rate > 0 ? "+" : ""}
@@ -301,7 +299,7 @@ export default function PortfolioPage() {
       <PageTransition>
         <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
           <div>
-            <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               내 포트폴리오
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -341,7 +339,7 @@ export default function PortfolioPage() {
         {/* Header */}
         <div className="flex items-center justify-between px-1">
           <div>
-            <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               내 포트폴리오
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -582,7 +580,7 @@ export default function PortfolioPage() {
         />
 
         {/* Sticky Bottom CTA - Mobile Only */}
-        <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background border-t border-border p-3 z-10">
+        <div className="fixed bottom-16 left-0 right-0 md:hidden bg-background border-t border-border p-3 z-10">
           <Button asChild className="w-full" size="lg">
             <Link href="/rebalance">리밸런싱으로 이동</Link>
           </Button>

@@ -37,10 +37,10 @@ export function BottomNav() {
             <div className="relative">
               <tab.icon className="size-5" />
               {showBadge && (
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary animate-pulse" />
               )}
             </div>
-            <span className={cn("text-[11px]", isActive ? "font-semibold" : "font-medium")}>{tab.label}</span>
+            <span className={cn("text-xs", isActive ? "font-semibold" : "font-medium")}>{tab.label}</span>
           </Link>
         );
       })}

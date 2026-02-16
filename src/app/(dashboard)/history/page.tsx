@@ -238,13 +238,13 @@ export default function HistoryPage() {
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground mb-0.5">성공</div>
-                        <div className="font-medium tabular-nums text-sm text-green-600">
+                        <div className="font-medium tabular-nums text-sm text-green-600 dark:text-green-400">
                           {exec.success_count}
                         </div>
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground mb-0.5">실패</div>
-                        <div className="font-medium tabular-nums text-sm text-red-600">
+                        <div className="font-medium tabular-nums text-sm text-red-600 dark:text-red-400">
                           {exec.fail_count}
                         </div>
                       </div>
