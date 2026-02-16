@@ -23,7 +23,7 @@ export function BottomNav() {
   const { activeSession } = useProgressiveRebalance(portfolioId);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t bg-card md:hidden safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t bg-card shadow-[0_-1px_3px_0_oklch(0_0_0/0.04)] md:hidden safe-area-pb">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href));
         const showBadge = tab.href === "/rebalance" && !!activeSession;

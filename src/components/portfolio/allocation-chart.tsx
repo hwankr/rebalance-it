@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from "recharts";
 import { useThemeColors } from "@/hooks/use-theme-colors";
+import { formatCurrency } from "@/lib/utils/format";
 
 interface AllocationChartProps {
   stocks: Array<{ stock_name: string; eval_amount: number }>;
@@ -41,7 +42,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
     <div className="rounded-xl border border-border bg-popover/90 backdrop-blur-sm p-3 shadow-lg">
       <p className="font-medium text-sm">{item.name}</p>
       <p className="text-muted-foreground text-sm tabular-nums">
-        {Number(item.value).toLocaleString("ko-KR")}원
+        {formatCurrency(Number(item.value))}
       </p>
     </div>
   );
@@ -101,7 +102,7 @@ export function AllocationChart({ stocks, cash, totalValue, isLoading }: Allocat
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 24 }}>
         <div className="text-center">
           <p className="text-xs text-muted-foreground">총 평가액</p>
-          <p className="text-sm font-bold text-foreground tabular-nums">{totalValue.toLocaleString("ko-KR")}원</p>
+          <p className="text-sm font-bold text-foreground tabular-nums">{formatCurrency(totalValue)}</p>
         </div>
       </div>
     </div>
