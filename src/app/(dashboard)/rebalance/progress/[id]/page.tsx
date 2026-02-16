@@ -32,8 +32,10 @@ export default function ProgressPage() {
   const params = useParams();
   const router = useRouter();
   const executionId = params.id as string;
-  const { selectedAccountId } = useAccounts();
-  const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
+  const { accounts, selectedAccountId } = useAccounts();
+  const portfolioId = selectedAccountId === "all"
+    ? (accounts.length === 1 ? accounts[0].id : null)
+    : selectedAccountId;
   const {
     activeSession,
     useSession,

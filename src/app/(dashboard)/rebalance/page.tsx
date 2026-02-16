@@ -16,6 +16,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAccounts } from "@/hooks/use-accounts";
+import { AccountTabs } from "@/components/account/account-tabs";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
 import { usePresets } from "@/hooks/use-presets";
@@ -55,9 +56,13 @@ import { PresetManager } from "@/components/rebalance/preset-manager";
 import { PRICE_CHANGE_THRESHOLD } from "@/lib/rebalance/constants";
 
 export default function RebalancePage() {
-  const { selectedAccountId } = useAccounts();
+  const { accounts, selectedAccountId } = useAccounts();
   const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
   const isAllMode = selectedAccountId === "all";
+
+  // 계좌 1개 + 전체 모드: 해당 계좌를 실질적으로 사용 (리밸런싱 가능)
+  const effectivePortfolioId = isAllMode && accounts.length === 1 ? accounts[0].id : portfolioId;
+  const effectiveIsAllMode = isAllMode && accounts.length > 1;
 
   const {
     data: balance,
@@ -66,7 +71,7 @@ export default function RebalancePage() {
     error,
     targets,
     exchangeRate,
-  } = usePortfolioData(portfolioId);
+  } = usePortfolioData(effectivePortfolioId);
   const {
     stocks: manualStocks,
     portfolio,
@@ -75,7 +80,7 @@ export default function RebalancePage() {
     applyPreset,
     isApplying,
     isLoading: isManualLoading,
-  } = useManualPortfolio(portfolioId, exchangeRate);
+  } = useManualPortfolio(effectivePortfolioId, exchangeRate);
   const { getPreset, isLoading: isPresetsLoading } = usePresets();
   const {
     activeSession,
@@ -95,7 +100,7 @@ export default function RebalancePage() {
     isAbandoning,
     isRecalculating,
     isResuming,
-  } = useProgressiveRebalance(portfolioId);
+  } = useProgressiveRebalance(effectivePortfolioId);
 
   const [isSavingTargets, setIsSavingTargets] = useState(false);
   const [abandonOpen, setAbandonOpen] = useState(false);
@@ -406,21 +411,22 @@ export default function RebalancePage() {
     );
   }
 
-  // Must select specific account for rebalancing
-  if (isAllMode) {
+  // Must select specific account for rebalancing (2+ accounts only)
+  if (effectiveIsAllMode) {
     return (
       <PageTransition>
         <div className="space-y-3 md:space-y-4">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
+          <AccountTabs />
           <Card>
             <CardContent className="flex flex-col items-center gap-3 py-6">
               <p className="text-muted-foreground">
                 리밸런싱을 실행하려면 특정 계좌를 선택해주세요.
               </p>
               <p className="text-sm text-muted-foreground">
-                헤더의 계좌 선택 메뉴에서 개별 계좌를 선택하세요.
+                위 탭에서 개별 계좌를 선택하세요.
               </p>
             </CardContent>
           </Card>
@@ -460,6 +466,7 @@ export default function RebalancePage() {
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
+          <AccountTabs />
           <Card>
             <CardContent className="flex flex-col items-center gap-3 py-6">
               <p className="text-muted-foreground">
@@ -771,6 +778,8 @@ export default function RebalancePage() {
           </p>
         </div>
 
+        <AccountTabs />
+
         {/* Compact portfolio summary */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1">
           <span>
@@ -1067,7 +1076,7 @@ export default function RebalancePage() {
         onOpenChange={setPresetManagerOpen}
         onApplyPreset={handleApplyPreset}
         isApplying={isApplying}
-        portfolioId={portfolioId}
+        portfolioId={effectivePortfolioId}
       />
     </PageTransition>
   );

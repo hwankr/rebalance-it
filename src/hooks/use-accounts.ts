@@ -45,15 +45,14 @@ export function useAccounts() {
   });
 
   // Resolve the effective account: validate selected ID against actual accounts
+  // 항상 "all" (전체 계좌)이 기본값. 사용자가 명시적으로 개별 계좌를 선택해야 전환.
   const resolvedAccountId = useMemo(() => {
     if (accounts.length === 0) return "all" as const;
-    // 계좌가 1개면 항상 해당 계좌 선택 (편집 기능 유지)
-    if (accounts.length === 1) return accounts[0].id;
     if (selectedAccountId === "all") return "all" as const;
     const found = accounts.find((a) => a.id === selectedAccountId);
     if (found) return found.id;
-    // Invalid ID → fallback to first account
-    return accounts[0].id;
+    // Invalid ID → fallback to "all"
+    return "all" as const;
   }, [selectedAccountId, accounts]);
 
   const selectedAccount = useMemo(
@@ -114,10 +113,9 @@ export function useAccounts() {
     },
     onSuccess: (_: unknown, deletedId: string) => {
       queryClient.invalidateQueries({ queryKey });
-      // If deleted account was selected, switch to "all" or first remaining
+      // If deleted account was selected, switch to "all"
       if (resolvedAccountId === deletedId) {
-        const remaining = accounts.filter((a) => a.id !== deletedId);
-        setSelectedAccountId(remaining.length > 0 ? remaining[0].id : "all");
+        setSelectedAccountId("all");
       }
     },
   });

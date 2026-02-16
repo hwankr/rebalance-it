@@ -25,8 +25,10 @@ const navItems: NavItemProps[] = [
 ];
 
 export function Sidebar() {
-  const { selectedAccountId } = useAccounts();
-  const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
+  const { accounts, selectedAccountId } = useAccounts();
+  const portfolioId = selectedAccountId === "all"
+    ? (accounts.length === 1 ? accounts[0].id : null)
+    : selectedAccountId;
   const { activeSession } = useProgressiveRebalance(portfolioId);
   const { isGuest } = useGuestMode();
 

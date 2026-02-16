@@ -22,6 +22,7 @@ import { PageTransition } from "@/components/layout/page-transition";
 import { toast } from "sonner";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useConsolidatedPortfolio } from "@/hooks/use-consolidated-portfolio";
+import { AccountTabs } from "@/components/account/account-tabs";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 
@@ -40,8 +41,12 @@ export default function PortfolioPage() {
   const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
   const isAllMode = selectedAccountId === "all";
 
+  // 계좌 1개 + 전체 모드: 해당 계좌를 실질적으로 사용 (편집/리밸런싱 가능)
+  const effectivePortfolioId = isAllMode && accounts.length === 1 ? accounts[0].id : portfolioId;
+  const effectiveIsAllMode = isAllMode && accounts.length > 1;
+
   const { isPro } = useSubscription();
-  const { refreshPrices, isRefreshing } = useRefreshPrices(portfolioId ?? undefined);
+  const { refreshPrices, isRefreshing } = useRefreshPrices(effectivePortfolioId ?? undefined);
   const {
     rate: exchangeRate,
     apiRate,
@@ -66,7 +71,7 @@ export default function PortfolioPage() {
     dataUpdatedAt,
     refetch,
     isFetching,
-  } = useManualPortfolio(portfolioId, exchangeRate);
+  } = useManualPortfolio(effectivePortfolioId, exchangeRate);
   const { getPreset, isLoading: isPresetsLoading } = usePresets();
   const {
     balance: consolidatedBalance,
@@ -148,7 +153,7 @@ export default function PortfolioPage() {
     });
   }
 
-  if (isAllMode ? isConsolidatedLoading : isLoading) {
+  if (effectiveIsAllMode ? isConsolidatedLoading : isLoading) {
     return (
       <PageTransition>
         <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
@@ -190,8 +195,8 @@ export default function PortfolioPage() {
     );
   }
 
-  // Consolidated "all accounts" view
-  if (isAllMode) {
+  // Consolidated "all accounts" view (only for 2+ accounts)
+  if (effectiveIsAllMode) {
     const allTotalValue = consolidatedBalance?.total_value ?? 0;
     const allProfitLoss = consolidatedBalance?.total_profit_loss ?? 0;
     const allProfitRate = consolidatedBalance?.total_profit_rate ?? 0;
@@ -203,12 +208,14 @@ export default function PortfolioPage() {
         <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-              전체 포트폴리오
+              내 포트폴리오
             </h1>
             <p className="text-sm text-muted-foreground">
               모든 계좌의 자산을 통합하여 표시합니다.
             </p>
           </div>
+
+          <AccountTabs />
 
           <SummaryCards
             totalValue={allTotalValue}
@@ -307,6 +314,8 @@ export default function PortfolioPage() {
             </p>
           </div>
 
+          <AccountTabs />
+
           <Card>
             <CardContent className="pt-4 text-center">
               <p className="text-muted-foreground mb-4">
@@ -360,6 +369,8 @@ export default function PortfolioPage() {
             <RefreshCw className={isFetching ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
           </Button>
         </div>
+
+        <AccountTabs />
 
         {/* Summary Cards */}
         <SummaryCards
@@ -607,7 +618,7 @@ export default function PortfolioPage() {
         onOpenChange={setPresetManagerOpen}
         onApplyPreset={handleApplyPreset}
         isApplying={isApplying}
-        portfolioId={portfolioId}
+        portfolioId={effectivePortfolioId}
       />
     </PageTransition>
   );

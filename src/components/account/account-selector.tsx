@@ -43,7 +43,7 @@ export function AccountSelector() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
-          {accounts.length >= 2 && (
+          {accounts.length >= 1 && (
             <>
               <DropdownMenuItem
                 onClick={() => setSelectedAccountId("all")}
