@@ -4,14 +4,13 @@ import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 
-import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
+import { useManualPortfolio, type ManualStockInput } from "@/hooks/use-manual-portfolio";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useRefreshPrices } from "@/hooks/use-refresh-prices";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 import { SummaryCards } from "@/components/portfolio/summary-cards";
 import { AllocationChart } from "@/components/portfolio/allocation-chart";
 import { StockTable } from "@/components/manual-portfolio/stock-table";
-import { PortfolioEditSection } from "@/components/portfolio/portfolio-edit-section";
 
 import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,6 +95,11 @@ export default function PortfolioPage() {
     const stock = stocks.find((s) => s.id === id);
     deleteStock(id);
     toast.success(`${stock?.stock_name ?? "종목"}이 삭제되었습니다.`);
+  }
+
+  function handleAddStock(data: ManualStockInput) {
+    addStock(data);
+    toast.success(`${data.stock_name} 종목이 추가되었습니다.`);
   }
 
   function handleSaveTargets(updates: { id: string; targetPct: number }[]) {
@@ -281,20 +285,14 @@ export default function PortfolioPage() {
             isCashSaving={isCashSaving}
           />
 
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <p className="text-muted-foreground mb-4">
-                포트폴리오에 종목을 추가해주세요.
-              </p>
-              <PortfolioEditSection
-                portfolio={portfolio}
-                stocks={stocks}
-                onAddStock={addStock}
-                isAdding={isAdding}
-                defaultExpanded={true}
-              />
-            </CardContent>
-          </Card>
+          <StockTable
+            stocks={stocks}
+            onUpdate={updateStock}
+            onDelete={handleDeleteStock}
+            exchangeRate={exchangeRate}
+            onAddStock={handleAddStock}
+            isAdding={isAdding}
+          />
         </div>
       </PageTransition>
     );
@@ -358,6 +356,8 @@ export default function PortfolioPage() {
               isRefreshing={isRefreshing}
               exchangeRate={exchangeRate}
               totalPortfolioValue={totalValue}
+              onAddStock={handleAddStock}
+              isAdding={isAdding}
             />
           </div>
 
@@ -385,17 +385,6 @@ export default function PortfolioPage() {
           exchangeRate={exchangeRate ?? 1}
           onSave={handleSaveTargets}
           isSaving={isSavingTargets}
-        />
-
-        {/* Portfolio Edit Section (Collapsible) */}
-        <PortfolioEditSection
-          portfolio={portfolio}
-          stocks={stocks}
-          onAddStock={addStock}
-          isAdding={isAdding}
-          onRefreshPrices={isPro ? handleRefreshPrices : undefined}
-          isRefreshing={isRefreshing}
-          defaultExpanded={false}
         />
 
         {/* Sticky Bottom CTA - Mobile Only */}

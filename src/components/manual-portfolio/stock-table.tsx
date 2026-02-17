@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Pencil, Check, X, RefreshCw, Loader2 } from "lucide-react";
+import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { m } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 import { useStockChart } from "@/hooks/use-stock-chart";
 import { StockPriceChart } from "@/components/portfolio/stock-price-chart";
+import { StockForm } from "@/components/manual-portfolio/stock-form";
 
 
 interface StockRow {
@@ -51,6 +52,8 @@ interface StockTableProps {
   isRefreshing?: boolean;
   exchangeRate?: number;
   totalPortfolioValue?: number;
+  onAddStock?: (data: ManualStockInput) => void;
+  isAdding?: boolean;
 }
 
 
@@ -152,11 +155,14 @@ export function StockTable({
   isRefreshing,
   exchangeRate,
   totalPortfolioValue,
+  onAddStock,
+  isAdding,
 }: StockTableProps) {
   const showWeight = totalPortfolioValue != null && totalPortfolioValue > 0;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<ManualStockInput>>({});
   const [selectedStock, setSelectedStock] = useState<StockRow | null>(null);
+  const [isFormExpanded, setIsFormExpanded] = useState(false);
 
   function startEdit(stock: StockRow) {
     setEditingId(stock.id);
@@ -180,8 +186,44 @@ export function StockTable({
 
   if (stocks.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-        종목이 없습니다. 위 폼에서 종목을 추가해주세요.
+      <div className="flex flex-col items-center justify-center py-8 gap-4">
+        <p className="text-sm text-muted-foreground">
+          종목이 없습니다.
+        </p>
+        {onAddStock && (
+          <div className="w-full max-w-2xl space-y-3">
+            {!isFormExpanded ? (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setIsFormExpanded(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                종목 추가
+              </Button>
+            ) : (
+              <div className="border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">종목 추가</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFormExpanded(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <StockForm
+                  onSubmit={(data) => {
+                    onAddStock(data);
+                    setIsFormExpanded(false);
+                  }}
+                  isSubmitting={isAdding}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -522,6 +564,59 @@ export function StockTable({
           );
         })}
       </div>
+
+      {/* 종목 추가 버튼 + 인라인 폼 */}
+      {onAddStock && (
+        <div className="mt-4 space-y-3 px-4 md:px-0">
+          <AnimatePresence mode="wait">
+            {!isFormExpanded ? (
+              <m.div
+                key="add-button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setIsFormExpanded(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  종목 추가
+                </Button>
+              </m.div>
+            ) : (
+              <m.div
+                key="add-form"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">종목 추가</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsFormExpanded(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <StockForm
+                    onSubmit={(data) => {
+                      onAddStock(data);
+                      setIsFormExpanded(false);
+                    }}
+                    isSubmitting={isAdding}
+                  />
+                </div>
+              </m.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       {selectedStock && (
         <StockChartSheet
