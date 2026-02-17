@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSpring, useTransform } from "framer-motion";
-import { TrendingUp, TrendingDown, Pencil, Wallet } from "lucide-react";
+import { TrendingUp, TrendingDown, Pencil, Wallet, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
@@ -147,7 +147,7 @@ export function PortfolioHero({
             )}
 
             {/* Cash display */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-white/15 rounded-full px-3 py-1.5">
               {isLoading ? (
                 <div className="h-8 w-40 bg-white/10 rounded-full animate-pulse" />
               ) : isEditing ? (
@@ -164,7 +164,8 @@ export function PortfolioHero({
                 />
               ) : (
                 <>
-                  <span className="text-sm font-medium text-white/90">
+                  <Coins className="h-4 w-4 text-white/80" />
+                  <span className="text-sm font-semibold text-white">
                     예수금: <span className="font-bold tabular-nums">
                       <AnimatedNumber value={cash} formatter={formatCurrency} />
                     </span>
@@ -173,10 +174,10 @@ export function PortfolioHero({
                     <button
                       type="button"
                       onClick={startEditing}
-                      className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-2 rounded-md text-white/80 hover:text-white hover:bg-white/15 transition-colors"
                       aria-label="예수금 편집"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="h-4 w-4" />
                     </button>
                   )}
                 </>
