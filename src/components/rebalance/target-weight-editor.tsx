@@ -199,16 +199,12 @@ export function TargetWeightEditor({
                   />
                 </td>
                 <td className="text-right px-4">
-                  {Math.abs(cashDiff) >= 0.5 && (
+                  {Math.abs(cashDiff) >= 0.05 && (
                     <span className={cn(
                       "inline-block rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
-                      Math.abs(cashDiff) < 2
-                        ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                        : Math.abs(cashDiff) < 5
-                          ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                          : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30"
+                      "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
                     )}>
-                      {Math.abs(cashDiff) < 0.5 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
+                      {Math.abs(cashDiff) < 0.05 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
                     </span>
                   )}
                 </td>
@@ -218,13 +214,14 @@ export function TargetWeightEditor({
                 .map((d) => {
                   const diff = d.currentPct - d.targetPct;
                   const absDiff = Math.abs(diff);
-                  const arrow = absDiff < 0.5 ? "=" : diff > 0 ? "▲" : "▼";
-                  const diffColor =
-                    absDiff < 2
-                      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                      : absDiff < 5
-                        ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                        : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30";
+                  const arrow = absDiff < 0.05 ? "=" : diff > 0 ? "▲" : "▼";
+                  // 1주 이상 차이 계산
+                  const sharePrice = d.currency === "USD" ? d.current_price * exchangeRate : d.current_price;
+                  const driftAmount = totalValue * absDiff / 100;
+                  const isSignificant = sharePrice > 0 && driftAmount / sharePrice >= 1;
+                  const diffColor = isSignificant
+                    ? "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/40 ring-1 ring-rose-200 dark:ring-rose-800/40"
+                    : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30";
                   return (
                     <tr
                       key={d.id}
@@ -248,7 +245,7 @@ export function TargetWeightEditor({
                         />
                       </td>
                       <td className="text-right px-4">
-                        {absDiff >= 0.5 && (
+                        {absDiff >= 0.05 && (
                           <span className={cn("inline-block rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", diffColor)}>
                             {arrow} {diff >= 0 ? "+" : ""}{diff.toFixed(1)}%
                           </span>
@@ -267,16 +264,12 @@ export function TargetWeightEditor({
           <div className="py-2.5 px-2 bg-muted/20 rounded-lg mb-2">
             <div className="flex items-center justify-between mb-1.5">
               <div className="font-medium text-muted-foreground">현금</div>
-              {Math.abs(cashDiff) >= 0.5 && (
+              {Math.abs(cashDiff) >= 0.05 && (
                 <span className={cn(
                   "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums",
-                  Math.abs(cashDiff) < 2
-                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                    : Math.abs(cashDiff) < 5
-                      ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                      : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30"
+                  "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
                 )}>
-                  {Math.abs(cashDiff) < 0.5 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
+                  {Math.abs(cashDiff) < 0.05 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
                 </span>
               )}
             </div>
@@ -291,13 +284,13 @@ export function TargetWeightEditor({
             .map((d) => {
               const diff = d.currentPct - d.targetPct;
               const absDiff = Math.abs(diff);
-              const arrow = absDiff < 0.5 ? "=" : diff > 0 ? "▲" : "▼";
-              const diffColor =
-                absDiff < 2
-                  ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                  : absDiff < 5
-                    ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                    : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30";
+              const arrow = absDiff < 0.05 ? "=" : diff > 0 ? "▲" : "▼";
+              const sharePrice = d.currency === "USD" ? d.current_price * exchangeRate : d.current_price;
+              const driftAmount = totalValue * absDiff / 100;
+              const isSignificant = sharePrice > 0 && driftAmount / sharePrice >= 1;
+              const diffColor = isSignificant
+                ? "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/40 ring-1 ring-rose-200 dark:ring-rose-800/40"
+                : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30";
               return (
                 <div
                   key={d.id}
@@ -308,7 +301,7 @@ export function TargetWeightEditor({
                       <StockLogo stockCode={d.stock_code} stockName={d.stock_name} currency={d.currency} size="sm" />
                       {d.stock_name}
                     </div>
-                    {absDiff >= 0.5 && (
+                    {absDiff >= 0.05 && (
                       <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums", diffColor)}>
                         {arrow} {diff >= 0 ? "+" : ""}{diff.toFixed(1)}%
                       </span>
