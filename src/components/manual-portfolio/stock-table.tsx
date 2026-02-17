@@ -28,6 +28,7 @@ import { formatCurrency, formatPercent, formatUsdPrice } from "@/lib/utils/forma
 import { cn } from "@/lib/utils";
 import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 import { useStockChart } from "@/hooks/use-stock-chart";
+import { StockLogo } from "@/components/stock-logo";
 import { StockPriceChart } from "@/components/portfolio/stock-price-chart";
 import { StockForm } from "@/components/manual-portfolio/stock-form";
 
@@ -94,7 +95,10 @@ function StockChartSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{stock.stock_name}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="lg" />
+            {stock.stock_name}
+          </SheetTitle>
           <SheetDescription>{stock.stock_code}</SheetDescription>
         </SheetHeader>
 
@@ -306,15 +310,18 @@ export function StockTable({
             return (
               <TableRow key={stock.id ?? `stock-${index}`} className="hover:bg-muted/30 dark:hover:bg-muted/20 transition-colors border-b-border/40">
                 <TableCell>
-                  <div className="flex flex-col">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedStock(stock)}
-                      className="font-medium text-left hover:text-primary transition-colors"
-                    >
-                      {stock.stock_name}
-                    </button>
-                    <span className="text-xs text-muted-foreground font-mono">{stock.stock_code}</span>
+                  <div className="flex items-center gap-2">
+                    <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="sm" />
+                    <div className="flex flex-col">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStock(stock)}
+                        className="font-medium text-left hover:text-primary transition-colors"
+                      >
+                        {stock.stock_name}
+                      </button>
+                      <span className="text-xs text-muted-foreground font-mono">{stock.stock_code}</span>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
@@ -522,6 +529,7 @@ export function StockTable({
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <div className="flex items-center gap-1.5">
+                        <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="default" />
                         <span className="font-semibold text-sm truncate">{stock.stock_name}</span>
                         {isUsd && (
                            <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded">USD</span>

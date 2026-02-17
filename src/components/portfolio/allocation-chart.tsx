@@ -11,9 +11,10 @@ import {
 } from "recharts";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 import { formatCurrency } from "@/lib/utils/format";
+import { StockLogo } from "@/components/stock-logo";
 
 interface AllocationChartProps {
-  stocks: Array<{ stock_name: string; eval_amount: number }>;
+  stocks: Array<{ stock_name: string; eval_amount: number; stock_code: string; currency?: string }>;
   cash: number;
   totalValue: number;
   isLoading: boolean;
@@ -84,8 +85,10 @@ export function AllocationChart({
     ...stocks.map((s) => ({
       name: s.stock_name,
       value: s.eval_amount,
+      stock_code: s.stock_code,
+      currency: s.currency,
     })),
-    ...(cash > 0 ? [{ name: "현금", value: cash }] : []),
+    ...(cash > 0 ? [{ name: "현금", value: cash, stock_code: "CASH", currency: undefined }] : []),
   ];
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
@@ -216,11 +219,15 @@ export function AllocationChart({
               onMouseEnter={() => setActiveIndex(index)}
               onMouseLeave={() => setActiveIndex(null)}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className="size-3 rounded-full shrink-0"
-                  style={{ background: colors[index] }}
-                />
+              <div className="flex items-center gap-2 min-w-0">
+                {item.stock_code !== "CASH" ? (
+                  <StockLogo stockCode={item.stock_code} stockName={item.name} currency={item.currency} size="sm" />
+                ) : (
+                  <div
+                    className="size-3 rounded-full shrink-0"
+                    style={{ background: colors[index] }}
+                  />
+                )}
                 <span className="text-sm font-medium text-foreground truncate">
                   {item.name}
                 </span>

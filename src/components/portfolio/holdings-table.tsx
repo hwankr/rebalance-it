@@ -26,6 +26,7 @@ import { formatCurrency, formatPercent, formatStockCode, formatStockPrice, forma
 import { cn } from "@/lib/utils";
 import type { Stock } from "@/lib/rebalance/types";
 import { useStockChart } from "@/hooks/use-stock-chart";
+import { StockLogo } from "@/components/stock-logo";
 import { StockPriceChart } from "./stock-price-chart";
 
 interface HoldingsTableProps {
@@ -69,7 +70,10 @@ function StockChartSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{stock.stock_name}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="lg" />
+            {stock.stock_name}
+          </SheetTitle>
           <SheetDescription>{formatStockCode(stock.stock_code)}</SheetDescription>
         </SheetHeader>
 
@@ -170,8 +174,9 @@ export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTable
                     <button
                       type="button"
                       onClick={() => setSelectedStock(stock)}
-                      className="font-medium text-left hover:text-primary hover:underline underline-offset-4 cursor-pointer transition-colors"
+                      className="flex items-center gap-2 font-medium text-left hover:text-primary hover:underline underline-offset-4 cursor-pointer transition-colors"
                     >
+                      <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="sm" />
                       {stock.stock_name}
                     </button>
                   </TableCell>
@@ -264,8 +269,9 @@ export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTable
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <button
                     type="button"
-                    className="font-semibold text-left hover:text-primary transition-colors"
+                    className="flex items-center gap-2 font-semibold text-left hover:text-primary transition-colors"
                   >
+                    <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="default" />
                     {stock.stock_name}
                   </button>
                   <Badge

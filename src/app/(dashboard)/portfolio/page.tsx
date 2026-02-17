@@ -23,6 +23,7 @@ import { useConsolidatedPortfolio } from "@/hooks/use-consolidated-portfolio";
 import { AccountTabs } from "@/components/account/account-tabs";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
+import { StockLogo } from "@/components/stock-logo";
 
 function formatUpdatedAt(timestamp: number | undefined): string {
   if (!timestamp) return "";
@@ -214,13 +215,16 @@ export default function PortfolioPage() {
                         key={stock.stock_code}
                         className="flex items-center justify-between py-2 border-b last:border-0"
                       >
-                        <div>
-                          <div className="font-medium text-sm">
-                            {stock.stock_name}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {stock.stock_code} ·{" "}
-                            {stock.quantity.toLocaleString("ko-KR")}주
+                        <div className="flex items-center gap-2">
+                          <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="default" />
+                          <div>
+                            <div className="font-medium text-sm">
+                              {stock.stock_name}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {stock.stock_code} ·{" "}
+                              {stock.quantity.toLocaleString("ko-KR")}주
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
