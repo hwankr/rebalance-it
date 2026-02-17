@@ -18,30 +18,15 @@ export function WeightBulletChart({
   className,
 }: WeightBulletChartProps) {
   const drift = currentPct - targetPct;
-  const absDrift = Math.abs(drift);
+  const isOver = drift > 0;
 
   // Scale: 20% headroom
   const maxPct = Math.max(currentPct, targetPct, 1) * 1.2;
 
-  // Color by drift severity
-  const barColor =
-    absDrift < 2
-      ? "bg-emerald-500 dark:bg-emerald-400"
-      : absDrift < 5
-        ? "bg-amber-500 dark:bg-amber-400"
-        : "bg-rose-500 dark:bg-rose-400";
-
-  // Direction arrow for color-blind accessibility
-  const directionArrow =
-    absDrift < 0.5 ? "=" : drift > 0 ? "▲" : "▼";
-
-  // Diff badge color
-  const diffColor =
-    absDrift < 2
-      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-      : absDrift < 5
-        ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-        : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30";
+  // Directional color: orange for over-target, blue for under-target
+  const barColor = isOver
+    ? "bg-orange-500 dark:bg-orange-400"
+    : "bg-blue-500 dark:bg-blue-400";
 
   // Widths as percentages
   const currentWidth = maxPct > 0 ? (currentPct / maxPct) * 100 : 0;
@@ -51,60 +36,63 @@ export function WeightBulletChart({
 
   return (
     <div className={cn("w-full", className)}>
-      {/* Bar container */}
+      {/* Outer spacer: provides vertical room for marker overshoot + floating label */}
       <div
         className={cn(
-          "relative w-full min-w-[120px] bg-muted rounded",
-          compact ? "h-3" : "h-5"
+          "relative w-full min-w-[120px] flex items-center",
+          compact ? "h-6" : "h-8"
         )}
         role="img"
         aria-label={ariaLabel}
       >
-        {/* Current weight bar */}
-        {currentPct > 0 && (
-          <div
-            className={cn("absolute left-0 top-0 h-full rounded-l", barColor)}
-            style={{ width: `${currentWidth}%` }}
-          />
-        )}
-
-        {/* Target weight marker */}
-        {targetPct > 0 && (
-          <div
-            className="absolute top-0 h-full w-0.5 bg-foreground/50"
-            style={{ left: `${targetPosition}%` }}
-          />
-        )}
-      </div>
-
-      {/* Labels */}
-      {showLabels && !compact && (
-        <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
-          <span>현재 {currentPct.toFixed(1)}%</span>
-          {absDrift >= 0.5 && (
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 font-medium",
-                diffColor
-              )}
-            >
-              {directionArrow} {drift >= 0 ? "+" : ""}
-              {drift.toFixed(1)}%
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Compact mode: minimal diff badge */}
-      {compact && absDrift >= 0.5 && (
+        {/* Inner track */}
         <div
           className={cn(
-            "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium",
-            diffColor
+            "relative w-full bg-muted rounded-full",
+            compact ? "h-1.5" : "h-2"
           )}
         >
-          {directionArrow} {drift >= 0 ? "+" : ""}
-          {drift.toFixed(1)}%
+          {/* Current weight bar */}
+          {currentPct > 0 && (
+            <div
+              className={cn(
+                "absolute left-0 top-0 h-full rounded-full transition-[width] duration-300",
+                barColor
+              )}
+              style={{ width: `${currentWidth}%` }}
+            />
+          )}
+
+          {/* Target weight marker */}
+          {targetPct > 0 && (
+            <div
+              className="absolute w-0.5 bg-foreground z-10"
+              style={{
+                left: `${targetPosition}%`,
+                top: "-4px",
+                bottom: "-4px",
+              }}
+            >
+              {/* Floating target label (normal mode only) */}
+              {!compact && (
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">
+                  {targetPct.toFixed(1)}%
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Current percentage label */}
+      {showLabels && (
+        <div
+          className={cn(
+            "text-muted-foreground tabular-nums",
+            compact ? "text-[10px] mt-0.5" : "text-xs mt-1"
+          )}
+        >
+          현재 {currentPct.toFixed(1)}%
         </div>
       )}
     </div>

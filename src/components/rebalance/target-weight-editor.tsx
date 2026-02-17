@@ -172,16 +172,47 @@ export function TargetWeightEditor({
         </div>
 
         {/* Desktop table */}
-        <div className="hidden md:block border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="hidden md:block border rounded-xl overflow-visible">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[35%]" />
+              <col className="w-[45%]" />
+              <col className="w-[20%]" />
+            </colgroup>
             <thead className="bg-muted/50">
               <tr className="text-muted-foreground text-xs border-b border-border/50">
                 <th className="text-left py-3 px-4 font-medium">종목</th>
-                <th className="py-3 px-4 font-medium">현재 vs 목표</th>
-                <th className="text-right py-3 px-4 font-medium w-24">차이</th>
+                <th className="text-center py-3 px-4 font-medium">현재 vs 목표</th>
+                <th className="text-right py-3 px-4 font-medium">차이</th>
               </tr>
             </thead>
             <tbody>
+              {/* 현금 행 (상단) */}
+              <tr className="bg-muted/20">
+                <td className="py-3 px-4 font-medium text-muted-foreground">
+                  현금
+                </td>
+                <td className="py-3 px-4">
+                  <WeightBulletChart
+                    currentPct={cashCurrentPct}
+                    targetPct={cashTargetPct}
+                  />
+                </td>
+                <td className="text-right px-4">
+                  {Math.abs(cashDiff) >= 0.5 && (
+                    <span className={cn(
+                      "inline-block rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
+                      Math.abs(cashDiff) < 2
+                        ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
+                        : Math.abs(cashDiff) < 5
+                          ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
+                          : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30"
+                    )}>
+                      {Math.abs(cashDiff) < 0.5 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
+                    </span>
+                  )}
+                </td>
+              </tr>
               {stocksWithPcts
                 .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
                 .map((d) => {
@@ -199,7 +230,7 @@ export function TargetWeightEditor({
                       key={d.id}
                       className="border-b border-border/40 last:border-0 hover:bg-muted/30"
                     >
-                      <td className="py-3 px-4 w-36">
+                      <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <StockLogo stockCode={d.stock_code} stockName={d.stock_name} currency={d.currency} size="sm" />
                           <div>
@@ -226,38 +257,35 @@ export function TargetWeightEditor({
                     </tr>
                   );
                 })}
-              {/* 현금 행 */}
-              <tr className="bg-muted/20">
-                <td className="py-3 px-4 font-medium text-muted-foreground">
-                  현금
-                </td>
-                <td className="py-3 px-4">
-                  <WeightBulletChart
-                    currentPct={cashCurrentPct}
-                    targetPct={cashTargetPct}
-                  />
-                </td>
-                <td className="text-right px-4">
-                  {Math.abs(cashDiff) >= 0.5 && (
-                    <span className={cn(
-                      "inline-block rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
-                      Math.abs(cashDiff) < 2
-                        ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                        : Math.abs(cashDiff) < 5
-                          ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                          : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30"
-                    )}>
-                      {Math.abs(cashDiff) < 0.5 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
-                    </span>
-                  )}
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
 
         {/* Mobile list */}
         <div className="space-y-0.5 md:hidden text-sm">
+          {/* 현금 (상단) */}
+          <div className="py-2.5 px-2 bg-muted/20 rounded-lg mb-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="font-medium text-muted-foreground">현금</div>
+              {Math.abs(cashDiff) >= 0.5 && (
+                <span className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums",
+                  Math.abs(cashDiff) < 2
+                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
+                    : Math.abs(cashDiff) < 5
+                      ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
+                      : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30"
+                )}>
+                  {Math.abs(cashDiff) < 0.5 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <WeightBulletChart
+              currentPct={cashCurrentPct}
+              targetPct={cashTargetPct}
+              compact
+            />
+          </div>
           {stocksWithPcts
             .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
             .map((d) => {
@@ -294,28 +322,6 @@ export function TargetWeightEditor({
                 </div>
               );
             })}
-          <div className="py-2.5 px-2 bg-muted/20 rounded-lg mt-2">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="font-medium text-muted-foreground">현금</div>
-              {Math.abs(cashDiff) >= 0.5 && (
-                <span className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums",
-                  Math.abs(cashDiff) < 2
-                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                    : Math.abs(cashDiff) < 5
-                      ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                      : "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30"
-                )}>
-                  {Math.abs(cashDiff) < 0.5 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
-                </span>
-              )}
-            </div>
-            <WeightBulletChart
-              currentPct={cashCurrentPct}
-              targetPct={cashTargetPct}
-              compact
-            />
-          </div>
         </div>
       </div>
     );
