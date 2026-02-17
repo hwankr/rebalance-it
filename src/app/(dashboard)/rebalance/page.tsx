@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -9,6 +10,9 @@ import {
   XCircle,
   Clock,
   RefreshCw,
+  Pause,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -42,6 +46,7 @@ import { CompletionReviewSheet } from "@/components/rebalance/completion-review-
 import { PRICE_CHANGE_THRESHOLD } from "@/lib/rebalance/constants";
 
 export default function RebalancePage() {
+  const router = useRouter();
   const { accounts, selectedAccountId } = useAccounts();
   const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
   const isAllMode = selectedAccountId === "all";
@@ -49,6 +54,7 @@ export default function RebalancePage() {
   // 계좌 1개 + 전체 모드: 해당 계좌를 실질적으로 사용 (리밸런싱 가능)
   const effectivePortfolioId = isAllMode && accounts.length === 1 ? accounts[0].id : portfolioId;
   const effectiveIsAllMode = isAllMode && accounts.length > 1;
+  const effectiveAccountName = accounts.find(a => a.id === effectivePortfolioId)?.name ?? null;
 
   const {
     data: balance,
@@ -77,6 +83,8 @@ export default function RebalancePage() {
     resumeSession,
     latestPartialSession,
     getProgress,
+    lastSavedAt,
+    isSaving,
     isStarting,
     isCompleting,
     isAbandoning,
@@ -397,11 +405,34 @@ export default function RebalancePage() {
               </Badge>
               <h1 className="text-lg font-bold tracking-tight">
                 리밸런싱 실행
+                {effectiveAccountName && (
+                  <span className="ml-1.5 text-muted-foreground font-medium">· {effectiveAccountName}</span>
+                )}
               </h1>
+              {/* Auto-save indicator */}
+              <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                {isSaving ? (
+                  <>
+                    <Loader2 className="size-3 animate-spin" />
+                    저장 중...
+                  </>
+                ) : lastSavedAt ? (
+                  <>
+                    <Save className="size-3" />
+                    자동 저장됨 · {formatDistanceToNow(lastSavedAt, { locale: ko, addSuffix: false })} 전
+                  </>
+                ) : null}
+              </span>
             </div>
-            <p className="text-muted-foreground text-sm">
-              증권사 앱에서 주문을 실행하고, 실제 체결 수량을 입력하세요.
-            </p>
+            <div className="flex items-center gap-x-4 text-sm text-muted-foreground">
+              <span>증권사 앱에서 주문을 실행하고, 실제 체결 수량을 입력하세요.</span>
+              {startedAt && (
+                <span className="hidden sm:inline-flex items-center gap-1 text-xs shrink-0">
+                  <Clock className="size-3" />
+                  {formatDistanceToNow(startedAt, { locale: ko, addSuffix: true })} 시작
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -516,7 +547,19 @@ export default function RebalancePage() {
                     <CheckCircle2 className="size-5" />
                     리밸런싱 완료
                   </Button>
-                  
+
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => {
+                      toast.success("진행 상태가 자동 저장되었습니다. 언제든 돌아와서 이어할 수 있습니다.");
+                      router.push("/portfolio");
+                    }}
+                  >
+                    <Pause className="size-4" />
+                    나중에 계속
+                  </Button>
+
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       variant="outline"

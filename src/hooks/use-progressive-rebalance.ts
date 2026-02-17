@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
+import { toast } from "sonner";
 import type {
   RebalanceExecution,
   ExecutionOrderResult,
@@ -45,6 +46,9 @@ export function useProgressiveRebalance(portfolioId: string | null) {
 
   // Pending orders: tracks in-flight mutations to protect display from stale refetches
   const [pendingOrders, setPendingOrders] = useState<Map<string, PendingOrder>>(new Map());
+
+  // Auto-save indicator: tracks when the last successful save occurred
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   // 활성 세션 조회 (계좌별)
   const {
@@ -203,8 +207,10 @@ export function useProgressiveRebalance(portfolioId: string | null) {
         next.delete(vars.stockCode);
         return next;
       });
+      toast.error("저장에 실패했습니다. 네트워크를 확인해주세요.");
     },
     onSuccess: (_data, vars) => {
+      setLastSavedAt(new Date());
       // Clear pending after refetch has time to complete with confirmed data
       const currentCount = mutationCounterRef.current.get(vars.stockCode) ?? 0;
       if (vars.callId === currentCount) {
@@ -440,6 +446,11 @@ export function useProgressiveRebalance(portfolioId: string | null) {
       // Single cache invalidation
       queryClient.invalidateQueries({ queryKey: activeSessionKey });
 
+      // Update auto-save indicator on successful batch
+      if (!hasError) {
+        setLastSavedAt(new Date());
+      }
+
       // Clear pending after refetch settles
       if (!hasError) {
         setTimeout(() => {
@@ -519,6 +530,8 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     resumeSession,
     latestPartialSession: latestPartialSession ?? null,
     getProgress,
+    lastSavedAt,
+    isSaving: updateQuantityMutation.isPending,
     isStarting: startMutation.isPending,
     isUpdatingQuantity: updateQuantityMutation.isPending,
     isToggling: updateQuantityMutation.isPending,
