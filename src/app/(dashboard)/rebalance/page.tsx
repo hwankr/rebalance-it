@@ -69,6 +69,7 @@ export default function RebalancePage() {
     refetchActiveSession,
     startSession,
     updateOrderQuantity,
+    pendingOrders,
     batchFillOrders,
     completeSession,
     abandonSession,
@@ -474,6 +475,7 @@ export default function RebalancePage() {
                     onQuantityChange={handleQuantityChange}
                     onBatchFill={handleBatchFillSell}
                     disabled={false}
+                    pendingOrders={pendingOrders}
                   />
                 </div>
               )}
@@ -494,6 +496,7 @@ export default function RebalancePage() {
                     onQuantityChange={handleQuantityChange}
                     onBatchFill={handleBatchFillBuy}
                     disabled={false}
+                    pendingOrders={pendingOrders}
                   />
                 </div>
               )}

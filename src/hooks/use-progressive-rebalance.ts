@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useMemo } from "react";
+import { useCallback, useRef, useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,6 +11,17 @@ import type {
   PortfolioSnapshot,
 } from "@/lib/rebalance/history-types";
 import type { RebalanceResult } from "@/lib/rebalance/types";
+
+export type MutationOrigin = "stepper" | "input" | "fill" | "batch";
+
+export interface PendingOrder {
+  opId: number;
+  quantity: number;
+  origin: MutationOrigin;
+  timestamp: number;
+}
+
+const PENDING_TTL_MS = 10_000; // 10s safety TTL
 
 interface StartSessionParams {
   simulationResult: RebalanceResult;
@@ -32,6 +43,9 @@ export function useProgressiveRebalance(portfolioId: string | null) {
   // "Latest wins" counter for mutation cancellation per stock_code
   const mutationCounterRef = useRef<Map<string, number>>(new Map());
 
+  // Pending orders: tracks in-flight mutations to protect display from stale refetches
+  const [pendingOrders, setPendingOrders] = useState<Map<string, PendingOrder>>(new Map());
+
   // 활성 세션 조회 (계좌별)
   const {
     data: activeSession,
@@ -40,7 +54,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
   } = useQuery({
     queryKey: activeSessionKey,
     enabled: (!!user || isGuest) && !!portfolioId,
-    staleTime: 0,
+    staleTime: 30_000,
     refetchOnMount: "always",
     queryFn: async (): Promise<RebalanceExecution | null> => {
       const { data, error } = await client
@@ -140,12 +154,13 @@ export function useProgressiveRebalance(portfolioId: string | null) {
       actualPrice?: number;
       callId: number;
     }) => {
-      const { data, error } = await client.rpc("update_execution_order", {
+      const rpcParams = {
         p_execution_id: executionId,
         p_stock_code: stockCode,
         p_executed_quantity: executedQuantity,
-        ...(actualPrice != null ? { p_actual_price: actualPrice } : {}),
-      });
+        p_actual_price: actualPrice ?? null,
+      };
+      const { data, error } = await client.rpc("update_execution_order", rpcParams);
       if (error) throw error;
       return { orders: data as unknown as ExecutionOrderResult[], callId, stockCode };
     },
@@ -177,9 +192,33 @@ export function useProgressiveRebalance(portfolioId: string | null) {
 
       return { previous };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, vars, context) => {
+      console.error("[Rebalance] updateOrderQuantity failed:", vars.stockCode, err);
       if (context?.previous) {
         queryClient.setQueryData(activeSessionKey, context.previous);
+      }
+      // Clear pending immediately on error (mutation failed, value not saved)
+      setPendingOrders((prev) => {
+        const next = new Map(prev);
+        next.delete(vars.stockCode);
+        return next;
+      });
+    },
+    onSuccess: (_data, vars) => {
+      // Clear pending after refetch has time to complete with confirmed data
+      const currentCount = mutationCounterRef.current.get(vars.stockCode) ?? 0;
+      if (vars.callId === currentCount) {
+        setTimeout(() => {
+          setPendingOrders((prev) => {
+            const pending = prev.get(vars.stockCode);
+            if (pending && pending.opId === vars.callId) {
+              const next = new Map(prev);
+              next.delete(vars.stockCode);
+              return next;
+            }
+            return prev;
+          });
+        }, 3000);
       }
     },
     onSettled: (_data, _err, vars) => {
@@ -303,11 +342,18 @@ export function useProgressiveRebalance(portfolioId: string | null) {
   );
 
   const updateOrderQuantity = useCallback(
-    (executionId: string, stockCode: string, executedQuantity: number, actualPrice?: number) => {
+    (executionId: string, stockCode: string, executedQuantity: number, actualPrice?: number, origin: MutationOrigin = "stepper") => {
       // Increment counter for this stock (latest wins pattern)
       const prev = mutationCounterRef.current.get(stockCode) ?? 0;
       const callId = prev + 1;
       mutationCounterRef.current.set(stockCode, callId);
+
+      // Track pending to protect display from stale refetches
+      setPendingOrders((m) => {
+        const next = new Map(m);
+        next.set(stockCode, { opId: callId, quantity: executedQuantity, origin, timestamp: Date.now() });
+        return next;
+      });
 
       updateQuantityMutation.mutate({ executionId, stockCode, executedQuantity, actualPrice, callId });
     },
@@ -332,6 +378,18 @@ export function useProgressiveRebalance(portfolioId: string | null) {
       ordersToFill: Array<{ stock_code: string; quantity: number }>
     ) => {
       if (ordersToFill.length === 0) return;
+
+      // Set pending for all orders being filled
+      const now = Date.now();
+      setPendingOrders((prev) => {
+        const next = new Map(prev);
+        for (const o of ordersToFill) {
+          const opId = (mutationCounterRef.current.get(o.stock_code) ?? 0) + 1;
+          mutationCounterRef.current.set(o.stock_code, opId);
+          next.set(o.stock_code, { opId, quantity: o.quantity, origin: "batch", timestamp: now });
+        }
+        return next;
+      });
 
       // Cancel in-flight queries
       await queryClient.cancelQueries({ queryKey: activeSessionKey });
@@ -362,6 +420,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
             p_execution_id: executionId,
             p_stock_code: o.stock_code,
             p_executed_quantity: o.quantity,
+            p_actual_price: null,
           })
         )
       );
@@ -370,10 +429,34 @@ export function useProgressiveRebalance(portfolioId: string | null) {
       const hasError = results.some((r) => r.status === "rejected" || (r.status === "fulfilled" && r.value.error));
       if (hasError && previous) {
         queryClient.setQueryData(activeSessionKey, previous);
+        // Clear pending on rollback
+        setPendingOrders((prev) => {
+          const next = new Map(prev);
+          for (const o of ordersToFill) next.delete(o.stock_code);
+          return next;
+        });
       }
 
       // Single cache invalidation
       queryClient.invalidateQueries({ queryKey: activeSessionKey });
+
+      // Clear pending after refetch settles
+      if (!hasError) {
+        setTimeout(() => {
+          setPendingOrders((prev) => {
+            const next = new Map(prev);
+            let changed = false;
+            for (const o of ordersToFill) {
+              const pending = next.get(o.stock_code);
+              if (pending && pending.origin === "batch" && pending.timestamp === now) {
+                next.delete(o.stock_code);
+                changed = true;
+              }
+            }
+            return changed ? next : prev;
+          });
+        }, 3000);
+      }
     },
     [activeSessionKey, client, queryClient]
   );
@@ -398,6 +481,28 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     [resumeMutation]
   );
 
+  // TTL-based safety cleanup: clear any pending entries older than PENDING_TTL_MS
+  useEffect(() => {
+    if (pendingOrders.size === 0) return;
+
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setPendingOrders((prev) => {
+        let changed = false;
+        const next = new Map(prev);
+        for (const [stockCode, pending] of next) {
+          if (now - pending.timestamp > PENDING_TTL_MS) {
+            next.delete(stockCode);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 2000);
+
+    return () => clearInterval(timer);
+  }, [pendingOrders.size]);
+
   return {
     activeSession,
     isLoadingSession,
@@ -405,6 +510,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     useSession,
     startSession,
     updateOrderQuantity,
+    pendingOrders,
     toggleOrder,
     batchFillOrders,
     completeSession,

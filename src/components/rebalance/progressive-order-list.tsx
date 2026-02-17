@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ExecutionOrderResult } from "@/lib/rebalance/history-types";
+import type { PendingOrder } from "@/hooks/use-progressive-rebalance";
 
 interface ProgressiveOrderListProps {
   orders: ExecutionOrderResult[];
@@ -32,6 +33,7 @@ interface ProgressiveOrderListProps {
   onQuantityChange: (stockCode: string, executedQuantity: number, actualPrice?: number) => void;
   onBatchFill?: () => void;
   disabled?: boolean;
+  pendingOrders?: Map<string, PendingOrder>;
 }
 
 const DEBOUNCE_MS = 500;
@@ -61,75 +63,79 @@ function FillButton({
 
 function DebouncedQuantityInput({
   order,
+  pending,
   onQuantityChange,
   disabled,
 }: {
   order: ExecutionOrderResult;
+  pending?: PendingOrder;
   onQuantityChange: (stockCode: string, qty: number) => void;
   disabled: boolean;
 }) {
-  const [localValue, setLocalValue] = useState<string>(
-    String(order.executed_quantity ?? 0)
-  );
-  const [prevExecutedQty, setPrevExecutedQty] = useState(order.executed_quantity);
-  const [prevOrderQty, setPrevOrderQty] = useState(order.quantity);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // typingValue: local state ONLY for active text-input editing (immediate
+  // visual feedback while debounce waits). Null when not typing.
+  const [typingValue, setTypingValue] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync with server data using React-recommended prop-change pattern
-  if (order.executed_quantity !== prevExecutedQty || order.quantity !== prevOrderQty) {
-    setPrevExecutedQty(order.executed_quantity);
+  // Clear typing state when order.quantity changes (recalculate happened)
+  const [prevOrderQty, setPrevOrderQty] = useState(order.quantity);
+  if (order.quantity !== prevOrderQty) {
     setPrevOrderQty(order.quantity);
-    setLocalValue(String(order.executed_quantity ?? 0));
+    setTypingValue(null);
   }
 
-  const handleChange = useCallback(
-    (rawValue: string) => {
-      setLocalValue(rawValue);
+  // Display priority: typing > pending (hook-managed) > server prop
+  const serverQty = order.executed_quantity ?? 0;
+  const displayValue = typingValue ?? String(pending?.quantity ?? serverQty);
 
-      if (timerRef.current) clearTimeout(timerRef.current);
-
-      timerRef.current = setTimeout(() => {
-        const parsed = parseInt(rawValue, 10);
-        const clamped = isNaN(parsed)
-          ? 0
-          : Math.max(0, Math.min(parsed, order.quantity));
-        setLocalValue(String(clamped));
-        onQuantityChange(order.stock_code, clamped);
-      }, DEBOUNCE_MS);
-    },
-    [order.stock_code, order.quantity, onQuantityChange]
-  );
-
-  const handleBlur = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    const parsed = parseInt(localValue, 10);
-    const clamped = isNaN(parsed)
-      ? 0
-      : Math.max(0, Math.min(parsed, order.quantity));
-    setLocalValue(String(clamped));
-    onQuantityChange(order.stock_code, clamped);
-  }, [localValue, order.stock_code, order.quantity, onQuantityChange]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const executedQty = parseInt(localValue, 10) || 0;
+  const executedQty = parseInt(displayValue, 10) || 0;
   const isFull = executedQty >= order.quantity;
   const isPartial = executedQty > 0 && executedQty < order.quantity;
 
   const handleStep = useCallback(
     (delta: number) => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      const current = parseInt(localValue, 10) || 0;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      setTypingValue(null);
+      const current = pending?.quantity ?? (order.executed_quantity ?? 0);
       const next = Math.max(0, Math.min(current + delta, order.quantity));
-      setLocalValue(String(next));
       onQuantityChange(order.stock_code, next);
     },
-    [localValue, order.stock_code, order.quantity, onQuantityChange]
+    [pending, order.executed_quantity, order.stock_code, order.quantity, onQuantityChange],
   );
+
+  const handleChange = useCallback(
+    (rawValue: string) => {
+      setTypingValue(rawValue);
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      debounceRef.current = setTimeout(() => {
+        const parsed = parseInt(rawValue, 10);
+        const clamped = isNaN(parsed)
+          ? 0
+          : Math.max(0, Math.min(parsed, order.quantity));
+        setTypingValue(null);
+        onQuantityChange(order.stock_code, clamped);
+      }, DEBOUNCE_MS);
+    },
+    [order.stock_code, order.quantity, onQuantityChange],
+  );
+
+  const handleBlur = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const parsed = parseInt(displayValue, 10);
+    const clamped = isNaN(parsed)
+      ? 0
+      : Math.max(0, Math.min(parsed, order.quantity));
+    setTypingValue(null);
+    onQuantityChange(order.stock_code, clamped);
+  }, [displayValue, order.stock_code, order.quantity, onQuantityChange]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   return (
     <div className="flex items-center gap-1.5">
@@ -147,7 +153,7 @@ function DebouncedQuantityInput({
         min={0}
         max={order.quantity}
         step={1}
-        value={localValue}
+        value={displayValue}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}
         disabled={disabled}
@@ -260,6 +266,7 @@ export function ProgressiveOrderList({
   onQuantityChange,
   onBatchFill,
   disabled = false,
+  pendingOrders,
 }: ProgressiveOrderListProps) {
   const filtered = orders
     .filter((o) => o.side === side)
@@ -403,6 +410,7 @@ export function ProgressiveOrderList({
                             <div className="flex items-center justify-end gap-1">
                               <DebouncedQuantityInput
                                 order={order}
+                                pending={pendingOrders?.get(order.stock_code)}
                                 onQuantityChange={handleQuantityWithPrice}
                                 disabled={disabled || isOverExecuted}
                               />
@@ -533,6 +541,7 @@ export function ProgressiveOrderList({
                           <span className="text-xs text-muted-foreground shrink-0">체결 수량</span>
                           <DebouncedQuantityInput
                             order={order}
+                            pending={pendingOrders?.get(order.stock_code)}
                             onQuantityChange={handleQuantityWithPrice}
                             disabled={disabled || isOverExecuted}
                           />
