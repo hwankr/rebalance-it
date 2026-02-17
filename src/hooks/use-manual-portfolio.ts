@@ -299,5 +299,6 @@ export function useManualPortfolio(
     dataUpdatedAt,
     isAdding: addStockMutation.isPending,
     isUpdating: updateStockMutation.isPending,
+    isCashSaving: setCashMutation.isPending,
   };
 }

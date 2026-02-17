@@ -60,6 +60,7 @@ export default function PortfolioPage() {
     refetch,
     isFetching,
     updateBatchTargets,
+    isCashSaving,
   } = useManualPortfolio(effectivePortfolioId, exchangeRate);
   const {
     balance: consolidatedBalance,
@@ -269,6 +270,17 @@ export default function PortfolioPage() {
 
           <AccountTabs />
 
+          <SummaryCards
+            totalValue={totalValue}
+            totalProfitLoss={totalProfitLoss}
+            totalProfitRate={totalProfitRate}
+            cash={cash}
+            stockCount={0}
+            isLoading={isLoading}
+            onCashChange={setCash}
+            isCashSaving={isCashSaving}
+          />
+
           <Card>
             <CardContent className="pt-4 text-center">
               <p className="text-muted-foreground mb-4">
@@ -277,7 +289,6 @@ export default function PortfolioPage() {
               <PortfolioEditSection
                 portfolio={portfolio}
                 stocks={stocks}
-                onSetCash={setCash}
                 onAddStock={addStock}
                 isAdding={isAdding}
                 defaultExpanded={true}
@@ -327,6 +338,8 @@ export default function PortfolioPage() {
           cash={cash}
           stockCount={stocks.length}
           isLoading={isLoading}
+          onCashChange={setCash}
+          isCashSaving={isCashSaving}
         />
 
         {/* Assets & Allocation Section */}
@@ -378,7 +391,6 @@ export default function PortfolioPage() {
         <PortfolioEditSection
           portfolio={portfolio}
           stocks={stocks}
-          onSetCash={setCash}
           onAddStock={addStock}
           isAdding={isAdding}
           onRefreshPrices={isPro ? handleRefreshPrices : undefined}
