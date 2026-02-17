@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
 import type { ExecutionOrderResult } from "@/lib/rebalance/history-types";
 
 interface ProgressSummaryProps {
@@ -92,6 +93,46 @@ export function ProgressSummary({
               금액 기준 진행률: {amountPercentage}% ({formatCurrency(executedAmount)} / {formatCurrency(totalOrderAmount)})
             </div>
           )}
+          {(() => {
+            const actualSellAmt = sellOrders.reduce(
+              (sum, o) => sum + getExecutedQty(o) * (o.actual_price ?? o.estimated_price),
+              0,
+            );
+            const actualBuyAmt = buyOrders.reduce(
+              (sum, o) => sum + getExecutedQty(o) * (o.actual_price ?? o.estimated_price),
+              0,
+            );
+            const sDelta = actualSellAmt - totalSellAmount;
+            const bDelta = actualBuyAmt - totalBuyAmount;
+            const hasExec = actualSellAmt > 0 || actualBuyAmt > 0;
+            if (!hasExec || (sDelta === 0 && bDelta === 0)) return null;
+            return (
+              <div className="text-xs text-muted-foreground mt-2 space-y-0.5 tabular-nums border-t pt-2">
+                {actualSellAmt > 0 && sDelta !== 0 && (
+                  <div className="flex justify-between">
+                    <span>매도 대금 차이</span>
+                    <span className={cn(
+                      "font-medium",
+                      sDelta > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
+                    )}>
+                      {sDelta > 0 ? "+" : ""}{formatCurrency(sDelta)}
+                    </span>
+                  </div>
+                )}
+                {actualBuyAmt > 0 && bDelta !== 0 && (
+                  <div className="flex justify-between">
+                    <span>매수 대금 차이</span>
+                    <span className={cn(
+                      "font-medium",
+                      bDelta < 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
+                    )}>
+                      {bDelta > 0 ? "+" : ""}{formatCurrency(bDelta)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </CardHeader>
       </Card>
     </m.div>

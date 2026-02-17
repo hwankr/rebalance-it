@@ -191,7 +191,6 @@ function ActualPriceInput({
   const [localPrice, setLocalPrice] = useState<string>(
     order.actual_price != null ? String(order.actual_price) : ""
   );
-  const [isOpen, setIsOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync from server
@@ -228,34 +227,18 @@ function ActualPriceInput({
     };
   }, []);
 
-  // Only show when executed_quantity > 0
   if (execQty <= 0) return null;
 
-  if (!isOpen) {
-    return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        disabled={disabled}
-        className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline disabled:opacity-50"
-      >
-        체결가 입력
-      </button>
-    );
-  }
-
   return (
-    <div className="flex items-center gap-1">
-      <Input
-        type="number"
-        placeholder={String(order.estimated_price)}
-        value={localPrice}
-        onChange={(e) => handleChange(e.target.value)}
-        onBlur={handleBlur}
-        disabled={disabled}
-        className="w-24 h-7 text-right tabular-nums text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-      />
-    </div>
+    <Input
+      type="number"
+      placeholder={String(order.estimated_price)}
+      value={localPrice}
+      onChange={(e) => handleChange(e.target.value)}
+      onBlur={handleBlur}
+      disabled={disabled}
+      className="w-24 h-7 text-right tabular-nums text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+    />
   );
 }
 
@@ -354,6 +337,7 @@ export function ProgressiveOrderList({
                   <TableHead>종목명</TableHead>
                   <TableHead className="text-right">주문 수량</TableHead>
                   <TableHead className="text-right">체결 수량</TableHead>
+                  <TableHead className="text-right">체결가</TableHead>
                   <TableHead className="text-right">예상 가격</TableHead>
                   <TableHead className="text-right">예상 금액</TableHead>
                 </TableRow>
@@ -406,28 +390,32 @@ export function ProgressiveOrderList({
                       </TableCell>
                       <TableCell className="text-right">
                         {!isResolvedByRecalc ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex items-center justify-end gap-1">
-                              <DebouncedQuantityInput
-                                order={order}
-                                pending={pendingOrders?.get(order.stock_code)}
-                                onQuantityChange={handleQuantityWithPrice}
-                                disabled={disabled || isOverExecuted}
-                              />
-                              {!isOverExecuted && (
-                                <FillButton
-                                  order={order}
-                                  onQuantityChange={handleQuantityWithPrice}
-                                  disabled={disabled}
-                                />
-                              )}
-                            </div>
-                            <ActualPriceInput
+                          <div className="flex items-center justify-end gap-1">
+                            <DebouncedQuantityInput
                               order={order}
-                              onPriceChange={handlePriceChange}
-                              disabled={disabled}
+                              pending={pendingOrders?.get(order.stock_code)}
+                              onQuantityChange={handleQuantityWithPrice}
+                              disabled={disabled || isOverExecuted}
                             />
+                            {!isOverExecuted && (
+                              <FillButton
+                                order={order}
+                                onQuantityChange={handleQuantityWithPrice}
+                                disabled={disabled}
+                              />
+                            )}
                           </div>
+                        ) : (
+                          <div className="text-muted-foreground text-sm">-</div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {!isResolvedByRecalc ? (
+                          <ActualPriceInput
+                            order={order}
+                            onPriceChange={handlePriceChange}
+                            disabled={disabled}
+                          />
                         ) : (
                           <div className="text-muted-foreground text-sm">-</div>
                         )}
