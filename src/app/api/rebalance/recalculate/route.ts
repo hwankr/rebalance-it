@@ -149,21 +149,21 @@ export async function POST(request: NextRequest) {
     let postExecCash = snapshot.cash;
 
     // Apply already-executed orders
+    // NOTE: estimated_price와 actual_price는 모두 KRW 정규화된 값이므로
+    // 환율 추가 적용 없이 그대로 사용한다. (USD 종목도 이미 KRW로 변환됨)
     for (const order of orders) {
       const execQty = order.executed_quantity ?? 0;
       if (execQty <= 0) continue;
 
       const price = order.actual_price ?? order.estimated_price;
-      const currency = order.currency ?? "KRW";
-      const cashFactor = currency === "USD" ? exchangeRate : 1;
       const currentQty = stockQuantities.get(order.stock_code) ?? 0;
 
       if (order.side === "sell") {
         stockQuantities.set(order.stock_code, currentQty - execQty);
-        postExecCash += execQty * price * cashFactor;
+        postExecCash += execQty * price;
       } else {
         stockQuantities.set(order.stock_code, currentQty + execQty);
-        postExecCash -= execQty * price * cashFactor;
+        postExecCash -= execQty * price;
       }
     }
 

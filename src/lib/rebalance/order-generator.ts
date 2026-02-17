@@ -20,7 +20,10 @@ export function generateOrders(
 
     if (absQuantity <= 0) continue;
 
-    const estimatedPrice = adjustToTickSize(item.current_price);
+    // KRX 호가 단위는 KRW 종목에만 적용. USD 종목은 KRW 정규화 가격 그대로 사용.
+    const estimatedPrice = item.currency === "USD"
+      ? item.current_price
+      : adjustToTickSize(item.current_price);
     const estimatedAmount = absQuantity * estimatedPrice;
 
     // 최소 주문 금액 필터

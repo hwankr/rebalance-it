@@ -7,6 +7,7 @@ export interface PortfolioItem {
   current_pct: number; // 현재 비중 (0-100)
   target_pct: number; // 목표 비중 (0-100)
   is_cash?: boolean; // 현금 자산 여부
+  currency?: string; // "KRW" | "USD" — 호가 단위 적용 판단용
 }
 
 export interface DriftResult {

@@ -407,7 +407,6 @@ function handleRpc(
       if (portfolio) {
         const stocks = readTable("manual_stocks");
         let netCashChange = 0;
-        const exchangeRate = exec.portfolio_snapshot?.exchange_rate ?? 1;
 
         for (const order of orders) {
           // Backward compat: derive executed quantity
@@ -422,7 +421,8 @@ function handleRpc(
           const stockName = order.stock_name as string;
           const price = (order.actual_price as number) ?? (order.estimated_price as number) ?? 0;
           const currency = (order.currency as string) ?? "KRW";
-          const cashFactor = currency === "USD" ? exchangeRate : 1;
+          // NOTE: estimated_price와 actual_price는 모두 KRW 정규화된 값이므로
+          // 환율 추가 적용 없이 그대로 사용한다. (USD 종목도 이미 KRW로 변환됨)
           const stockIdx = stocks.findIndex(
             (s: any) => s.portfolio_id === portfolio.id && s.stock_code === stockCode,
           );
@@ -432,7 +432,7 @@ function handleRpc(
               stocks[stockIdx].quantity = Math.max(0, (stocks[stockIdx].quantity as number) - execQty);
               stocks[stockIdx].updated_at = nowISO();
             }
-            netCashChange += execQty * price * cashFactor;
+            netCashChange += execQty * price;
           } else if (side === "buy") {
             if (stockIdx >= 0) {
               stocks[stockIdx].quantity = (stocks[stockIdx].quantity as number) + execQty;
@@ -463,7 +463,7 @@ function handleRpc(
                 updated_at: nowISO(),
               });
             }
-            netCashChange -= execQty * price * cashFactor;
+            netCashChange -= execQty * price;
           }
         }
 

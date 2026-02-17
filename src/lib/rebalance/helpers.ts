@@ -20,6 +20,7 @@ export function toPortfolioItems(
     eval_amount: s.eval_amount,
     current_pct: totalValue > 0 ? (s.eval_amount / totalValue) * 100 : 0,
     target_pct: targetMap.get(s.stock_code) ?? 0,
+    currency: s.currency ?? "KRW",
   }));
 
   // 현금을 PortfolioItem으로 추가
