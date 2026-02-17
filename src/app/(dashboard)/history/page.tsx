@@ -90,7 +90,7 @@ export default function HistoryPage() {
 
   return (
     <PageTransition>
-    <div className="space-y-3 md:space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">리밸런싱 기록</h1>
@@ -121,15 +121,15 @@ export default function HistoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>실행일시</TableHead>
-                  <TableHead>리밸런싱명</TableHead>
-                  <TableHead>상태</TableHead>
-                  <TableHead className="text-right">거래건수</TableHead>
-                  <TableHead className="text-right">성공/실패</TableHead>
-                  <TableHead className="text-right">총매수</TableHead>
-                  <TableHead className="text-right">총매도</TableHead>
-                  <TableHead className="text-right">순현금</TableHead>
-                  <TableHead className="text-center">삭제</TableHead>
+                  <TableHead className="font-semibold text-foreground/80">실행일시</TableHead>
+                  <TableHead className="font-semibold text-foreground/80">리밸런싱명</TableHead>
+                  <TableHead className="font-semibold text-foreground/80">상태</TableHead>
+                  <TableHead className="text-right font-semibold text-foreground/80">거래건수</TableHead>
+                  <TableHead className="text-right font-semibold text-foreground/80">성공/실패</TableHead>
+                  <TableHead className="text-right font-semibold text-foreground/80">총매수</TableHead>
+                  <TableHead className="text-right font-semibold text-foreground/80">총매도</TableHead>
+                  <TableHead className="text-right font-semibold text-foreground/80">순현금</TableHead>
+                  <TableHead className="text-center font-semibold text-foreground/80">삭제</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,7 +140,7 @@ export default function HistoryPage() {
                     <TableRow
                       key={exec.id}
                       className={cn(
-                        "hover:bg-accent/30 transition-colors duration-150",
+                        "hover:bg-accent/50 transition-colors duration-200",
                         isClickable && "cursor-pointer"
                       )}
                       onClick={isClickable ? () => router.push("/rebalance") : undefined}
@@ -197,7 +197,7 @@ export default function HistoryPage() {
           </div>
 
           {/* Mobile card list */}
-          <div className="space-y-2 md:hidden">
+          <div className="space-y-3 md:hidden">
             {visibleHistory.map((exec, i) => {
               const statusInfo = STATUS_MAP[exec.status] ?? STATUS_MAP.completed;
               const isClickable = exec.status === "in_progress";
@@ -300,7 +300,7 @@ export default function HistoryPage() {
           </p>
 
           {hasHidden && (
-            <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-4">
+            <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-4 shadow-sm">
               <p className="text-sm text-muted-foreground">
                 Pro 플랜으로 업그레이드하면 전체 이력을 볼 수 있습니다.{" "}
                 <Link href="/pricing" className="text-blue-600 dark:text-blue-400 underline hover:no-underline">

@@ -269,11 +269,11 @@ export default function RebalancePage() {
   if (isLoading || isManualLoading || isLoadingSession) {
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-6">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
             <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
           </div>
@@ -286,12 +286,12 @@ export default function RebalancePage() {
   if (effectiveIsAllMode) {
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-6">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
           <AccountTabs />
-          <Card>
+          <Card className="border-border/50 shadow-sm">
             <CardContent className="flex flex-col items-center gap-3 py-6">
               <p className="text-muted-foreground">
                 리밸런싱을 실행하려면 특정 계좌를 선택해주세요.
@@ -310,11 +310,11 @@ export default function RebalancePage() {
   if (isError) {
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-6">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
-          <Card>
+          <Card className="border-border/50 shadow-sm">
             <CardContent className="flex flex-col items-center gap-3 py-6">
               <p className="text-destructive">
                 포트폴리오 데이터를 불러오는 데 실패했습니다.
@@ -333,12 +333,12 @@ export default function RebalancePage() {
   if (!hasStocks) {
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-6">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
           <AccountTabs />
-          <Card>
+          <Card className="border-border/50 shadow-sm">
             <CardContent className="flex flex-col items-center gap-3 py-6">
               <p className="text-muted-foreground">
                 포트폴리오에 종목을 추가해주세요.
@@ -387,9 +387,9 @@ export default function RebalancePage() {
 
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-6">
           {/* Header */}
-          <div className="mb-4">
+          <div className="mb-6">
             <div className="flex items-center gap-2 mb-1">
               <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 px-2 py-0.5 h-6">
                 진행중
@@ -403,11 +403,11 @@ export default function RebalancePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Main Content: Orders */}
-            <div className="lg:col-span-8 space-y-4">
+            <div className="lg:col-span-8 space-y-6">
               {/* Step indicator */}
-              <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+              <div className="bg-muted/30 p-4 rounded-xl border border-border/50 shadow-sm">
                  <RebalanceStepper
                    currentPhase={currentPhase}
                    hasSellOrders={sellOrders.length > 0}
@@ -500,8 +500,8 @@ export default function RebalancePage() {
             </div>
 
             {/* Sidebar: Progress & Actions */}
-            <div className="lg:col-span-4 space-y-4">
-              <div className="sticky top-20 space-y-4">
+            <div className="lg:col-span-4 space-y-6">
+              <div className="sticky top-20 space-y-6">
                  <ProgressSummary
                   orders={activeSession.orders}
                   totalBuyAmount={activeSession.total_buy_amount}
@@ -638,7 +638,7 @@ export default function RebalancePage() {
   // ── Normal view (no active session) ──────────────────────────
   return (
     <PageTransition>
-      <div className="space-y-3 md:space-y-4">
+      <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
@@ -704,7 +704,7 @@ export default function RebalancePage() {
 
         {!hasTargets ? (
           /* No targets set → direct to portfolio page */
-          <Card>
+          <Card className="border-border/50 shadow-sm">
             <CardContent className="flex flex-col items-center gap-3 py-8">
               <div className="text-center">
                 <p className="font-medium">목표 비중이 설정되지 않았습니다</p>

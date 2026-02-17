@@ -8,7 +8,8 @@ import { useManualPortfolio, type ManualStockInput } from "@/hooks/use-manual-po
 import { useSubscription } from "@/hooks/use-subscription";
 import { useRefreshPrices } from "@/hooks/use-refresh-prices";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
-import { SummaryCards } from "@/components/portfolio/summary-cards";
+import { PortfolioHero } from "@/components/portfolio/portfolio-hero";
+import { QuickActions } from "@/components/portfolio/quick-actions";
 import { AllocationChart } from "@/components/portfolio/allocation-chart";
 import { StockTable } from "@/components/manual-portfolio/stock-table";
 
@@ -181,7 +182,7 @@ export default function PortfolioPage() {
 
           <AccountTabs />
 
-          <SummaryCards
+          <PortfolioHero
             totalValue={allTotalValue}
             totalProfitLoss={allProfitLoss}
             totalProfitRate={allProfitRate}
@@ -190,19 +191,17 @@ export default function PortfolioPage() {
             isLoading={false}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-1">
-              <CardContent>
-                <AllocationChart
-                  stocks={allStocks}
-                  cash={allCash}
-                  totalValue={allTotalValue}
-                  isLoading={false}
-                />
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+            <div className="lg:col-span-4">
+              <AllocationChart
+                stocks={allStocks}
+                cash={allCash}
+                totalValue={allTotalValue}
+                isLoading={false}
+              />
+            </div>
 
-            <Card className="lg:col-span-2">
+            <Card className="lg:col-span-8">
               <CardContent>
                 {allStocks.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
@@ -274,7 +273,7 @@ export default function PortfolioPage() {
 
           <AccountTabs />
 
-          <SummaryCards
+          <PortfolioHero
             totalValue={totalValue}
             totalProfitLoss={totalProfitLoss}
             totalProfitRate={totalProfitRate}
@@ -300,7 +299,7 @@ export default function PortfolioPage() {
 
   return (
     <PageTransition>
-      <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
+      <div className="space-y-6 md:space-y-8 pb-20 md:pb-0">
         {/* Header */}
         <div className="flex items-center justify-between px-1">
           <div>
@@ -328,8 +327,8 @@ export default function PortfolioPage() {
 
         <AccountTabs />
 
-        {/* Summary Cards */}
-        <SummaryCards
+        {/* Portfolio Hero */}
+        <PortfolioHero
           totalValue={totalValue}
           totalProfitLoss={totalProfitLoss}
           totalProfitRate={totalProfitRate}
@@ -338,16 +337,23 @@ export default function PortfolioPage() {
           isLoading={isLoading}
           onCashChange={setCash}
           isCashSaving={isCashSaving}
+          dataUpdatedAt={dataUpdatedAt}
         />
 
         {/* Assets & Allocation Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Main Stock List Area */}
-          <div className="lg:col-span-2 order-2 lg:order-1">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <h3 className="text-base font-semibold">보유 종목</h3>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+          {/* Side Panel: Allocation Chart */}
+          <div className="lg:col-span-4 order-1">
+            <AllocationChart
+              stocks={balance?.stocks ?? []}
+              cash={cash}
+              totalValue={totalValue}
+              isLoading={isLoading}
+            />
+          </div>
 
+          {/* Main Stock List Area */}
+          <div className="lg:col-span-8 order-2">
             <StockTable
               stocks={stocks}
               onUpdate={updateStock}
@@ -360,22 +366,17 @@ export default function PortfolioPage() {
               isAdding={isAdding}
             />
           </div>
-
-          {/* Side Panel: Allocation Chart */}
-          <div className="lg:col-span-1 order-1 lg:order-2 mb-4 lg:mb-0">
-             <div className="sticky top-20">
-              <h3 className="text-base font-semibold mb-2 px-1">자산 배분</h3>
-              <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
-                <AllocationChart
-                  stocks={balance?.stocks ?? []}
-                  cash={cash}
-                  totalValue={totalValue}
-                  isLoading={isLoading}
-                />
-              </div>
-            </div>
-          </div>
         </div>
+
+        {/* Quick Actions */}
+        <QuickActions onAddStock={() => {
+          // Scroll to stock table add form
+          const addButton = document.querySelector('[data-stock-add-button]');
+          if (addButton) {
+            addButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            (addButton as HTMLButtonElement).click();
+          }
+        }} />
 
         {/* 인라인 목표 비중 편집기 (TargetWeightEditor) */}
         <TargetWeightEditor

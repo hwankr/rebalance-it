@@ -24,7 +24,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
-import { formatCurrency, formatEvalAmount, formatPercent, formatUsdPrice } from "@/lib/utils/format";
+import { formatCurrency, formatPercent, formatUsdPrice } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 import { useStockChart } from "@/hooks/use-stock-chart";
@@ -114,11 +114,12 @@ function StockChartSheet({
             </div>
             <div>
               <span className="text-muted-foreground">평가금액</span>
-              <p className="font-medium tabular-nums">
-                {isUsd && exchangeRate
-                  ? formatEvalAmount(evalAmountKrw, { currency: "USD", nativeEval: evalAmount })
-                  : formatCurrency(evalAmount)}
-              </p>
+              <div className="font-medium tabular-nums">
+                <p>{isUsd && exchangeRate ? formatCurrency(Math.round(evalAmountKrw)) : formatCurrency(evalAmount)}</p>
+                {isUsd && exchangeRate && (
+                  <p className="text-xs text-muted-foreground">{formatUsdPrice(evalAmount)}</p>
+                )}
+              </div>
             </div>
             <div>
               <span className="text-muted-foreground">손익</span>
@@ -186,82 +187,101 @@ export function StockTable({
 
   if (stocks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 gap-4">
-        <p className="text-sm text-muted-foreground">
-          종목이 없습니다.
-        </p>
-        {onAddStock && (
-          <div className="w-full max-w-2xl space-y-3">
-            {!isFormExpanded ? (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setIsFormExpanded(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                종목 추가
-              </Button>
-            ) : (
-              <div className="border rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">종목 추가</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsFormExpanded(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+      <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+        <div className="flex flex-col items-center justify-center py-8 gap-4">
+          <p className="text-sm text-muted-foreground">
+            종목이 없습니다.
+          </p>
+          {onAddStock && (
+            <div className="w-full max-w-2xl space-y-3 px-4">
+              {!isFormExpanded ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setIsFormExpanded(true)}
+                  data-stock-add-button
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  종목 추가
+                </Button>
+              ) : (
+                <div className="border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">종목 추가</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsFormExpanded(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <StockForm
+                    onSubmit={(data) => {
+                      onAddStock(data);
+                      setIsFormExpanded(false);
+                    }}
+                    isSubmitting={isAdding}
+                  />
                 </div>
-                <StockForm
-                  onSubmit={(data) => {
-                    onAddStock(data);
-                    setIsFormExpanded(false);
-                  }}
-                  isSubmitting={isAdding}
-                />
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-0 md:space-y-4">
-      {onRefresh && (
-        <div className="flex justify-end px-4 md:px-0 mb-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="text-xs h-8"
-          >
-            {isRefreshing ? (
-              <Loader2 className="mr-2 size-3 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 size-3" />
-            )}
-            가격 정보 업데이트
-          </Button>
+    <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+      {/* Card Header */}
+      <div className="flex items-center justify-between p-4 md:p-6 border-b">
+        <h3 className="font-bold text-lg">보유 종목</h3>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="text-xs h-8"
+            >
+              {isRefreshing ? (
+                <Loader2 className="mr-2 size-3 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 size-3" />
+              )}
+              가격 업데이트
+            </Button>
+          )}
+          {onAddStock && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFormExpanded(true)}
+              className="text-xs h-8"
+              data-stock-add-button
+            >
+              <Plus className="mr-2 size-3" />
+              종목 추가
+            </Button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block border rounded-xl overflow-hidden">
+      <div className="hidden md:block overflow-hidden">
         <Table>
         <TableHeader className="bg-muted/50">
           <TableRow className="hover:bg-transparent border-b-border/50">
-            <TableHead>종목명</TableHead>
-            <TableHead className="text-right">수량</TableHead>
-            <TableHead className="text-right">평단가</TableHead>
-            <TableHead className="text-right">현재가</TableHead>
-            <TableHead className="text-right">평가금액</TableHead>
-            {showWeight && <TableHead className="text-right">비중</TableHead>}
-            <TableHead className="text-right">손익</TableHead>
-            <TableHead className="text-right">수익률</TableHead>
+            <TableHead className="text-xs font-bold text-muted-foreground uppercase tracking-wider">종목명</TableHead>
+            <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">수량</TableHead>
+            <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">평단가</TableHead>
+            <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">현재가</TableHead>
+            <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">평가금액</TableHead>
+            {showWeight && <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">비중</TableHead>}
+            <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">손익</TableHead>
+            <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">수익률</TableHead>
             <TableHead className="w-20" />
           </TableRow>
         </TableHeader>
@@ -284,7 +304,7 @@ export function StockTable({
               isUsd && exchangeRate ? profitLoss * exchangeRate : profitLoss;
 
             return (
-              <TableRow key={stock.id ?? `stock-${index}`} className="hover:bg-muted/30 border-b-border/40">
+              <TableRow key={stock.id ?? `stock-${index}`} className="hover:bg-muted/30 dark:hover:bg-muted/20 transition-colors border-b-border/40">
                 <TableCell>
                   <div className="flex flex-col">
                     <button
@@ -355,9 +375,12 @@ export function StockTable({
                   )}
                 </TableCell>
                 <TableCell className="text-right font-medium tabular-nums">
-                  {isUsd && exchangeRate
-                    ? formatEvalAmount(evalAmountKrw, { currency: "USD", nativeEval: evalAmount })
-                    : formatCurrency(evalAmount)}
+                  <div>
+                    {isUsd && exchangeRate ? formatCurrency(Math.round(evalAmountKrw)) : formatCurrency(evalAmount)}
+                  </div>
+                  {isUsd && exchangeRate && (
+                    <div className="text-xs text-muted-foreground font-normal">{formatUsdPrice(evalAmount)}</div>
+                  )}
                 </TableCell>
                 {showWeight && (
                   <TableCell className="text-right tabular-nums text-muted-foreground">
@@ -565,55 +588,37 @@ export function StockTable({
         })}
       </div>
 
-      {/* 종목 추가 버튼 + 인라인 폼 */}
-      {onAddStock && (
-        <div className="mt-4 space-y-3 px-4 md:px-0">
+      {/* 종목 추가 인라인 폼 */}
+      {onAddStock && isFormExpanded && (
+        <div className="p-4 border-t bg-muted/20">
           <AnimatePresence mode="wait">
-            {!isFormExpanded ? (
-              <m.div
-                key="add-button"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setIsFormExpanded(true)}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  종목 추가
-                </Button>
-              </m.div>
-            ) : (
-              <m.div
-                key="add-form"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="border rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">종목 추가</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsFormExpanded(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <StockForm
-                    onSubmit={(data) => {
-                      onAddStock(data);
-                      setIsFormExpanded(false);
-                    }}
-                    isSubmitting={isAdding}
-                  />
+            <m.div
+              key="add-form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">종목 추가</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFormExpanded(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-              </m.div>
-            )}
+                <StockForm
+                  onSubmit={(data) => {
+                    onAddStock(data);
+                    setIsFormExpanded(false);
+                  }}
+                  isSubmitting={isAdding}
+                />
+              </div>
+            </m.div>
           </AnimatePresence>
         </div>
       )}

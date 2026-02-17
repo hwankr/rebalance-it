@@ -73,7 +73,11 @@ export function AllocationChart({
   const instanceId = useId();
 
   if (isLoading) {
-    return <Skeleton />;
+    return (
+      <div className="bg-card rounded-xl border shadow-sm p-6">
+        <Skeleton />
+      </div>
+    );
   }
 
   const data = [
@@ -89,8 +93,10 @@ export function AllocationChart({
 
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-[240px] text-muted-foreground text-sm">
-        데이터가 없습니다.
+      <div className="bg-card rounded-xl border shadow-sm p-6">
+        <div className="flex items-center justify-center h-[240px] text-muted-foreground text-sm">
+          데이터가 없습니다.
+        </div>
       </div>
     );
   }
@@ -101,7 +107,11 @@ export function AllocationChart({
   }));
 
   return (
-    <div className="space-y-3">
+    <div className="bg-card rounded-xl border shadow-sm p-6 space-y-6">
+      {/* Card Header */}
+      <h3 className="font-bold text-lg">자산 배분</h3>
+
+      <div className="space-y-3">
       {/* Donut Chart */}
       <div className="relative h-[240px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -191,7 +201,7 @@ export function AllocationChart({
       </div>
 
       {/* Custom Legend */}
-      <div className="max-h-[320px] overflow-y-auto space-y-1 px-0.5">
+      <div className="max-h-[320px] overflow-y-auto space-y-3 px-0.5">
         {dataWithPercent.map((item, index) => {
           const pct = (item.percent * 100).toFixed(1);
           const isActive = activeIndex === index;
@@ -208,7 +218,7 @@ export function AllocationChart({
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className="w-3 h-3 rounded-sm shrink-0"
+                  className="size-3 rounded-full shrink-0"
                   style={{ background: colors[index] }}
                 />
                 <span className="text-sm font-medium text-foreground truncate">
@@ -226,6 +236,7 @@ export function AllocationChart({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

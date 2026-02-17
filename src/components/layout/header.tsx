@@ -12,7 +12,7 @@ export function Header() {
   const { isGuest } = useGuestMode();
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-card shadow-[0_1px_3px_0_oklch(0_0_0/0.04)] dark:shadow-[0_1px_3px_0_oklch(0_0_0/0.25)] px-4 md:px-6">
+    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-border backdrop-header px-4 md:px-6">
       {/* Mobile: app logo */}
       <span className="text-lg font-bold text-foreground md:hidden">Rebalance-it</span>
 

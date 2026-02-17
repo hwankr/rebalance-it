@@ -80,10 +80,6 @@ export function StockCombobox({
     [onSelect],
   );
 
-  const buttonLabel = selected
-    ? `${selected.stock_name} (${selected.stock_code})`
-    : placeholder;
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -93,11 +89,18 @@ export function StockCombobox({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between font-normal",
+            "w-full justify-between font-normal h-auto min-h-11 py-1.5",
             !selected && "text-muted-foreground",
           )}
         >
-          <span className="truncate">{buttonLabel}</span>
+          {selected ? (
+            <div className="flex flex-col items-start min-w-0">
+              <span className="font-medium truncate w-full text-sm">{selected.stock_name}</span>
+              <span className="text-xs text-muted-foreground font-mono">{selected.stock_code}</span>
+            </div>
+          ) : (
+            <span className="truncate">{placeholder}</span>
+          )}
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

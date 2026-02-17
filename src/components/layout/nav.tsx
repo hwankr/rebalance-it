@@ -23,11 +23,11 @@ export function NavItem({ href, label, icon: Icon, showBadge }: NavItemProps) {
       className={cn(
         "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors duration-200 relative",
         isActive
-          ? "bg-muted text-foreground font-semibold"
+          ? "bg-primary/10 text-primary font-semibold"
           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
       )}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-5 w-5" />
       {label}
       {showBadge && (
         <span className="ml-auto h-2 w-2 rounded-full bg-primary animate-pulse" />

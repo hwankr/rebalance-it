@@ -119,7 +119,7 @@ export default function SettingsPage() {
 
   return (
     <PageTransition>
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">설정</h1>
         <p className="text-muted-foreground">
@@ -128,7 +128,7 @@ export default function SettingsPage() {
       </div>
 
       {/* 섹션 1: 계좌 설정 */}
-      <Card>
+      <Card className="border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle>계좌 설정</CardTitle>
           <CardDescription>
@@ -164,7 +164,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* 섹션 3: 구독 관리 */}
-      <Card>
+      <Card className="border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             구독 관리
@@ -204,7 +204,7 @@ export default function SettingsPage() {
 
       {/* 섹션 4: 개발용 구독 토글 */}
       {process.env.NODE_ENV === "development" && (
-        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30">
+        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               개발용 구독 토글
@@ -255,7 +255,7 @@ export default function SettingsPage() {
       )}
 
       {/* 섹션 5: 앱 정보 */}
-      <Card>
+      <Card className="border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle>앱 정보</CardTitle>
         </CardHeader>
@@ -305,7 +305,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* 섹션 5: 시스템 상태 */}
-      <Card>
+      <Card className="border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle>시스템 상태</CardTitle>
           <CardDescription>

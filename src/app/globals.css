@@ -54,6 +54,7 @@
 
   /* Core surfaces - Clean white ground */
   --background: oklch(1 0 0); /* Pure white */
+  --background-subtle: oklch(0.98 0.005 255); /* Very subtle off-white */
   --foreground: oklch(0.13 0.02 240);  /* Darker, softer black */
 
   /* Cards become very subtle or disappear into background */
@@ -112,6 +113,7 @@
 
 .dark {
   --background: oklch(0.10 0.015 240); /* Deeper ground */
+  --background-subtle: oklch(0.13 0.02 240); /* Subtle dark surface */
   --foreground: oklch(0.98 0.005 240);
 
   --card: oklch(0.16 0.02 240);
@@ -181,6 +183,12 @@
 }
 
 /* ===== DESIGN SYSTEM UTILITIES ===== */
+
+/* Glassmorphism header/navbar */
+.backdrop-header {
+  backdrop-filter: blur(12px);
+  background: oklch(from var(--card) l c h / 0.8);
+}
 
 /* Toss-style section divider */
 .section-divider {

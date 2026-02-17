@@ -14,9 +14,9 @@ export default function DashboardLayout({
     <AccountProvider>
       <div className="min-h-screen">
         <Sidebar />
-        <div className="md:pl-64">
+        <div className="md:pl-64 bg-[var(--background-subtle)] min-h-screen">
           <Header />
-          <main className="px-0 md:px-5 py-2 md:py-4 pb-20 md:pb-6 max-w-7xl mx-auto">
+          <main className="px-4 md:px-8 py-4 md:py-6 pb-20 md:pb-6 max-w-7xl mx-auto">
               <AuthGuard>
                 <GuestBanner />
                 {children}

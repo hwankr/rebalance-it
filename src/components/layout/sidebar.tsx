@@ -6,6 +6,7 @@ import {
   History,
   Settings,
   LogOut,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { NavItem, type NavItemProps } from "./nav";
@@ -16,6 +17,7 @@ import { PlanBadge } from "@/components/subscription/plan-badge";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useSubscription } from "@/hooks/use-subscription";
 
 const navItems: NavItemProps[] = [
   { href: "/portfolio", label: "내 포트폴리오", icon: LayoutDashboard },
@@ -31,11 +33,15 @@ export function Sidebar() {
     : selectedAccountId;
   const { activeSession } = useProgressiveRebalance(portfolioId);
   const { isGuest } = useGuestMode();
+  const { isPro } = useSubscription();
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-sidebar">
       {/* Logo area */}
-      <div className="flex h-14 items-center gap-2 px-6">
+      <div className="flex h-16 items-center gap-3 px-6">
+        <div className="flex items-center justify-center size-8 bg-primary rounded-lg">
+          <Wallet className="h-4 w-4 text-primary-foreground" />
+        </div>
         <span className="text-xl font-bold text-foreground">Rebalance-it</span>
       </div>
       <Separator />
@@ -62,11 +68,32 @@ export function Sidebar() {
             <Link href="/login">회원가입하고 저장하기</Link>
           </Button>
         </div>
-      ) : (
+      ) : isPro ? (
         <div className="px-4 py-4 border-t space-y-2">
           <div className="flex items-center justify-between px-3 py-1.5 rounded-lg">
             <span className="text-xs text-muted-foreground">플랜</span>
             <PlanBadge />
+          </div>
+          <form action={signOut}>
+            <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" type="submit">
+              <LogOut className="size-4" />
+              로그아웃
+            </Button>
+          </form>
+        </div>
+      ) : (
+        <div className="px-4 py-4 border-t space-y-3">
+          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-foreground">Pro 플랜</span>
+              <PlanBadge />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              무제한 포트폴리오, 자동 리밸런싱, 고급 분석 기능을 이용하세요
+            </p>
+            <Button variant="default" className="w-full" size="sm" asChild>
+              <Link href="/pricing">업그레이드</Link>
+            </Button>
           </div>
           <form action={signOut}>
             <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" type="submit">
