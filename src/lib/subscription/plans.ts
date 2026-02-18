@@ -6,12 +6,16 @@ export const PLAN_LIMITS = {
     maxPortfolios: 1,
     allowExport: false,
     allowAdvancedAnalytics: false,
+    allowAISummary: false,
+    aiCallsPerDay: 0,
   },
   pro: {
     maxSimulationHistory: Infinity,
     maxPortfolios: 5,
     allowExport: true,
     allowAdvancedAnalytics: true,
+    allowAISummary: true,
+    aiCallsPerDay: 30,
   },
 } as const;
 

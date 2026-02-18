@@ -28,6 +28,8 @@ import type { Stock } from "@/lib/rebalance/types";
 import { useStockChart } from "@/hooks/use-stock-chart";
 import { StockLogo } from "@/components/stock-logo";
 import { StockPriceChart } from "./stock-price-chart";
+import { StockFinancialsCard } from "./stock-financials-card";
+import { StockNewsCard } from "./stock-news-card";
 
 interface HoldingsTableProps {
   stocks: Stock[];
@@ -110,6 +112,18 @@ function StockChartSheet({
             chartData={data?.data ?? []}
             stockName={stock.stock_name}
             isLoading={isLoading}
+          />
+
+          <StockFinancialsCard
+            stockCode={stock.stock_code}
+            stockName={stock.stock_name}
+            currency={stock.currency}
+          />
+
+          <StockNewsCard
+            stockCode={stock.stock_code}
+            stockName={stock.stock_name}
+            currency={stock.currency}
           />
         </div>
 

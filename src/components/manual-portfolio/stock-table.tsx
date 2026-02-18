@@ -30,6 +30,8 @@ import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 import { useStockChart } from "@/hooks/use-stock-chart";
 import { StockLogo } from "@/components/stock-logo";
 import { StockPriceChart } from "@/components/portfolio/stock-price-chart";
+import { StockFinancialsCard } from "@/components/portfolio/stock-financials-card";
+import { StockNewsCard } from "@/components/portfolio/stock-news-card";
 import { StockForm } from "@/components/manual-portfolio/stock-form";
 
 
@@ -139,6 +141,18 @@ function StockChartSheet({
             chartData={data?.data ?? []}
             stockName={stock.stock_name}
             isLoading={isLoading}
+          />
+
+          <StockFinancialsCard
+            stockCode={stock.stock_code}
+            stockName={stock.stock_name}
+            currency={stock.currency}
+          />
+
+          <StockNewsCard
+            stockCode={stock.stock_code}
+            stockName={stock.stock_name}
+            currency={stock.currency}
           />
         </div>
 
