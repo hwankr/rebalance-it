@@ -3,7 +3,15 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Clock, RefreshCw } from "lucide-react";
+import {
+  RefreshCw,
+  History,
+  Wallet,
+  AlertCircle,
+  PieChart,
+  PlusCircle,
+  ArrowRight,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -172,12 +180,20 @@ export default function RebalancePage() {
     return (
       <PageTransition>
         <div className="space-y-6">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-            리밸런싱
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+              리밸런싱
+            </h1>
+            <Link
+              href="/history"
+              className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+            >
+              <History size={20} />
+            </Link>
+          </div>
           <div className="space-y-4">
-            <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
-            <div className="h-32 skeleton-shimmer rounded-xl bg-muted" />
+            <div className="h-40 skeleton-shimmer rounded-3xl bg-muted" />
+            <div className="h-12 skeleton-shimmer rounded-xl bg-muted" />
           </div>
         </div>
       </PageTransition>
@@ -189,13 +205,21 @@ export default function RebalancePage() {
     return (
       <PageTransition>
         <div className="space-y-6">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-            리밸런싱
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+              리밸런싱
+            </h1>
+            <Link
+              href="/history"
+              className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+            >
+              <History size={20} />
+            </Link>
+          </div>
           <AccountTabs />
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="flex flex-col items-center gap-3 py-6">
-              <p className="text-muted-foreground">
+          <Card className="rounded-2xl border-border/50 shadow-sm">
+            <CardContent className="flex flex-col items-center gap-3 py-8">
+              <p className="font-medium">
                 리밸런싱을 실행하려면 특정 계좌를 선택해주세요.
               </p>
               <p className="text-sm text-muted-foreground">
@@ -213,12 +237,21 @@ export default function RebalancePage() {
     return (
       <PageTransition>
         <div className="space-y-6">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-            리밸런싱
-          </h1>
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="flex flex-col items-center gap-3 py-6">
-              <p className="text-destructive">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+              리밸런싱
+            </h1>
+            <Link
+              href="/history"
+              className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+            >
+              <History size={20} />
+            </Link>
+          </div>
+          <AccountTabs />
+          <Card className="rounded-2xl border-border/50 shadow-sm">
+            <CardContent className="flex flex-col items-center gap-3 py-8">
+              <p className="text-destructive font-medium">
                 포트폴리오 데이터를 불러오는 데 실패했습니다.
               </p>
               <p className="text-sm text-muted-foreground">
@@ -236,20 +269,33 @@ export default function RebalancePage() {
     return (
       <PageTransition>
         <div className="space-y-6">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-            리밸런싱
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+              리밸런싱
+            </h1>
+            <Link
+              href="/history"
+              className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+            >
+              <History size={20} />
+            </Link>
+          </div>
           <AccountTabs />
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="flex flex-col items-center gap-3 py-6">
-              <p className="text-muted-foreground">
-                포트폴리오에 종목을 추가해주세요.
-              </p>
-              <Button asChild>
-                <Link href="/portfolio">포트폴리오 관리</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl p-6 border border-dashed border-border bg-muted/30 text-center">
+            <div className="mx-auto bg-card w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-muted-foreground mb-3">
+              <PlusCircle size={24} />
+            </div>
+            <h3 className="font-bold mb-1">보유 종목이 없어요</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              리밸런싱을 하려면 포트폴리오를 구성해야 해요.
+            </p>
+            <Link
+              href="/portfolio"
+              className="text-primary font-medium text-sm hover:underline inline-flex items-center gap-1"
+            >
+              포트폴리오 구성하러 가기 <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
       </PageTransition>
     );
@@ -286,54 +332,70 @@ export default function RebalancePage() {
     <PageTransition>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+        <div className="flex items-center justify-between">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             리밸런싱
           </h1>
-          <p className="text-muted-foreground">
-            목표 비중 기반으로 포트폴리오를 리밸런싱하세요.
-          </p>
+          <Link
+            href="/history"
+            className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
+          >
+            <History size={20} />
+          </Link>
         </div>
 
         <AccountTabs />
 
-        {/* Compact portfolio summary */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm px-1">
-          <span>
-            <span className="text-muted-foreground">총 자산</span>{" "}
-            <span className="font-semibold tabular-nums">
-              {formatCurrency(totalValue)}
-            </span>
-          </span>
-          <span>
-            <span className="text-muted-foreground">예수금</span>{" "}
-            <span className="font-semibold tabular-nums">
-              {formatCurrency(cashAmount)}
-            </span>
-          </span>
-          <span>
-            <span className="text-muted-foreground">보유</span>{" "}
-            <span className="font-semibold">{manualStocks.length}종목</span>
-          </span>
-        </div>
+        {/* Portfolio Summary Card */}
+        <Card className="rounded-3xl shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Wallet className="text-primary" size={20} />
+              <span className="text-muted-foreground font-medium text-sm">
+                {effectiveAccountName ?? "포트폴리오"} 요약
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">총 자산 평가액</p>
+                <h2 className="text-3xl font-bold tracking-tight">
+                  {Math.round(totalValue).toLocaleString("ko-KR")}
+                  <span className="text-lg font-normal text-muted-foreground ml-1">원</span>
+                </h2>
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t border-border/50">
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground mb-1">예수금 (가용현금)</p>
+                  <p className="font-semibold text-lg tabular-nums">{formatCurrency(cashAmount)}</p>
+                </div>
+                <div className="flex-1 border-l border-border/50 pl-4">
+                  <p className="text-xs text-muted-foreground mb-1">보유 종목 수</p>
+                  <p className="font-semibold text-lg">{manualStocks.length}종목</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Resume partial session banner */}
         {latestPartialSession && (
-          <div className="flex items-start gap-3 rounded-lg border border-blue-500/50 bg-blue-50 p-4 dark:bg-blue-950/30">
-            <Clock className="size-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
-            <div className="flex-1 space-y-2">
-              <div className="text-sm text-blue-800 dark:text-blue-200">
-                <p className="font-medium">부분완료된 세션이 있습니다</p>
-                <p>
-                  {latestPartialSession.preset_name
-                    ? `${latestPartialSession.preset_name} · `
-                    : ""}
-                  {getProgress(latestPartialSession.orders).completed}/
-                  {getProgress(latestPartialSession.orders).total}개 체결 완료
-                  {latestPartialSession.completed_at &&
-                    ` · ${formatDistanceToNow(new Date(latestPartialSession.completed_at), { locale: ko, addSuffix: true })}`}
-                </p>
-              </div>
+          <div className="rounded-2xl p-5 bg-primary/10 border border-primary/20 flex items-start gap-4 relative overflow-hidden">
+            <div className="bg-card p-2 rounded-full shadow-sm z-10 text-primary">
+              <RefreshCw size={20} />
+            </div>
+            <div className="z-10 flex-1 space-y-2">
+              <h3 className="font-bold text-sm">부분완료된 세션이 있습니다</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {latestPartialSession.preset_name
+                  ? `${latestPartialSession.preset_name} · `
+                  : ""}
+                {getProgress(latestPartialSession.orders).completed}/
+                {getProgress(latestPartialSession.orders).total}개 체결 완료
+                {latestPartialSession.completed_at &&
+                  ` · ${formatDistanceToNow(new Date(latestPartialSession.completed_at), { locale: ko, addSuffix: true })}`}
+              </p>
               <Button
                 variant="outline"
                 size="sm"
@@ -349,48 +411,49 @@ export default function RebalancePage() {
         )}
 
         {!hasTargets ? (
-          /* No targets set → direct to portfolio page */
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="flex flex-col items-center gap-3 py-8">
-              <div className="text-center">
-                <p className="font-medium">목표 비중이 설정되지 않았습니다</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  포트폴리오 페이지에서 각 종목의 목표 비중을 설정해주세요.
-                </p>
-              </div>
-              <Button asChild>
-                <Link href="/portfolio">포트폴리오에서 비중 설정</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          /* Has targets → rebalancing view */
-          <>
-            {/* Main CTA */}
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handleStartRebalancing}
-                disabled={!canSimulate || isStarting || isLoadingSession}
-                size="lg"
+          /* No targets set → warning banner */
+          <div className="rounded-2xl p-5 bg-warning/10 border border-warning/20 flex items-start gap-3">
+            <AlertCircle className="text-warning shrink-0 mt-0.5" size={20} />
+            <div>
+              <h3 className="font-bold text-sm mb-1">목표 비중이 설정되지 않았어요</h3>
+              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                각 종목의 목표 비중을 설정하면 리밸런싱을 실행할 수 있습니다.
+              </p>
+              <Link
+                href="/portfolio"
+                className="inline-block bg-warning/20 hover:bg-warning/30 text-foreground rounded-lg text-xs font-semibold px-3 py-1.5 transition-colors"
               >
-                {isStarting ? "시작 중..." : "리밸런싱 실행"}
-              </Button>
-              {!canSimulate && hasStocks && (
-                <p className="text-xs text-muted-foreground">
-                  포트폴리오 데이터를 불러오는 중입니다.
-                </p>
-              )}
-            </div>
-
-            {/* Link to edit targets on portfolio page */}
-            <p className="text-sm text-muted-foreground px-1">
-              목표 비중을 수정하려면{" "}
-              <Link href="/portfolio" className="text-primary underline underline-offset-4 hover:text-primary/80">
-                포트폴리오 페이지
+                목표 비중 설정하기
               </Link>
-              에서 변경하세요.
-            </p>
-          </>
+            </div>
+          </div>
+        ) : (
+          /* Has targets → rebalancing CTA */
+          <div className="space-y-4 pt-2">
+            <button
+              onClick={handleStartRebalancing}
+              disabled={!canSimulate || isStarting || isLoadingSession}
+              className={cn(
+                "w-full h-12 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+                !canSimulate || isStarting || isLoadingSession
+                  ? "bg-muted text-muted-foreground cursor-not-allowed"
+                  : "bg-foreground text-background hover:bg-foreground/90 shadow-md",
+              )}
+            >
+              <RefreshCw className={cn("size-5", isStarting && "animate-spin")} />
+              {isStarting ? "시작 중..." : "리밸런싱 실행"}
+            </button>
+
+            <div className="text-center">
+              <Link
+                href="/portfolio"
+                className="text-muted-foreground text-sm font-medium hover:text-foreground inline-flex items-center gap-1 px-4 py-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <PieChart size={16} />
+                목표 비중 편집
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </PageTransition>

@@ -21,10 +21,10 @@ export function AccountTabs() {
           type="button"
           onClick={() => setSelectedAccountId("all")}
           className={cn(
-            "shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+            "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
             selectedAccountId === "all"
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted",
+              ? "bg-foreground text-background shadow-sm"
+              : "bg-muted text-muted-foreground hover:bg-accent",
           )}
         >
           전체 계좌
@@ -37,10 +37,10 @@ export function AccountTabs() {
             type="button"
             onClick={() => setSelectedAccountId(account.id)}
             className={cn(
-              "shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors truncate max-w-[140px]",
+              "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors truncate max-w-[140px]",
               selectedAccountId === account.id
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                ? "bg-foreground text-background shadow-sm"
+                : "bg-muted text-muted-foreground hover:bg-accent",
             )}
           >
             {account.name}

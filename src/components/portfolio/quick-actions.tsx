@@ -2,7 +2,6 @@
 
 import { RefreshCw, Plus, History } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 interface QuickActionsProps {
   onAddStock?: () => void;

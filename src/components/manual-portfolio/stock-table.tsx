@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

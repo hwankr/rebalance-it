@@ -32,10 +32,11 @@ export function EffectivePortfolioCard({
   startedAt,
 }: EffectivePortfolioCardProps) {
   // 다일 세션(24h+) 여부에 따라 기본 열림/닫힘
-  const isMultiDay = useMemo(() => {
+  const isMultiDay = (() => {
     if (!startedAt) return false;
-    return Date.now() - new Date(startedAt).getTime() > 24 * 60 * 60 * 1000;
-  }, [startedAt]);
+    const elapsed = new Date().getTime() - new Date(startedAt).getTime();
+    return elapsed > 24 * 60 * 60 * 1000;
+  })();
 
   const [isOpen, setIsOpen] = useState(isMultiDay);
 

@@ -159,7 +159,7 @@
   --success: oklch(0.65 0.18 145);
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.80 0.15 85);
-  --warning-foreground: oklch(0.2 0.05 85);
+  --warning-foreground: oklch(0.90 0.05 85);
 
   --shimmer-highlight: oklch(0.25 0.03 240);
 }
@@ -231,6 +231,15 @@
 /* Safe area for bottom nav on iPhone */
 .safe-area-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar utility */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Prevent iOS zoom on input focus (font-size >= 16px) */

@@ -26,6 +26,7 @@ export function calculateEffectivePortfolio(
   snapshot: PortfolioSnapshot,
   orders: ExecutionOrderResult[],
   targetMap: Map<string, number>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   currencyMap?: Map<string, string>,
 ): EffectivePortfolioState {
   const stockQuantities = new Map<string, number>();

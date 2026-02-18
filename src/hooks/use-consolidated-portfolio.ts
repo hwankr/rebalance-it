@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStorageClient } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
@@ -90,7 +89,7 @@ export function useConsolidatedPortfolio() {
           (s) => s.portfolio_id === portfolio.id,
         );
         const accountBalance = toBalanceResponse(
-          portfolio as any,
+          portfolio as Parameters<typeof toBalanceResponse>[0],
           accountStocks,
           rate,
         );

@@ -5,7 +5,6 @@ import { useSpring, useTransform } from "framer-motion";
 import { TrendingUp, TrendingDown, Pencil, Wallet, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
-import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";

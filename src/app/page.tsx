@@ -4,28 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { m } from "framer-motion";
-import { BarChart3, Target, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import { Button } from "@/components/ui/button";
-
-const features = [
-  {
-    icon: BarChart3,
-    title: "포트폴리오 관리",
-    description: "보유 종목과 비중을 한눈에 확인하세요.",
-  },
-  {
-    icon: Target,
-    title: "목표 비중 설정",
-    description: "원하는 자산 배분 비율을 설정하세요.",
-  },
-  {
-    icon: RefreshCw,
-    title: "리밸런싱 시뮬레이션",
-    description: "최적의 매수/매도 주문을 자동으로 계산합니다.",
-  },
-];
 
 export default function Home() {
   const router = useRouter();
