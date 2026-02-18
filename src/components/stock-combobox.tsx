@@ -143,6 +143,15 @@ export function StockCombobox({
                       <span className="truncate text-sm">
                         {getDisplayName(stock)}
                       </span>
+                      {/* ETF badge - handles undefined asset_type from cached old data */}
+                      {stock.asset_type === "ETF" && (
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 text-xs px-1.5 py-0 border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400"
+                        >
+                          ETF
+                        </Badge>
+                      )}
                       <Badge
                         variant="secondary"
                         className="ml-auto shrink-0 text-xs px-1.5 py-0"

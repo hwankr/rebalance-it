@@ -26,6 +26,7 @@ interface StockRow {
   country: string;
   currency: string;
   is_active: boolean;
+  asset_type: 'STOCK' | 'ETF';
 }
 
 // Market name mapping from KIND format to our DB format
@@ -34,6 +35,39 @@ const MARKET_MAP: Record<string, string> = {
   코스닥: "KOSDAQ",
   코넥스: "KONEX",
 };
+
+async function fetchNaverEtfs(): Promise<StockRow[]> {
+  console.log("Fetching Korean ETFs from Naver Finance...");
+  const url = "https://finance.naver.com/api/sise/etfItemList.nhn?etfType=0&targetColumn=market_sum&sortOrder=desc";
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        Referer: "https://finance.naver.com/sise/etf.naver",
+      },
+    });
+    if (!res.ok) throw new Error(`Naver API returned ${res.status}`);
+    // Naver .nhn endpoints return EUC-KR encoded JSON
+    const buf = await res.arrayBuffer();
+    const text = new TextDecoder("euc-kr").decode(buf);
+    const data = JSON.parse(text);
+    const etfList: Array<{ itemcode: string; itemname: string }> = data?.result?.etfItemList || [];
+    console.log(`  Found ${etfList.length} Korean ETFs from Naver`);
+    return etfList.map((e) => ({
+      stock_code: e.itemcode,
+      stock_name: e.itemname,
+      stock_name_ko: e.itemname,
+      market: "KOSPI",
+      country: "KR",
+      currency: "KRW",
+      is_active: true,
+      asset_type: "ETF" as const,
+    }));
+  } catch (error) {
+    console.warn(`  ⚠ Naver ETF fetch failed: ${(error as Error).message}`);
+    return [];
+  }
+}
 
 async function fetchKindStocks(): Promise<StockRow[]> {
   console.log("Fetching Korean stocks from KIND (kind.krx.co.kr)...");
@@ -93,6 +127,7 @@ async function fetchKindStocks(): Promise<StockRow[]> {
       country: "KR",
       currency: "KRW",
       is_active: true,
+      asset_type: 'STOCK' as const,
     });
   }
 
@@ -110,24 +145,28 @@ async function main() {
 
   console.log(`Current KR stocks in DB: ${preKrCount ?? 0}\n`);
 
-  // Step 2: Fetch from KIND API
-  const allKrStocks = await fetchKindStocks();
+  // Step 2: Fetch from KIND API and Naver ETFs
+  const [allKrStocks, naverEtfs] = await Promise.all([
+    fetchKindStocks(),
+    fetchNaverEtfs(),
+  ]);
 
-  // Deduplicate by stock_code
-  const seen = new Set<string>();
-  const uniqueKrStocks = allKrStocks.filter((s) => {
-    if (seen.has(s.stock_code)) return false;
-    seen.add(s.stock_code);
-    return true;
-  });
+  // Combine stocks + ETFs, ETFs appended last so they win during dedup
+  const combined = [...allKrStocks, ...naverEtfs];
+  const stockMap = new Map<string, StockRow>();
+  for (const s of combined) {
+    stockMap.set(s.stock_code, s);
+  }
+  const uniqueKrStocks = Array.from(stockMap.values());
 
   const kospiCount = uniqueKrStocks.filter((s) => s.market === "KOSPI").length;
   const kosdaqCount = uniqueKrStocks.filter(
     (s) => s.market === "KOSDAQ"
   ).length;
+  const etfCount = uniqueKrStocks.filter((s) => s.asset_type === "ETF").length;
 
   console.log(
-    `Fetched ${uniqueKrStocks.length} unique KR stocks (KOSPI: ${kospiCount}, KOSDAQ: ${kosdaqCount})`
+    `Fetched ${uniqueKrStocks.length} unique KR stocks (KOSPI: ${kospiCount}, KOSDAQ: ${kosdaqCount}, ETF: ${etfCount})`
   );
 
   if (uniqueKrStocks.length < 1000) {
@@ -194,7 +233,7 @@ async function main() {
     const { data, error: fetchError } = await supabase
       .from("stocks")
       .select(
-        "stock_code, stock_name, stock_name_ko, market, country, currency"
+        "stock_code, stock_name, stock_name_ko, market, country, currency, asset_type"
       )
       .eq("is_active", true)
       .order("stock_code")

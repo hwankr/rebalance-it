@@ -26,6 +26,7 @@ interface StockRow {
   country: string;
   currency: string;
   is_active: boolean;
+  asset_type: 'STOCK' | 'ETF';
 }
 
 interface KrxStockData {
@@ -47,6 +48,39 @@ function getTodayKrxFormat(): string {
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}${month}${day}`;
+}
+
+async function fetchNaverEtfs(): Promise<StockRow[]> {
+  console.log("Fetching Korean ETFs from Naver Finance...");
+  const url = "https://finance.naver.com/api/sise/etfItemList.nhn?etfType=0&targetColumn=market_sum&sortOrder=desc";
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        Referer: "https://finance.naver.com/sise/etf.naver",
+      },
+    });
+    if (!res.ok) throw new Error(`Naver API returned ${res.status}`);
+    // Naver .nhn endpoints return EUC-KR encoded JSON
+    const buf = await res.arrayBuffer();
+    const text = new TextDecoder("euc-kr").decode(buf);
+    const data = JSON.parse(text);
+    const etfList: Array<{ itemcode: string; itemname: string }> = data?.result?.etfItemList || [];
+    console.log(`  Found ${etfList.length} Korean ETFs from Naver`);
+    return etfList.map((e) => ({
+      stock_code: e.itemcode,
+      stock_name: e.itemname,
+      stock_name_ko: e.itemname,
+      market: "KOSPI",
+      country: "KR",
+      currency: "KRW",
+      is_active: true,
+      asset_type: "ETF" as const,
+    }));
+  } catch (error) {
+    console.warn(`  ⚠ Naver ETF fetch failed: ${(error as Error).message}`);
+    return [];
+  }
 }
 
 async function fetchKrxStocks(marketId: "STK" | "KSQ"): Promise<StockRow[]> {
@@ -96,6 +130,7 @@ async function fetchKrxStocks(marketId: "STK" | "KSQ"): Promise<StockRow[]> {
       country: "KR",
       currency: "KRW",
       is_active: true,
+      asset_type: 'STOCK' as const,
     }));
   } catch (error) {
     console.error(`Error fetching ${marketName} stocks:`, error);
@@ -158,6 +193,7 @@ async function fetchUsStocks(): Promise<StockRow[]> {
       country: "US",
       currency: "USD",
       is_active: true,
+      asset_type: 'STOCK' as const,
     }));
   } catch (error) {
     console.error("Error fetching US stocks:", error);
@@ -169,7 +205,7 @@ async function main() {
   console.log("=== Starting comprehensive stock seed ===\n");
 
   // Fetch all stocks in parallel (KRX failures are non-fatal)
-  const [kospiResult, kosdaqResult, usStocks] = await Promise.all([
+  const [kospiResult, kosdaqResult, usStocks, naverEtfs] = await Promise.all([
     fetchKrxStocks("STK").catch((e) => {
       console.warn(`  ⚠ KOSPI fetch failed: ${e.message} — using fallback data`);
       return [] as StockRow[];
@@ -179,6 +215,7 @@ async function main() {
       return [] as StockRow[];
     }),
     fetchUsStocks(),
+    fetchNaverEtfs(),
   ]);
 
   // If KRX failed, use existing kr-stocks.json as fallback
@@ -222,6 +259,7 @@ async function main() {
           country: "KR",
           currency: "KRW",
           is_active: true,
+          asset_type: 'STOCK' as const,
         });
       }
 
@@ -242,6 +280,7 @@ async function main() {
           country: "KR",
           currency: "KRW",
           is_active: true,
+          asset_type: 'STOCK' as const,
         }));
         kospiStocks = krRows.filter((s) => s.market === "KOSPI");
         kosdaqStocks = krRows.filter((s) => s.market === "KOSDAQ");
@@ -252,18 +291,19 @@ async function main() {
     }
   }
 
-  // Combine and deduplicate
-  const allStocks = [...kospiStocks, ...kosdaqStocks, ...usStocks];
+  // Combine stocks first, then append Naver ETFs last so ETFs win during dedup
+  // (Naver ETFs have asset_type='ETF', stocks have asset_type='STOCK')
+  const allStocks = [...kospiStocks, ...kosdaqStocks, ...usStocks, ...naverEtfs];
 
-  const seen = new Set<string>();
-  const uniqueStocks = allStocks.filter((s) => {
-    if (seen.has(s.stock_code)) {
-      console.warn(`  Duplicate stock_code: ${s.stock_code} (skipped)`);
-      return false;
-    }
-    seen.add(s.stock_code);
-    return true;
-  });
+  // Deduplicate: later entries overwrite earlier ones (ETFs overwrite stocks)
+  const stockMap = new Map<string, StockRow>();
+  for (const s of allStocks) {
+    stockMap.set(s.stock_code, s);
+  }
+  const uniqueStocks = Array.from(stockMap.values());
+
+  const etfCount = uniqueStocks.filter(s => s.asset_type === "ETF").length;
+  console.log(`  ETF: ${etfCount} (from Naver Finance ETF list)`);
 
   console.log(
     `\nTotal stocks: ${uniqueStocks.length} (KR: ${kospiStocks.length + kosdaqStocks.length}, US: ${usStocks.length})`

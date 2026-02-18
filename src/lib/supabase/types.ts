@@ -315,6 +315,7 @@ export interface Database {
           market: string;
           country: string;
           currency: string;
+          asset_type: string;
           is_active: boolean;
           updated_at: string;
         };
@@ -325,6 +326,7 @@ export interface Database {
           market: string;
           country: string;
           currency: string;
+          asset_type?: string;
           is_active?: boolean;
           updated_at?: string;
         };
@@ -335,6 +337,7 @@ export interface Database {
           market?: string;
           country?: string;
           currency?: string;
+          asset_type?: string;
           is_active?: boolean;
           updated_at?: string;
         };

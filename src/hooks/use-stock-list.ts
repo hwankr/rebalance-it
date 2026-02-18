@@ -9,6 +9,7 @@ export interface StockItem {
   market: string;
   country: string;
   currency: string;
+  asset_type?: "STOCK" | "ETF";
 }
 
 export function useStockList() {

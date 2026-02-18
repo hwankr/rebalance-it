@@ -25,10 +25,12 @@ interface CacheStock {
   market: string;
   country: string;
   currency: string;
+  asset_type?: 'STOCK' | 'ETF';
 }
 
 interface StockRow extends CacheStock {
   is_active: boolean;
+  asset_type: 'STOCK' | 'ETF';
 }
 
 async function main() {
@@ -72,6 +74,7 @@ async function main() {
     uniqueStocks.push({
       ...stock,
       is_active: true,
+      asset_type: stock.asset_type || 'STOCK',
     });
   }
 
