@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus, ToggleLeft, ToggleRight } from "lucide-react";
+import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -175,14 +176,12 @@ export function StockTable({
   onRefresh,
   isRefreshing,
   exchangeRate,
-  totalPortfolioValue,
   onAddStock,
   isAdding,
   onToggleTracked,
   isTogglingTracked,
   hasActiveSession,
 }: StockTableProps) {
-  const showWeight = totalPortfolioValue != null && totalPortfolioValue > 0;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<ManualStockInput>>({});
   const [selectedStock, setSelectedStock] = useState<StockRow | null>(null);
@@ -297,15 +296,15 @@ export function StockTable({
         <Table>
         <TableHeader className="bg-muted/50">
           <TableRow className="hover:bg-transparent border-b-border/50">
+            <TableHead className="w-[60px] text-center text-xs font-bold text-muted-foreground uppercase tracking-wider">추적</TableHead>
             <TableHead className="text-xs font-bold text-muted-foreground uppercase tracking-wider">종목명</TableHead>
             <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">수량</TableHead>
             <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">평단가</TableHead>
             <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">현재가</TableHead>
             <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">평가금액</TableHead>
-            {showWeight && <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">비중</TableHead>}
             <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">손익</TableHead>
             <TableHead className="text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">수익률</TableHead>
-            <TableHead className="w-20" />
+            <TableHead className="text-right w-[100px] text-xs font-bold text-muted-foreground uppercase tracking-wider">관리</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -327,7 +326,27 @@ export function StockTable({
               isUsd && exchangeRate ? profitLoss * exchangeRate : profitLoss;
 
             return (
-              <TableRow key={stock.id ?? `stock-${index}`} className={cn("hover:bg-muted/30 dark:hover:bg-muted/20 transition-colors border-b-border/40", stock.is_rebalance_tracked === false && "opacity-50")}>
+              <TableRow
+                key={stock.id ?? `stock-${index}`}
+                className={cn(
+                  "group transition-colors duration-200 border-b-border/40",
+                  stock.is_rebalance_tracked === false
+                    ? "bg-muted/20"
+                    : "hover:bg-muted/30"
+                )}
+              >
+                <TableCell className="text-center align-middle">
+                  {onToggleTracked ? (
+                    <div className="flex justify-center">
+                      <Switch
+                        size="sm"
+                        checked={stock.is_rebalance_tracked !== false}
+                        onCheckedChange={(checked) => onToggleTracked(stock.id, checked)}
+                        disabled={isTogglingTracked || (hasActiveSession && stock.is_rebalance_tracked !== false)}
+                      />
+                    </div>
+                  ) : null}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="sm" />
@@ -413,11 +432,6 @@ export function StockTable({
                     <div className="text-xs text-muted-foreground font-normal">{formatUsdPrice(evalAmount)}</div>
                   )}
                 </TableCell>
-                {showWeight && (
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {((evalAmountKrw / totalPortfolioValue!) * 100).toFixed(1)}%
-                  </TableCell>
-                )}
                 <TableCell
                   className={cn("text-right tabular-nums", profitLoss > 0 ? "profit-up" : profitLoss < 0 ? "profit-down" : "")}
                 >
@@ -436,51 +450,19 @@ export function StockTable({
                   <div className="flex gap-1 justify-end">
                     {isEditing ? (
                       <>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => saveEdit(stock.id)}
-                        >
+                        <Button variant="ghost" size="icon-xs" onClick={() => saveEdit(stock.id)}>
                           <Check className="size-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={cancelEdit}
-                        >
+                        <Button variant="ghost" size="icon-xs" onClick={cancelEdit}>
                           <X className="size-4" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        {onToggleTracked && (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={() => onToggleTracked(stock.id, !(stock.is_rebalance_tracked ?? true))}
-                            disabled={isTogglingTracked || (hasActiveSession && stock.is_rebalance_tracked !== false)}
-                            title={hasActiveSession ? "진행중인 세션이 있어 변경할 수 없습니다" : stock.is_rebalance_tracked === false ? "리밸런싱 추적 활성화" : "리밸런싱 추적 해제"}
-                          >
-                            {stock.is_rebalance_tracked === false ? (
-                              <ToggleLeft className="size-4 text-muted-foreground" />
-                            ) : (
-                              <ToggleRight className="size-4 text-primary" />
-                            )}
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => startEdit(stock)}
-                        >
+                        <Button variant="ghost" size="icon-xs" onClick={() => startEdit(stock)}>
                           <Pencil className="size-4 text-muted-foreground" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          className="text-destructive/70 hover:text-destructive"
-                          onClick={() => onDelete(stock.id)}
-                        >
+                        <Button variant="ghost" size="icon-xs" className="text-destructive/70 hover:text-destructive" onClick={() => onDelete(stock.id)}>
                           <Trash2 className="size-4" />
                         </Button>
                       </>
@@ -614,16 +596,17 @@ export function StockTable({
                  {!isEditing && (
                     <div className="flex justify-end mt-1.5 md:hidden">
                        {onToggleTracked && (
-                         <button
-                           className="text-xs text-muted-foreground px-2 py-1 rounded-md hover:bg-muted disabled:opacity-50"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             onToggleTracked(stock.id, !(stock.is_rebalance_tracked ?? true));
-                           }}
-                           disabled={isTogglingTracked || (hasActiveSession && stock.is_rebalance_tracked !== false)}
-                         >
-                           {stock.is_rebalance_tracked === false ? "추적" : "제외"}
-                         </button>
+                         <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                           <Switch
+                             size="sm"
+                             checked={stock.is_rebalance_tracked !== false}
+                             onCheckedChange={(checked) => onToggleTracked(stock.id, checked)}
+                             disabled={isTogglingTracked || (hasActiveSession && stock.is_rebalance_tracked !== false)}
+                           />
+                           <span className="text-[10px] text-muted-foreground">
+                             {stock.is_rebalance_tracked === false ? "제외됨" : "추적중"}
+                           </span>
+                         </div>
                        )}
                        <button
                          className="text-xs text-muted-foreground px-2 py-1 rounded-md hover:bg-muted"

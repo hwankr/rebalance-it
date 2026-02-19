@@ -1,24 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Pencil } from "lucide-react";
-import { m } from "framer-motion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Pencil, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import { StockLogo } from "@/components/stock-logo";
-import { WeightBulletChart } from "@/components/portfolio/weight-bullet-chart";
+
+const ASSET_COLORS = [
+  "#db2777", "#2563eb", "#9333ea", "#10b981",
+  "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6",
+  "#ec4899", "#14b8a6", "#f97316", "#6366f1",
+];
+const CASH_COLOR = "#fb923c";
 
 interface TargetWeightEditorProps {
   stocks: Array<{
@@ -37,6 +30,131 @@ interface TargetWeightEditorProps {
   isSaving: boolean;
   /** "always-edit": 항상 입력 모드 (기존 동작). "inline": 읽기전용 → 편집 토글. */
   mode?: "always-edit" | "inline";
+  /** 오른쪽 컬럼에 렌더링할 차트 (ex: AllocationChart) */
+  chart?: React.ReactNode;
+}
+
+/* ── Actionable Row (ex.js 기반 리밸런싱 가이드 행) ── */
+function ActionableRow({
+  name,
+  code,
+  currentPct,
+  targetPct,
+  hexColor,
+  isCash,
+  isExcluded,
+}: {
+  name: string;
+  code?: string;
+  currentPct: number;
+  targetPct: number;
+  hexColor: string;
+  isCash?: boolean;
+  isExcluded?: boolean;
+}) {
+  const maxScale = 40;
+  const currentWidth = Math.min((currentPct / maxScale) * 100, 100);
+  const targetLeft = Math.min((targetPct / maxScale) * 100, 100);
+
+  return (
+    <div
+      className={cn(
+        "py-4 px-4",
+        isCash
+          ? "bg-muted/30 rounded-lg border border-border/50 mb-2"
+          : "border-b border-border/30 last:border-0",
+        isExcluded && "opacity-50"
+      )}
+    >
+      {/* Desktop */}
+      <div className="hidden md:flex items-center">
+        {/* Identity */}
+        <div className="w-[140px] flex items-center gap-3 shrink-0">
+          <div
+            className="w-3 h-8 rounded-full shrink-0"
+            style={{ backgroundColor: hexColor }}
+          />
+          <div className="flex flex-col">
+            <span className="text-sm font-bold">{name}</span>
+            {code && (
+              <span className="text-xs text-muted-foreground">{code}</span>
+            )}
+            {isCash && (
+              <span className="text-[10px] text-orange-500 font-medium">
+                유동성 자산
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Bar Chart */}
+        <div className="flex-1 px-6 relative h-10 flex flex-col justify-center group cursor-help">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
+            현재 {currentPct.toFixed(1)}% vs 목표 {targetPct.toFixed(1)}%
+          </div>
+          <div className="relative h-3 bg-muted rounded-full w-full overflow-hidden">
+            <div
+              className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 opacity-90"
+              style={{
+                width: `${currentWidth}%`,
+                backgroundColor: hexColor,
+              }}
+            />
+          </div>
+          {!isExcluded && targetPct > 0 && (
+            <div
+              className="absolute top-2 bottom-2 w-0.5 bg-foreground z-10 transition-all duration-500 shadow-[0_0_4px_rgba(0,0,0,0.2)]"
+              style={{ left: `calc(${targetLeft}% + 24px)` }}
+            >
+              <div className="absolute -top-1 -left-[3px] w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[5px] border-t-foreground" />
+            </div>
+          )}
+        </div>
+
+        {/* Current / Target */}
+        <div className="w-[110px] flex justify-end shrink-0">
+          {isExcluded ? (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">제외</span>
+          ) : (
+            <span className="text-sm tabular-nums text-muted-foreground">
+              <span className="font-semibold text-foreground">{currentPct.toFixed(1)}%</span>
+              {" / "}
+              <span>{targetPct.toFixed(1)}%</span>
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile */}
+      <div className="flex md:hidden items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-2 h-6 rounded-full shrink-0"
+            style={{ backgroundColor: hexColor }}
+          />
+          <div>
+            <span className="text-sm font-bold">{name}</span>
+            {isCash && (
+              <span className="text-[10px] text-orange-500 font-medium ml-1">
+                유동성
+              </span>
+            )}
+          </div>
+        </div>
+        <div>
+          {isExcluded ? (
+            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">제외</span>
+          ) : (
+            <span className="text-xs tabular-nums text-muted-foreground">
+              <span className="font-semibold text-foreground">{currentPct.toFixed(1)}%</span>
+              {" / "}
+              <span>{targetPct.toFixed(1)}%</span>
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function TargetWeightEditor({
@@ -46,6 +164,7 @@ export function TargetWeightEditor({
   onSave,
   isSaving,
   mode = "always-edit",
+  chart,
 }: TargetWeightEditorProps) {
   const [isEditing, setIsEditing] = useState(mode === "always-edit");
   const [edits, setEdits] = useState<Record<string, number>>({});
@@ -92,7 +211,6 @@ export function TargetWeightEditor({
   }, [stocks, edits]);
 
   const cashTargetPct = Math.max(0, 100 - totalStockTargetPct);
-  const cashDiff = cashTargetPct - cashCurrentPct;
   const isValid = totalStockTargetPct <= 100;
   const hasChanges = modifiedStocks.size > 0;
   const hasAnyTargets = stocks.some((s) => s.target_pct > 0);
@@ -132,9 +250,9 @@ export function TargetWeightEditor({
   // ── Inline 모드: 타겟 미설정 시 빈 상태 프롬프트 ──
   if (mode === "inline" && !isEditing && !hasAnyTargets) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-base font-semibold">목표 비중</h3>
+      <section className="bg-card rounded-xl shadow-sm border p-5">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-bold text-lg">목표 비중</h2>
           <Button
             variant="outline"
             size="sm"
@@ -145,200 +263,106 @@ export function TargetWeightEditor({
             비중 설정
           </Button>
         </div>
-        <Card className="border-dashed">
-          <div className="flex flex-col items-center gap-3 py-6 px-4">
-            <p className="text-sm text-muted-foreground text-center">
-              목표 비중을 설정하면 현재 포트폴리오와 비교하여 리밸런싱을 실행할 수 있습니다.
-            </p>
+        <div className={cn("grid grid-cols-1 gap-8 items-start", chart && "lg:grid-cols-12")}>
+          <div className={chart ? "lg:col-span-7" : ""}>
+            <div className="flex flex-col items-center gap-3 py-6 px-4 border border-dashed rounded-lg">
+              <p className="text-sm text-muted-foreground text-center">
+                목표 비중을 설정하면 현재 포트폴리오와 비교하여
+                리밸런싱을 실행할 수 있습니다.
+              </p>
+            </div>
           </div>
-        </Card>
-      </div>
+          {chart && (
+            <div className="lg:col-span-5">{chart}</div>
+          )}
+        </div>
+      </section>
     );
   }
 
-  // ── Inline 모드: 읽기전용 뷰 ──
+  // ── Inline 모드: 읽기전용 뷰 (리밸런싱 가이드 — ex.js 기반) ──
   if (mode === "inline" && !isEditing) {
     return (
-      <div className="space-y-2">
+      <section className="bg-card rounded-xl shadow-sm border p-5">
         {/* Header */}
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-base font-semibold">현재 vs 목표 비중</h3>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-lg font-bold">리밸런싱 가이드</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              목표 비중 달성을 위한 예상 매매 금액입니다.
+            </p>
+          </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             className="h-7 text-xs gap-1"
             onClick={handleStartEditing}
           >
-            <Pencil className="size-3.5" />
-            편집
+            <Pencil className="size-3" />
+            목표 수정
           </Button>
         </div>
 
-        {/* Desktop table */}
-        <div className="hidden md:block border rounded-xl overflow-visible">
-          <table className="w-full text-sm table-fixed">
-            <colgroup>
-              <col className="w-[35%]" />
-              <col className="w-[45%]" />
-              <col className="w-[20%]" />
-            </colgroup>
-            <thead className="bg-muted/50">
-              <tr className="text-muted-foreground text-xs border-b border-border/50">
-                <th className="text-left py-3 px-4 font-medium">종목</th>
-                <th className="text-center py-3 px-4 font-medium">현재 vs 목표</th>
-                <th className="text-right py-3 px-4 font-medium">차이</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* 현금 행 (상단) */}
-              <tr className="bg-muted/20">
-                <td className="py-3 px-4 font-medium text-muted-foreground">
-                  현금
-                </td>
-                <td className="py-3 px-4">
-                  <WeightBulletChart
-                    currentPct={cashCurrentPct}
-                    targetPct={cashTargetPct}
-                  />
-                </td>
-                <td className="text-right px-4">
-                  {Math.abs(cashDiff) >= 0.05 && (
-                    <span className={cn(
-                      "inline-block rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
-                      "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                    )}>
-                      {Math.abs(cashDiff) < 0.05 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
-                    </span>
-                  )}
-                </td>
-              </tr>
+        {/* Content: ActionableRows (left) + Chart (right) */}
+        <div className={cn("grid grid-cols-1 gap-8 items-start", chart && "lg:grid-cols-12")}>
+          <div className={chart ? "lg:col-span-7" : ""}>
+            <div className="space-y-1">
+              {/* Cash row */}
+              <ActionableRow
+                name="현금 (KRW)"
+                currentPct={parseFloat(cashCurrentPct.toFixed(1))}
+                targetPct={parseFloat(cashTargetPct.toFixed(1))}
+                hexColor={CASH_COLOR}
+                isCash
+              />
+              {/* Stock rows */}
               {stocksWithPcts
                 .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
-                .map((d) => {
-                  const diff = d.currentPct - d.targetPct;
-                  const absDiff = Math.abs(diff);
-                  const arrow = absDiff < 0.05 ? "=" : diff > 0 ? "▲" : "▼";
-                  // 1주 이상 차이 계산
-                  const sharePrice = d.currency === "USD" ? d.current_price * exchangeRate : d.current_price;
-                  const driftAmount = totalValue * absDiff / 100;
-                  const isSignificant = sharePrice > 0 && driftAmount / sharePrice >= 1;
-                  const diffColor = isSignificant
-                    ? "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/40 ring-1 ring-rose-200 dark:ring-rose-800/40"
-                    : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30";
-                  return (
-                    <tr
-                      key={d.id}
-                      className={cn("border-b border-border/40 last:border-0 hover:bg-muted/30", (d as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false && "opacity-50")}
-                    >
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <StockLogo stockCode={d.stock_code} stockName={d.stock_name} currency={d.currency} size="sm" />
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium">{d.stock_name}</span>
-                              {(d as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false && (
-                                <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded">(제외)</span>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {d.stock_code}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <WeightBulletChart
-                          currentPct={d.currentPct}
-                          targetPct={d.targetPct}
-                        />
-                      </td>
-                      <td className="text-right px-4">
-                        {absDiff >= 0.05 && (
-                          <span className={cn("inline-block rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", diffColor)}>
-                            {arrow} {diff >= 0 ? "+" : ""}{diff.toFixed(1)}%
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
+                .map((d, i) => (
+                  <ActionableRow
+                    key={d.id}
+                    name={d.stock_name}
+                    code={d.stock_code}
+                    currentPct={parseFloat(d.currentPct.toFixed(1))}
+                    targetPct={d.targetPct}
+                    hexColor={
+                      ASSET_COLORS[i % ASSET_COLORS.length]
+                    }
+                    isExcluded={d.is_rebalance_tracked === false}
+                  />
+                ))}
+            </div>
+          </div>
+
+          {/* Right: Chart */}
+          {chart && (
+            <div className="lg:col-span-5">{chart}</div>
+          )}
         </div>
 
-        {/* Mobile list */}
-        <div className="space-y-0.5 md:hidden text-sm">
-          {/* 현금 (상단) */}
-          <div className="py-2.5 px-2 bg-muted/20 rounded-lg mb-2">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="font-medium text-muted-foreground">현금</div>
-              {Math.abs(cashDiff) >= 0.05 && (
-                <span className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums",
-                  "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                )}>
-                  {Math.abs(cashDiff) < 0.05 ? "=" : cashDiff > 0 ? "▼" : "▲"} {cashDiff > 0 ? "+" : ""}{cashDiff.toFixed(1)}%
-                </span>
-              )}
-            </div>
-            <WeightBulletChart
-              currentPct={cashCurrentPct}
-              targetPct={cashTargetPct}
-              compact
-            />
+        {/* Legend */}
+        <div className="mt-6 pt-4 border-t border-border/50 hidden md:flex gap-4 text-xs text-muted-foreground justify-end">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-muted rounded-sm" />
+            <span>현재 비중 (Bar)</span>
           </div>
-          {stocksWithPcts
-            .filter((d) => d.targetPct > 0 || d.currentPct > 0.1)
-            .map((d) => {
-              const diff = d.currentPct - d.targetPct;
-              const absDiff = Math.abs(diff);
-              const arrow = absDiff < 0.05 ? "=" : diff > 0 ? "▲" : "▼";
-              const sharePrice = d.currency === "USD" ? d.current_price * exchangeRate : d.current_price;
-              const driftAmount = totalValue * absDiff / 100;
-              const isSignificant = sharePrice > 0 && driftAmount / sharePrice >= 1;
-              const diffColor = isSignificant
-                ? "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/40 ring-1 ring-rose-200 dark:ring-rose-800/40"
-                : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30";
-              return (
-                <div
-                  key={d.id}
-                  className={cn("py-2.5 px-2 border-b border-border/40 last:border-0", (d as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false && "opacity-50")}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2 font-medium truncate flex-1 pr-2">
-                      <StockLogo stockCode={d.stock_code} stockName={d.stock_name} currency={d.currency} size="sm" />
-                      {d.stock_name}
-                      {(d as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false && (
-                        <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded shrink-0">(제외)</span>
-                      )}
-                    </div>
-                    {absDiff >= 0.05 && (
-                      <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums", diffColor)}>
-                        {arrow} {diff >= 0 ? "+" : ""}{diff.toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                  <WeightBulletChart
-                    currentPct={d.currentPct}
-                    targetPct={d.targetPct}
-                    compact
-                  />
-                </div>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <div className="w-0.5 h-3 bg-foreground" />
+            <span>목표 비중 (Line)</span>
+          </div>
         </div>
-      </div>
+      </section>
     );
   }
 
   // ── 편집 모드 (always-edit 또는 inline 편집 중) ──
   return (
-    <div className="space-y-4">
-      {/* Inline 모드 편집 헤더 */}
-      {mode === "inline" && (
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-base font-semibold">목표 비중 편집</h3>
-          <div className="flex items-center gap-2">
+    <section className="bg-card rounded-xl shadow-sm border p-5">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="font-bold text-lg">목표 비중 설정</h2>
+        <div className="flex items-center gap-3">
+          {mode === "inline" && (
             <Button
               variant="ghost"
               size="sm"
@@ -347,322 +371,147 @@ export function TargetWeightEditor({
             >
               취소
             </Button>
-            <Button
-              size="sm"
-              className="h-7 text-xs"
-              onClick={handleSave}
-              disabled={!hasChanges || !isValid || isSaving}
-            >
-              {isSaving ? "저장 중..." : "저장"}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop Table */}
-      <div className="hidden md:block overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>종목명</TableHead>
-              <TableHead className="text-right">현재 평가금액</TableHead>
-              <TableHead className="text-right">현재 비중(%)</TableHead>
-              <TableHead className="text-right">목표 비중(%)</TableHead>
-              <TableHead className="text-right">차이</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {stocksWithPcts.map((stock) => {
-              const isModified = modifiedStocks.has(stock.id);
-              const diff = stock.targetPct - stock.currentPct;
-              const isUntracked = (stock as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false;
-
-              return (
-                <TableRow key={stock.id} className={cn(isUntracked && "opacity-50")}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium">{stock.stock_name}</span>
-                          {isUntracked && (
-                            <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded">(제외)</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {stock.stock_code}
-                        </div>
-                      </div>
-                      {isModified && (
-                        <Badge variant="secondary" className="text-xs">
-                          수정됨
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(stock.evalAmount)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {stock.currentPct.toFixed(2)}%
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={stock.targetPct}
-                      onChange={(e) =>
-                        handleTargetPctChange(stock.id, e.target.value)
-                      }
-                      className="w-24 text-right"
-                      disabled={isUntracked}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={cn(
-                        diff > 0 && "text-blue-600",
-                        diff < 0 && "text-red-600"
-                      )}
-                    >
-                      {diff > 0 ? "+" : ""}
-                      {diff.toFixed(2)}%
-                    </span>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-
-            {/* Cash Row */}
-            <TableRow className="bg-muted/50">
-              <TableCell>
-                <div className="font-medium">현금</div>
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(cashAmount)}
-              </TableCell>
-              <TableCell className="text-right">
-                {cashCurrentPct.toFixed(2)}%
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="text-sm text-muted-foreground">
-                  (나머지) {cashTargetPct.toFixed(2)}%
-                </div>
-              </TableCell>
-              <TableCell className="text-right">
-                <span
-                  className={cn(
-                    cashDiff > 0 && "text-blue-600",
-                    cashDiff < 0 && "text-red-600"
-                  )}
-                >
-                  {cashDiff > 0 ? "+" : ""}
-                  {cashDiff.toFixed(2)}%
-                </span>
-              </TableCell>
-            </TableRow>
-
-            {/* Summary Row */}
-            <TableRow className="border-t-2">
-              <TableCell colSpan={2} className="font-semibold">
-                합계
-              </TableCell>
-              <TableCell className="text-right font-semibold">
-                100.00%
-              </TableCell>
-              <TableCell className="text-right">
-                <span
-                  className={cn(
-                    "font-semibold",
-                    !isValid && "text-destructive"
-                  )}
-                >
-                  {(totalStockTargetPct + cashTargetPct).toFixed(2)}%
-                </span>
-              </TableCell>
-              <TableCell />
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Mobile Cards */}
-      <div className="space-y-3 md:hidden">
-        {stocksWithPcts.map((stock, index) => {
-          const isModified = modifiedStocks.has(stock.id);
-          const diff = stock.targetPct - stock.currentPct;
-          const isUntracked = (stock as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false;
-
-          return (
-            <m.div
-              key={stock.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className={cn(isUntracked && "opacity-50")}
-            >
-              <Card className="p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-medium">{stock.stock_name}</span>
-                      {isUntracked && (
-                        <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded">(제외)</span>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {stock.stock_code}
-                    </div>
-                  </div>
-                  {isModified && (
-                    <Badge variant="secondary" className="text-xs">
-                      수정됨
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">현재 평가금액</div>
-                    <div className="font-medium">
-                      {formatCurrency(stock.evalAmount)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">현재 비중</div>
-                    <div className="font-medium">
-                      {stock.currentPct.toFixed(2)}%
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">
-                    목표 비중(%)
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={stock.targetPct}
-                    onChange={(e) =>
-                      handleTargetPctChange(stock.id, e.target.value)
-                    }
-                    className="text-right"
-                    disabled={isUntracked}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t">
-                  <div className="text-sm text-muted-foreground">차이</div>
-                  <div
-                    className={cn(
-                      "font-medium",
-                      diff > 0 && "text-blue-600",
-                      diff < 0 && "text-red-600"
-                    )}
-                  >
-                    {diff > 0 ? "+" : ""}
-                    {diff.toFixed(2)}%
-                  </div>
-                </div>
-              </Card>
-            </m.div>
-          );
-        })}
-
-        {/* Cash Card */}
-        <Card className="p-4 space-y-3 bg-muted/50">
-          <div className="font-medium">현금</div>
-
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <div className="text-muted-foreground">현재 평가금액</div>
-              <div className="font-medium">
-                {formatCurrency(cashAmount)}
-              </div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">현재 비중</div>
-              <div className="font-medium">
-                {cashCurrentPct.toFixed(2)}%
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">
-              목표 비중(%)
-            </label>
-            <div className="text-sm text-muted-foreground text-right">
-              (나머지) {cashTargetPct.toFixed(2)}%
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="text-sm text-muted-foreground">차이</div>
-            <div
-              className={cn(
-                "font-medium",
-                cashDiff > 0 && "text-blue-600",
-                cashDiff < 0 && "text-red-600"
-              )}
-            >
-              {cashDiff > 0 ? "+" : ""}
-              {cashDiff.toFixed(2)}%
-            </div>
-          </div>
-        </Card>
-
-        {/* Summary Card */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold">합계</div>
-            <div
-              className={cn(
-                "font-semibold",
-                !isValid && "text-destructive"
-              )}
-            >
-              {(totalStockTargetPct + cashTargetPct).toFixed(2)}%
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Validation & Save (always-edit 모드에서만) */}
-      {mode === "always-edit" && (
-        <div className="flex flex-col gap-3">
-          {!isValid && (
-            <div className="text-sm text-destructive">
-              목표 비중 합계가 100%를 초과할 수 없습니다.
-            </div>
           )}
+          <button
+            type="button"
+            className="text-xs text-primary font-medium hover:underline"
+            onClick={() => {
+              const resets: Record<string, number> = {};
+              stocks.forEach((s) => {
+                resets[s.id] = 0;
+              });
+              setEdits(resets);
+            }}
+          >
+            비중 초기화
+          </button>
+        </div>
+      </div>
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              {hasChanges
-                ? `${modifiedStocks.size}개 종목 수정됨`
-                : "변경 사항 없음"}
-            </div>
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || !isValid || isSaving}
-            >
-              {isSaving ? "저장 중..." : "목표 비중 저장"}
-            </Button>
+      {/* 2-column grid: Stock Rows (left) + Chart (right) */}
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-8 items-start",
+          chart && "lg:grid-cols-2"
+        )}
+      >
+        {/* Left Column: Stock Card Rows */}
+        <div className="space-y-4">
+          {stocksWithPcts.map((stock) => {
+            const isUntracked =
+              stock.is_rebalance_tracked === false;
+
+            return (
+              <div
+                key={stock.id}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-lg border transition-all",
+                  isUntracked
+                    ? "bg-muted/30 border-border/50"
+                    : "bg-card border-border hover:border-primary/30"
+                )}
+              >
+                {/* Left: Logo + Name + Current Weight */}
+                <div
+                  className={cn(
+                    "flex items-center gap-3",
+                    isUntracked && "opacity-50"
+                  )}
+                >
+                  <StockLogo
+                    stockCode={stock.stock_code}
+                    stockName={stock.stock_name}
+                    currency={stock.currency}
+                    size="default"
+                  />
+                  <div>
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      {stock.stock_name}
+                      {isUntracked && (
+                        <span className="text-[10px] text-muted-foreground font-normal">
+                          (제외)
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      현재 {stock.currentPct.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Input or Locked */}
+                <div className="flex items-center gap-3">
+                  {isUntracked ? (
+                    <div className="flex items-center gap-1 text-muted-foreground text-xs px-3 py-2 bg-muted rounded-md">
+                      <XCircle className="size-3.5" />
+                      <span>편집 불가</span>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        value={stock.targetPct}
+                        onChange={(e) =>
+                          handleTargetPctChange(
+                            stock.id,
+                            e.target.value
+                          )
+                        }
+                        className="w-20 text-right font-semibold text-foreground bg-transparent border-b-2 border-border focus:border-primary outline-none pb-1 transition-colors tabular-nums"
+                      />
+                      <span className="text-sm font-medium text-muted-foreground ml-1">
+                        %
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right Column: Chart */}
+        {chart && (
+          <div className="bg-muted/30 rounded-xl p-4 border border-border/50 h-full flex items-center">
+            {chart}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Inline 모드 유효성 에러 */}
-      {mode === "inline" && !isValid && (
-        <div className="text-sm text-destructive px-1">
-          목표 비중 합계가 100%를 초과할 수 없습니다.
-        </div>
-      )}
-    </div>
+      {/* Footer: Summary + Save */}
+      <div className="mt-6 pt-4 border-t border-border/50 flex justify-between items-center text-sm">
+        <span
+          className={cn(
+            "text-muted-foreground flex items-center gap-2",
+            !isValid && "text-destructive font-bold"
+          )}
+        >
+          {!isValid ? (
+            `비중 합계 초과: ${totalStockTargetPct.toFixed(0)}%`
+          ) : (
+            <>
+              잔여 비중:{" "}
+              <span className="font-bold text-foreground">
+                {cashTargetPct.toFixed(1)}%
+              </span>
+            </>
+          )}
+        </span>
+        <Button
+          onClick={handleSave}
+          disabled={!hasChanges || !isValid || isSaving}
+          className={cn(
+            !hasChanges || !isValid
+              ? "bg-muted text-muted-foreground cursor-not-allowed"
+              : ""
+          )}
+        >
+          {isSaving ? "저장 중..." : "저장하기"}
+        </Button>
+      </div>
+    </section>
   );
 }

@@ -10,7 +10,7 @@ import { useRefreshPrices } from "@/hooks/use-refresh-prices";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 import { PortfolioHero } from "@/components/portfolio/portfolio-hero";
-import { QuickActions } from "@/components/portfolio/quick-actions";
+import { RebalanceSummaryCards } from "@/components/portfolio/rebalance-summary-cards";
 import { AllocationChart } from "@/components/portfolio/allocation-chart";
 import { StockTable } from "@/components/manual-portfolio/stock-table";
 
@@ -353,48 +353,26 @@ export default function PortfolioPage() {
           dataUpdatedAt={dataUpdatedAt}
         />
 
-        {/* Assets & Allocation Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-          {/* Side Panel: Allocation Chart */}
-          <div className="lg:col-span-4 order-1">
-            <AllocationChart
-              stocks={balance?.stocks ?? []}
-              cash={cash}
-              totalValue={totalValue}
-              isLoading={isLoading}
-            />
-          </div>
+        {/* Rebalancing Summary Cards - Full Width */}
+        <RebalanceSummaryCards stocks={stocks} />
 
-          {/* Main Stock List Area */}
-          <div className="lg:col-span-8 order-2">
-            <StockTable
-              stocks={stocks}
-              onUpdate={updateStock}
-              onDelete={handleDeleteStock}
-              onRefresh={isPro ? handleRefreshPrices : undefined}
-              isRefreshing={isRefreshing}
-              exchangeRate={exchangeRate}
-              totalPortfolioValue={totalValue}
-              onAddStock={handleAddStock}
-              isAdding={isAdding}
-              onToggleTracked={toggleRebalanceTracked}
-              isTogglingTracked={isTogglingTracked}
-              hasActiveSession={!!activeSession}
-            />
-          </div>
-        </div>
+        {/* Stock Table - Full Width */}
+        <StockTable
+          stocks={stocks}
+          onUpdate={updateStock}
+          onDelete={handleDeleteStock}
+          onRefresh={isPro ? handleRefreshPrices : undefined}
+          isRefreshing={isRefreshing}
+          exchangeRate={exchangeRate}
+          totalPortfolioValue={totalValue}
+          onAddStock={handleAddStock}
+          isAdding={isAdding}
+          onToggleTracked={toggleRebalanceTracked}
+          isTogglingTracked={isTogglingTracked}
+          hasActiveSession={!!activeSession}
+        />
 
-        {/* Quick Actions */}
-        <QuickActions onAddStock={() => {
-          // Scroll to stock table add form
-          const addButton = document.querySelector('[data-stock-add-button]');
-          if (addButton) {
-            addButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            (addButton as HTMLButtonElement).click();
-          }
-        }} />
-
-        {/* 인라인 목표 비중 편집기 (TargetWeightEditor) */}
+        {/* Target Weight Editor (with Allocation Chart inside) */}
         <TargetWeightEditor
           mode="inline"
           stocks={stocks}
@@ -402,18 +380,19 @@ export default function PortfolioPage() {
           exchangeRate={exchangeRate ?? 1}
           onSave={handleSaveTargets}
           isSaving={isSavingTargets}
+          chart={
+            <AllocationChart
+              stocks={balance?.stocks ?? []}
+              cash={cash}
+              totalValue={totalValue}
+              isLoading={isLoading}
+            />
+          }
         />
 
         {/* Sticky Bottom CTA - Mobile Only */}
         <div className="fixed bottom-16 left-0 right-0 md:hidden bg-background border-t border-border p-3 z-10">
           <Button asChild className="w-full" size="lg">
-            <Link href="/rebalance">리밸런싱으로 이동</Link>
-          </Button>
-        </div>
-
-        {/* Desktop CTA */}
-        <div className="hidden md:block">
-          <Button asChild size="lg">
             <Link href="/rebalance">리밸런싱으로 이동</Link>
           </Button>
         </div>
