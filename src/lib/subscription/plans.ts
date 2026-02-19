@@ -17,6 +17,11 @@ export const PLAN_LIMITS = {
     aiImageImportPerDay: 0,
     aiSearchPerDay: 5,
     aiSessionReportPerDay: 0,
+    // 알림
+    allowCalendarStrategy: false,
+    allowMonthlyReport: false,
+    maxMonthlyEmails: 4,
+    maxNotificationHistory: 10,
   },
   plus: {
     maxSimulationHistory: Infinity,
@@ -34,6 +39,11 @@ export const PLAN_LIMITS = {
     aiImageImportPerDay: 5,
     aiSearchPerDay: 50,
     aiSessionReportPerDay: 5,
+    // 알림
+    allowCalendarStrategy: true,
+    allowMonthlyReport: true,
+    maxMonthlyEmails: Infinity,
+    maxNotificationHistory: 50,
   },
   pro: {
     maxSimulationHistory: Infinity,
@@ -51,6 +61,11 @@ export const PLAN_LIMITS = {
     aiImageImportPerDay: 300,
     aiSearchPerDay: 300,
     aiSessionReportPerDay: 300,
+    // 알림
+    allowCalendarStrategy: true,
+    allowMonthlyReport: true,
+    maxMonthlyEmails: Infinity,
+    maxNotificationHistory: Infinity,
   },
 } as const;
 

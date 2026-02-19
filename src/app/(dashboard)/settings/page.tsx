@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PageTransition } from "@/components/layout/page-transition";
+import { NotificationSettingsCard } from "@/components/notification/notification-settings-card";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -163,6 +164,9 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 이메일 알림 설정 */}
+      <NotificationSettingsCard />
 
       {/* 개발용 구독 토글 */}
       {process.env.NODE_ENV === "development" && (
