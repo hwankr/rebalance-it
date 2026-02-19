@@ -26,6 +26,7 @@ import { AccountTabs } from "@/components/account/account-tabs";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import { StockLogo } from "@/components/stock-logo";
+import { Badge } from "@/components/ui/badge";
 
 function formatUpdatedAt(timestamp: number | undefined): string {
   if (!timestamp) return "";
@@ -68,6 +69,7 @@ export default function PortfolioPage() {
   const {
     balance: consolidatedBalance,
     isLoading: isConsolidatedLoading,
+    stockAccountMap,
   } = useConsolidatedPortfolio();
 
   const [isSavingTargets, setIsSavingTargets] = useState(false);
@@ -212,9 +214,12 @@ export default function PortfolioPage() {
                   </p>
                 ) : (
                   <div className="space-y-1">
-                    {allStocks.map((stock) => (
+                    {allStocks.map((stock) => {
+                      const mapKey = `${stock.stock_code}:${stock.currency ?? "KRW"}`;
+                      const accountNames = stockAccountMap[mapKey];
+                      return (
                       <div
-                        key={stock.stock_code}
+                        key={mapKey}
                         className="flex items-center justify-between py-2 border-b last:border-0"
                       >
                         <div className="flex items-center gap-2">
@@ -227,6 +232,19 @@ export default function PortfolioPage() {
                               {stock.stock_code} ·{" "}
                               {stock.quantity.toLocaleString("ko-KR")}주
                             </div>
+                            {accountNames && accountNames.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-0.5">
+                                {accountNames.map((name) => (
+                                  <Badge
+                                    key={name}
+                                    variant="outline"
+                                    className="text-[11px] px-1.5 py-0 h-4 font-normal text-muted-foreground"
+                                  >
+                                    {name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="text-right">
@@ -245,7 +263,8 @@ export default function PortfolioPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

@@ -24,6 +24,8 @@ export interface AccountBreakdown {
   cash: number;
 }
 
+export type StockAccountMap = Record<string, string[]>;
+
 /**
  * 전체 계좌의 자산을 통합 조회하는 훅.
  * 각 계좌별로 KRW 변환 후 합산하여 currency mixing 문제를 방지합니다.
@@ -83,6 +85,7 @@ export function useConsolidatedPortfolio() {
           currency: string;
         }
       >();
+      const stockAccountNames = new Map<string, Set<string>>();
 
       for (const portfolio of portfolioRows) {
         const accountStocks = stockRows.filter(
@@ -125,6 +128,11 @@ export function useConsolidatedPortfolio() {
               currency: stock.currency ?? "KRW",
             });
           }
+
+          // Track account origin for each stock
+          const nameSet = stockAccountNames.get(key) ?? new Set<string>();
+          nameSet.add(portfolio.name);
+          stockAccountNames.set(key, nameSet);
         }
       }
 
@@ -165,16 +173,22 @@ export function useConsolidatedPortfolio() {
         })),
       };
 
-      return { balance: consolidatedBalance, breakdown };
+      const stockAccountMap: StockAccountMap = Object.fromEntries(
+        Array.from(stockAccountNames.entries()).map(([k, v]) => [k, Array.from(v)])
+      );
+
+      return { balance: consolidatedBalance, breakdown, stockAccountMap };
     },
   });
 
   const balance = data?.balance ?? null;
   const breakdown = data?.breakdown ?? [];
+  const stockAccountMap: StockAccountMap = data?.stockAccountMap ?? {};
 
   return {
     balance,
     breakdown,
+    stockAccountMap,
     isLoading,
     isError,
     error,
