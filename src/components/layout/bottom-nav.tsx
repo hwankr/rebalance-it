@@ -22,6 +22,11 @@ export function BottomNav() {
     : selectedAccountId;
   const { activeSession } = useProgressiveRebalance(portfolioId);
 
+  // Hide BottomNav during active rebalancing session to avoid z-index conflict
+  // with the fixed bottom action bar. User navigates via "나중에 계속" button instead.
+  const isRebalancePage = pathname.startsWith("/rebalance");
+  if (isRebalancePage && !!activeSession) return null;
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-border backdrop-header md:hidden safe-area-pb">
       {tabs.map((tab) => {

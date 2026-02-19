@@ -56,7 +56,7 @@ export function EffectivePortfolioCard({
   const cashTargetPct = targetMap.get("CASH") ?? 0;
 
   return (
-    <Card className="border-border/50 shadow-sm">
+    <Card className="rounded-3xl border-border/50 shadow-sm">
       <CardHeader
         className="cursor-pointer select-none pb-3"
         onClick={() => setIsOpen((v) => !v)}

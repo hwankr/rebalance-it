@@ -13,13 +13,13 @@ import {
   Save,
   Loader2,
   ArrowRightLeft,
+  CheckCheck,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -31,8 +31,6 @@ import {
 } from "@/components/ui/dialog";
 import { ProgressiveOrderList } from "@/components/rebalance/progressive-order-list";
 import { ProgressSummary } from "@/components/rebalance/progress-summary";
-import { RebalanceStepper } from "@/components/rebalance/rebalance-stepper";
-import type { RebalancePhase } from "@/components/rebalance/rebalance-stepper";
 import { CompletionReviewSheet } from "@/components/rebalance/completion-review-sheet";
 import { EffectivePortfolioCard } from "@/components/rebalance/effective-portfolio-card";
 import { PRICE_CHANGE_THRESHOLD } from "@/lib/rebalance/constants";
@@ -105,21 +103,20 @@ export function ActiveSessionView({
   const [completeOpen, setCompleteOpen] = useState(false);
   const [recalcOpen, setRecalcOpen] = useState(false);
 
-  // Phase 1: 매도 완료 후 재계산 권고 배너 dismiss 상태
+  // 매도 완료 후 재계산 권고 배너 dismiss 상태
   // 페이지 이동 후 복귀 시 다시 표시 — 의도된 동작 (시세가 변했을 수 있음)
   const [recalcBannerDismissed, setRecalcBannerDismissed] = useState(false);
 
   const sellOrders = session.orders.filter((o) => o.side === "sell");
   const buyOrders = session.orders.filter((o) => o.side === "buy");
   const startedAt = session.started_at ? new Date(session.started_at) : null;
-  // eslint-disable-next-line react-hooks/purity
   const now = useMemo(() => Date.now(), []);
   const daysSinceStart = startedAt
     ? (now - startedAt.getTime()) / (1000 * 60 * 60 * 24)
     : 0;
   const isStale = daysSinceStart > 30;
 
-  // Derive current phase (전량 체결 기준, resolved_by_recalc 필터링)
+  // Phase derivation (for sell-complete banner logic)
   const activeSellOrders = sellOrders.filter((o) => !o.resolved_by_recalc);
   const activeBuyOrders = buyOrders.filter((o) => !o.resolved_by_recalc);
   const allActiveSellsFilled =
@@ -135,23 +132,15 @@ export function ActiveSessionView({
   const anyActiveBuyUnfilled = activeBuyOrders.some(
     (o) => (o.executed_quantity ?? 0) < o.quantity,
   );
-  const currentPhase: RebalancePhase =
-    allActiveSellsFilled && allActiveBuysFilled
-      ? "review"
-      : allActiveSellsFilled
-        ? "buy"
-        : "sell";
 
-  // Phase 1: 매도 완료 → 매수 재계산 권고 배너 조건
-  // 매도가 실제로 존재하고 전량 체결 + 매수가 미완료 + 사용자가 dismiss하지 않음
+  // 매도 완료 → 매수 재계산 권고 배너 조건
   const showSellCompleteBanner =
     activeSellOrders.length > 0 &&
     allActiveSellsFilled &&
     anyActiveBuyUnfilled &&
     !recalcBannerDismissed;
 
-  // Phase 1: 계획 매도 대금 vs 실제 매도 대금 계산
-  // "계획 대금" = 가장 최근 세션/재계산 시점의 estimated_amount
+  // 계획 매도 대금 vs 실제 매도 대금
   const plannedSellAmount = activeSellOrders.reduce(
     (sum, o) => sum + o.estimated_amount,
     0,
@@ -165,7 +154,7 @@ export function ActiveSessionView({
   );
   const sellDelta = actualSellAmount - plannedSellAmount;
 
-  // Price change detection (from original page.tsx)
+  // Price change detection
   const priceChanges = useMemo(() => {
     if (!session.portfolio_snapshot) return [];
     const snapshot = session.portfolio_snapshot;
@@ -208,7 +197,7 @@ export function ActiveSessionView({
     return changes;
   }, [session, manualStocks, exchangeRate]);
 
-  // Phase 2: target map + currency map for effective portfolio card
+  // Target map + currency map for effective portfolio card
   const targetMap = useMemo(
     () => new Map(manualStocks.map((s) => [s.stock_code, s.target_pct ?? 0])),
     [manualStocks],
@@ -217,6 +206,14 @@ export function ActiveSessionView({
     () => new Map(manualStocks.map((s) => [s.stock_code, s.currency ?? "KRW"])),
     [manualStocks],
   );
+
+  // Sell/buy completion counts for section headers
+  const sellCompleted = activeSellOrders.filter(
+    (o) => o.over_executed || (o.executed_quantity ?? 0) >= o.quantity,
+  ).length;
+  const buyCompleted = activeBuyOrders.filter(
+    (o) => o.over_executed || (o.executed_quantity ?? 0) >= o.quantity,
+  ).length;
 
   // Handlers
   function handleQuantityChange(
@@ -296,171 +293,129 @@ export function ActiveSessionView({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <Badge
-            variant="outline"
-            className="bg-primary/5 text-primary border-primary/20 px-2 py-0.5 h-6"
-          >
-            진행중
-          </Badge>
-          <h1 className="text-lg font-bold tracking-tight">
-            리밸런싱 실행
-            {accountName && (
-              <span className="ml-1.5 text-muted-foreground font-medium">
-                · {accountName}
+    <>
+      <div className="max-w-2xl mx-auto space-y-6 pb-28">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+              진행중
+            </span>
+            <h1 className="text-xl font-bold tracking-tight">
+              리밸런싱 실행
+              {accountName && (
+                <span className="ml-1.5 text-muted-foreground font-medium">
+                  · {accountName}
+                </span>
+              )}
+            </h1>
+            {/* Auto-save indicator */}
+            <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+              {isSaving ? (
+                <>
+                  <Loader2 className="size-3 animate-spin" />
+                  저장 중...
+                </>
+              ) : lastSavedAt ? (
+                <>
+                  <Save className="size-3" />
+                  자동 저장됨 ·{" "}
+                  {formatDistanceToNow(lastSavedAt, {
+                    locale: ko,
+                    addSuffix: false,
+                  })}{" "}
+                  전
+                </>
+              ) : null}
+            </span>
+          </div>
+          <div className="flex items-center gap-x-4 text-sm text-muted-foreground">
+            <span>
+              증권사 앱에서 주문을 실행하고, 실제 체결 수량을 입력하세요.
+            </span>
+            {startedAt && (
+              <span className="inline-flex items-center gap-1 text-xs shrink-0">
+                <Clock className="size-3" />
+                {formatDistanceToNow(startedAt, {
+                  locale: ko,
+                  addSuffix: true,
+                })}{" "}
+                시작
               </span>
             )}
-          </h1>
-          {/* Auto-save indicator */}
-          <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-            {isSaving ? (
-              <>
-                <Loader2 className="size-3 animate-spin" />
-                저장 중...
-              </>
-            ) : lastSavedAt ? (
-              <>
-                <Save className="size-3" />
-                자동 저장됨 ·{" "}
-                {formatDistanceToNow(lastSavedAt, {
-                  locale: ko,
-                  addSuffix: false,
-                })}{" "}
-                전
-              </>
-            ) : null}
-          </span>
-        </div>
-        <div className="flex items-center gap-x-4 text-sm text-muted-foreground">
-          <span>
-            증권사 앱에서 주문을 실행하고, 실제 체결 수량을 입력하세요.
-          </span>
-          {startedAt && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-xs shrink-0">
-              <Clock className="size-3" />
-              {formatDistanceToNow(startedAt, {
-                locale: ko,
-                addSuffix: true,
-              })}{" "}
-              시작
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Main Content: Orders */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Step indicator */}
-          <div className="bg-muted/30 p-4 rounded-xl border border-border/50 shadow-sm">
-            <RebalanceStepper
-              currentPhase={currentPhase}
-              hasSellOrders={sellOrders.length > 0}
-            />
           </div>
+        </div>
 
-          {/* Phase 1: 매도 완료 후 매수 재계산 권고 배너 */}
-          {showSellCompleteBanner && (
-            <div className="flex items-start gap-3 rounded-lg border border-blue-500/30 bg-blue-50/50 p-4 dark:bg-blue-950/20">
-              <ArrowRightLeft className="size-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
-              <div className="flex-1 space-y-2">
-                <div className="text-sm text-blue-800 dark:text-blue-200">
-                  <p className="font-medium">
-                    매도가 완료되었습니다
-                  </p>
-                  <p className="text-xs mt-1 opacity-90">
-                    실제 매도 대금과 현재 시세를 반영하여 매수 주문을
-                    재계산하시겠습니까?
-                  </p>
-                  {sellDelta !== 0 && (
-                    <p className="text-xs mt-1 tabular-nums">
-                      매도 대금: 계획 {formatCurrency(plannedSellAmount)} → 실제{" "}
-                      {formatCurrency(actualSellAmount)}{" "}
-                      <span
-                        className={cn(
-                          "font-medium",
-                          sellDelta > 0
-                            ? "text-green-700 dark:text-green-400"
-                            : "text-red-700 dark:text-red-400",
-                        )}
-                      >
-                        ({sellDelta > 0 ? "+" : ""}
-                        {formatCurrency(sellDelta)})
-                      </span>
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setRecalcOpen(true)}
-                    disabled={isRecalculating}
-                    className="gap-1.5 h-7 text-xs bg-transparent border-blue-200 hover:bg-blue-100 dark:border-blue-800 dark:hover:bg-blue-900/50"
-                  >
-                    <RefreshCw
-                      className={cn(
-                        "size-3",
-                        isRecalculating && "animate-spin",
-                      )}
-                    />
-                    {isRecalculating ? "재계산 중..." : "매수 주문 재계산"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setRecalcBannerDismissed(true)}
-                    className="h-7 text-xs text-muted-foreground"
-                  >
-                    현재 주문 유지
-                  </Button>
-                </div>
-              </div>
+        {/* Progress Summary */}
+        <ProgressSummary
+          orders={session.orders}
+          totalBuyAmount={session.total_buy_amount}
+          totalSellAmount={session.total_sell_amount}
+        />
+
+        {/* Banners */}
+
+        {/* Stale session warning */}
+        {isStale && (
+          <div className="rounded-2xl p-5 bg-orange-50 border border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/50 flex items-start gap-4">
+            <div className="bg-card p-2 rounded-full shadow-sm">
+              <Clock className="size-5 text-orange-600 dark:text-orange-400" />
             </div>
-          )}
+            <div className="flex-1">
+              <p className="font-medium text-sm text-orange-800 dark:text-orange-200">
+                오래된 세션
+              </p>
+              <p className="text-xs text-orange-700 dark:text-orange-300 mt-1 opacity-90">
+                시작된 지{" "}
+                {startedAt &&
+                  formatDistanceToNow(startedAt, {
+                    locale: ko,
+                    addSuffix: false,
+                  })}{" "}
+                경과. 시세가 크게 변했을 수 있습니다.
+              </p>
+            </div>
+          </div>
+        )}
 
-          {/* Price change warning banner */}
-          {priceChanges.length > 0 && (
-            <div className="flex items-start gap-3 rounded-lg border border-orange-500/30 bg-orange-50/50 p-4 dark:bg-orange-950/20">
-              <AlertTriangle className="size-5 shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
-              <div className="flex-1 space-y-2">
-                <div className="text-sm text-orange-800 dark:text-orange-200">
-                  <p className="font-medium">
-                    시세 변동 감지 ({priceChanges.length}개 종목)
+        {/* Sell-complete recalculate banner */}
+        {showSellCompleteBanner && (
+          <div className="rounded-2xl p-5 bg-blue-50 border border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/50 flex items-start gap-4">
+            <div className="bg-card p-2 rounded-full shadow-sm">
+              <ArrowRightLeft className="size-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1 space-y-2">
+              <div className="text-sm text-blue-800 dark:text-blue-200">
+                <p className="font-medium">매도가 완료되었습니다</p>
+                <p className="text-xs mt-1 opacity-90">
+                  실제 매도 대금과 현재 시세를 반영하여 매수 주문을
+                  재계산하시겠습니까?
+                </p>
+                {sellDelta !== 0 && (
+                  <p className="text-xs mt-1 tabular-nums">
+                    매도 대금: 계획 {formatCurrency(plannedSellAmount)} → 실제{" "}
+                    {formatCurrency(actualSellAmount)}{" "}
+                    <span
+                      className={cn(
+                        "font-medium",
+                        sellDelta > 0
+                          ? "text-green-700 dark:text-green-400"
+                          : "text-red-700 dark:text-red-400",
+                      )}
+                    >
+                      ({sellDelta > 0 ? "+" : ""}
+                      {formatCurrency(sellDelta)})
+                    </span>
                   </p>
-                  <ul className="mt-1 space-y-0.5 text-xs opacity-90">
-                    {priceChanges.map((pc) => (
-                      <li key={pc.stock_code}>
-                        {pc.stock_name}: {formatCurrency(pc.refPrice)} →{" "}
-                        {formatCurrency(pc.currentPrice)}{" "}
-                        <span
-                          className={cn(
-                            "font-medium",
-                            pc.changePct > 0
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-blue-600 dark:text-blue-400",
-                          )}
-                        >
-                          ({pc.changePct > 0 ? "+" : ""}
-                          {(pc.changePct * 100).toFixed(1)}%)
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-2 text-xs opacity-80">
-                    미체결 주문의 수량이 현재 시세와 맞지 않을 수 있습니다.
-                    재계산을 권장합니다.
-                  </p>
-                </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setRecalcOpen(true)}
                   disabled={isRecalculating}
-                  className="gap-1.5 h-7 text-xs bg-transparent border-orange-200 hover:bg-orange-100 dark:border-orange-800 dark:hover:bg-orange-900/50"
+                  className="gap-1.5 rounded-xl h-9 text-xs font-semibold bg-transparent border-blue-200 hover:bg-blue-100 dark:border-blue-800 dark:hover:bg-blue-900/50"
                 >
                   <RefreshCw
                     className={cn(
@@ -468,141 +423,209 @@ export function ActiveSessionView({
                       isRecalculating && "animate-spin",
                     )}
                   />
-                  {isRecalculating ? "재계산 중..." : "잔여 주문 재계산"}
+                  {isRecalculating ? "재계산 중..." : "매수 주문 재계산"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setRecalcBannerDismissed(true)}
+                  className="h-9 rounded-xl text-xs text-muted-foreground"
+                >
+                  현재 주문 유지
                 </Button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Sell orders */}
-          {sellOrders.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-base font-semibold flex items-center gap-2">
-                <span className="flex items-center justify-center size-6 rounded-full bg-red-100 text-red-700 text-xs font-bold dark:bg-red-900/30 dark:text-red-400">
+        {/* Price change warning banner */}
+        {priceChanges.length > 0 && (
+          <div className="rounded-2xl p-5 bg-orange-50 border border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/50 flex items-start gap-4">
+            <div className="bg-card p-2 rounded-full shadow-sm">
+              <AlertTriangle className="size-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div className="flex-1 space-y-2">
+              <div className="text-sm text-orange-800 dark:text-orange-200">
+                <p className="font-medium">
+                  시세 변동 감지 ({priceChanges.length}개 종목)
+                </p>
+                <ul className="mt-1 space-y-0.5 text-xs opacity-90">
+                  {priceChanges.map((pc) => (
+                    <li key={pc.stock_code}>
+                      {pc.stock_name}: {formatCurrency(pc.refPrice)} →{" "}
+                      {formatCurrency(pc.currentPrice)}{" "}
+                      <span
+                        className={cn(
+                          "font-medium",
+                          pc.changePct > 0
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-blue-600 dark:text-blue-400",
+                        )}
+                      >
+                        ({pc.changePct > 0 ? "+" : ""}
+                        {(pc.changePct * 100).toFixed(1)}%)
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs opacity-80">
+                  미체결 주문의 수량이 현재 시세와 맞지 않을 수 있습니다.
+                  재계산을 권장합니다.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRecalcOpen(true)}
+                disabled={isRecalculating}
+                className="gap-1.5 rounded-xl h-9 text-xs font-semibold bg-transparent border-orange-200 hover:bg-orange-100 dark:border-orange-800 dark:hover:bg-orange-900/50"
+              >
+                <RefreshCw
+                  className={cn(
+                    "size-3",
+                    isRecalculating && "animate-spin",
+                  )}
+                />
+                {isRecalculating ? "재계산 중..." : "잔여 주문 재계산"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Sell Orders Section */}
+        {sellOrders.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold flex items-center gap-2.5">
+                <span className="flex items-center justify-center size-7 rounded-full bg-red-100 text-red-700 text-xs font-bold dark:bg-red-900/30 dark:text-red-400">
                   1
                 </span>
                 매도 주문
               </h3>
-              <ProgressiveOrderList
-                orders={session.orders}
-                side="sell"
-                stepNumber={1}
-                onQuantityChange={handleQuantityChange}
-                onBatchFill={handleBatchFillSell}
-                disabled={false}
-                pendingOrders={pendingOrders}
-              />
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {sellCompleted}/{activeSellOrders.length}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={allActiveSellsFilled}
+                  onClick={handleBatchFillSell}
+                  className="h-8 text-xs gap-1.5 rounded-xl"
+                >
+                  <CheckCheck className="size-3.5" />
+                  전체 체결
+                </Button>
+              </div>
             </div>
-          )}
+            <ProgressiveOrderList
+              orders={session.orders}
+              side="sell"
+              onQuantityChange={handleQuantityChange}
+              disabled={false}
+              pendingOrders={pendingOrders}
+            />
+          </div>
+        )}
 
-          {/* Buy orders */}
-          {buyOrders.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-base font-semibold flex items-center gap-2">
-                <span className="flex items-center justify-center size-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-400">
+        {/* Buy Orders Section */}
+        {buyOrders.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold flex items-center gap-2.5">
+                <span className="flex items-center justify-center size-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-400">
                   {sellOrders.length > 0 ? 2 : 1}
                 </span>
                 매수 주문
               </h3>
-              <ProgressiveOrderList
-                orders={session.orders}
-                side="buy"
-                stepNumber={sellOrders.length > 0 ? 2 : 1}
-                onQuantityChange={handleQuantityChange}
-                onBatchFill={handleBatchFillBuy}
-                disabled={false}
-                pendingOrders={pendingOrders}
-              />
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {buyCompleted}/{activeBuyOrders.length}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={allActiveBuysFilled}
+                  onClick={handleBatchFillBuy}
+                  className="h-8 text-xs gap-1.5 rounded-xl"
+                >
+                  <CheckCheck className="size-3.5" />
+                  전체 체결
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Sidebar: Progress & Actions */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="sticky top-20 space-y-6">
-            <ProgressSummary
+            <ProgressiveOrderList
               orders={session.orders}
-              totalBuyAmount={session.total_buy_amount}
-              totalSellAmount={session.total_sell_amount}
+              side="buy"
+              onQuantityChange={handleQuantityChange}
+              disabled={false}
+              pendingOrders={pendingOrders}
             />
+          </div>
+        )}
 
-            {/* Phase 2: Effective Portfolio Card */}
-            {session.portfolio_snapshot && (
-              <EffectivePortfolioCard
-                orders={session.orders}
-                snapshot={session.portfolio_snapshot}
-                targetMap={targetMap}
-                currencyMap={currencyMap}
-                startedAt={session.started_at}
+        {/* Effective Portfolio Card (inline, after orders) */}
+        {session.portfolio_snapshot && (
+          <EffectivePortfolioCard
+            orders={session.orders}
+            snapshot={session.portfolio_snapshot}
+            targetMap={targetMap}
+            currencyMap={currencyMap}
+            startedAt={session.started_at}
+          />
+        )}
+      </div>
+
+      {/* Fixed Bottom Action Bar */}
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-card/95 backdrop-blur-sm border-t border-border/50 safe-area-pb">
+        <div className="max-w-2xl mx-auto px-5 py-4 space-y-3">
+          {/* Primary row */}
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 h-12 rounded-xl font-semibold text-sm gap-2 active:scale-[0.98] transition-transform"
+              onClick={() => {
+                toast.success(
+                  "진행 상태가 자동 저장되었습니다. 언제든 돌아와서 이어할 수 있습니다.",
+                );
+                router.push("/portfolio");
+              }}
+            >
+              <Pause className="size-4" />
+              나중에 계속
+            </Button>
+            <Button
+              className="flex-1 h-12 rounded-xl font-bold text-base gap-2 shadow-md active:scale-[0.98] transition-transform bg-indigo-600 hover:bg-indigo-700 text-white"
+              onClick={() => setCompleteOpen(true)}
+            >
+              <CheckCircle2 className="size-5" />
+              리밸런싱 완료
+            </Button>
+          </div>
+          {/* Secondary row */}
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              className="flex-1 h-10 rounded-xl text-sm font-medium gap-2 text-muted-foreground"
+              onClick={() => setRecalcOpen(true)}
+              disabled={isRecalculating}
+            >
+              <RefreshCw
+                className={cn(
+                  "size-4",
+                  isRecalculating && "animate-spin",
+                )}
               />
-            )}
-
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={() => setCompleteOpen(true)}
-                className="w-full gap-2 h-12 text-base shadow-md"
-              >
-                <CheckCircle2 className="size-5" />
-                리밸런싱 완료
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={() => {
-                  toast.success(
-                    "진행 상태가 자동 저장되었습니다. 언제든 돌아와서 이어할 수 있습니다.",
-                  );
-                  router.push("/portfolio");
-                }}
-              >
-                <Pause className="size-4" />
-                나중에 계속
-              </Button>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setRecalcOpen(true)}
-                  disabled={isRecalculating}
-                  className="gap-2"
-                >
-                  <RefreshCw
-                    className={cn(
-                      "size-4",
-                      isRecalculating && "animate-spin",
-                    )}
-                  />
-                  재계산
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setAbandonOpen(true)}
-                  className="gap-2 hover:bg-destructive/10 hover:text-destructive border-destructive/20 text-destructive/80"
-                >
-                  <XCircle className="size-4" />
-                  포기
-                </Button>
-              </div>
-            </div>
-
-            {/* Stale warning */}
-            {isStale && (
-              <div className="rounded-lg border border-orange-500/20 bg-orange-50/50 p-4 dark:bg-orange-950/10 text-xs text-orange-800 dark:text-orange-300">
-                <p className="font-medium mb-1 flex items-center gap-1.5">
-                  <Clock className="size-3.5" /> 오래된 세션
-                </p>
-                <p className="opacity-90">
-                  시작된 지{" "}
-                  {startedAt &&
-                    formatDistanceToNow(startedAt, {
-                      locale: ko,
-                      addSuffix: false,
-                    })}{" "}
-                  경과.
-                </p>
-              </div>
-            )}
+              재계산
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex-1 h-10 rounded-xl text-sm font-medium gap-2 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setAbandonOpen(true)}
+            >
+              <XCircle className="size-4" />
+              포기
+            </Button>
           </div>
         </div>
       </div>
@@ -629,7 +652,7 @@ export function ActiveSessionView({
             </DialogDescription>
           </DialogHeader>
           {priceChanges.length > 0 && (
-            <div className="text-sm space-y-1 rounded-lg border p-3 bg-muted/50">
+            <div className="text-sm space-y-1 rounded-2xl border p-3 bg-muted/50">
               <p className="font-medium text-muted-foreground">
                 변동 감지 종목:
               </p>
@@ -653,12 +676,12 @@ export function ActiveSessionView({
           )}
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">취소</Button>
+              <Button variant="outline" className="rounded-xl">취소</Button>
             </DialogClose>
             <Button
               onClick={handleRecalculate}
               disabled={isRecalculating}
-              className="gap-2"
+              className="gap-2 rounded-xl"
             >
               <RefreshCw
                 className={cn(
@@ -684,18 +707,19 @@ export function ActiveSessionView({
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">취소</Button>
+              <Button variant="outline" className="rounded-xl">취소</Button>
             </DialogClose>
             <Button
               variant="destructive"
               onClick={handleAbandon}
               disabled={isAbandoning}
+              className="rounded-xl"
             >
               {isAbandoning ? "처리 중..." : "포기"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

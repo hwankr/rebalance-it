@@ -243,7 +243,6 @@ export default function ProgressPage() {
           <ProgressiveOrderList
             orders={session.orders}
             side="sell"
-            stepNumber={1}
             onQuantityChange={handleQuantityChange}
             disabled={!isInProgress}
           />
@@ -254,7 +253,6 @@ export default function ProgressPage() {
           <ProgressiveOrderList
             orders={session.orders}
             side="buy"
-            stepNumber={sellOrders.length > 0 ? 2 : 1}
             onQuantityChange={handleQuantityChange}
             disabled={!isInProgress}
           />

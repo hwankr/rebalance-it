@@ -85,14 +85,14 @@ export function CompletionReviewSheet({
         <div className="flex-1 overflow-y-auto px-4 space-y-4">
           {/* Summary stats */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border p-3">
+            <div className="rounded-2xl border p-3">
               <div className="text-xs text-muted-foreground">전체 주문</div>
               <div className="text-lg font-bold tabular-nums">{totalOrders}건</div>
               <div className="text-xs text-muted-foreground">
                 매도 {sellOrders.length} · 매수 {buyOrders.length}
               </div>
             </div>
-            <div className="rounded-lg border p-3">
+            <div className="rounded-2xl border p-3">
               <div className="text-xs text-muted-foreground">체결 주문</div>
               <div className={cn(
                 "text-lg font-bold tabular-nums",
@@ -109,7 +109,7 @@ export function CompletionReviewSheet({
           </div>
 
           {/* Amount summary */}
-          <div className="rounded-lg border p-3 space-y-2">
+          <div className="rounded-2xl border p-3 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">매도 금액</span>
               <div className="text-right tabular-nums">
@@ -152,7 +152,7 @@ export function CompletionReviewSheet({
 
           {/* Partial execution warning */}
           {isPartial && (
-            <div className="flex items-start gap-2 rounded-lg border border-orange-500/50 bg-orange-50 p-3 dark:bg-orange-950/30">
+            <div className="flex items-start gap-2 rounded-2xl border border-orange-500/50 bg-orange-50 p-3 dark:bg-orange-950/30">
               <AlertTriangle className="size-4 shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
               <div className="text-xs text-orange-800 dark:text-orange-200">
                 <p className="font-medium">{unfilledOrders}건의 주문이 미체결입니다</p>
@@ -179,7 +179,7 @@ export function CompletionReviewSheet({
                     <div
                       key={order.stock_code}
                       className={cn(
-                        "flex items-center gap-2 text-sm py-1.5 px-2 rounded",
+                        "flex items-center gap-2 text-sm py-1.5 px-2 rounded-xl",
                         isUnfilled && "bg-orange-50/50 dark:bg-orange-950/20"
                       )}
                     >
@@ -215,7 +215,7 @@ export function CompletionReviewSheet({
                     <div
                       key={order.stock_code}
                       className={cn(
-                        "flex items-center gap-2 text-sm py-1.5 px-2 rounded",
+                        "flex items-center gap-2 text-sm py-1.5 px-2 rounded-xl",
                         isUnfilled && "bg-orange-50/50 dark:bg-orange-950/20"
                       )}
                     >
@@ -236,14 +236,14 @@ export function CompletionReviewSheet({
 
         <SheetFooter>
           <SheetClose asChild>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full rounded-xl active:scale-[0.98] transition-transform">
               뒤로
             </Button>
           </SheetClose>
           <Button
             onClick={onConfirm}
             disabled={isCompleting}
-            className="w-full"
+            className="w-full rounded-xl active:scale-[0.98] transition-transform"
           >
             {isCompleting ? "처리 중..." : isPartial ? "부분 완료로 저장" : "리밸런싱 완료"}
           </Button>
