@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import {
   RefreshCw,
@@ -14,6 +15,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useActiveSessionAccount } from "@/hooks/use-active-session-account";
 import { AccountTabs } from "@/components/account/account-tabs";
 import { usePortfolioData } from "@/hooks/use-portfolio-data";
 import { useManualPortfolio } from "@/hooks/use-manual-portfolio";
@@ -29,14 +31,36 @@ import { ActiveSessionView } from "@/components/rebalance/active-session-view";
 import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
 
 export default function RebalancePage() {
-  const { accounts, selectedAccountId, setSelectedAccountId } = useAccounts();
-  const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
-  const isAllMode = selectedAccountId === "all";
+  const { accounts, selectedAccountId } = useAccounts();
+  const { activeAccountId, activeAccountIds } = useActiveSessionAccount(accounts);
 
-  // 계좌 1개 + 전체 모드: 해당 계좌를 실질적으로 사용 (리밸런싱 가능)
-  const effectivePortfolioId = isAllMode && accounts.length === 1 ? accounts[0].id : portfolioId;
-  const effectiveIsAllMode = isAllMode && accounts.length > 1;
-  const effectiveAccountName = accounts.find(a => a.id === effectivePortfolioId)?.name ?? null;
+  // 동기적 계좌 해결: URL 파라미터 > 활성 세션 계좌 > 첫번째 계좌
+  const resolvedPortfolioId = useMemo(() => {
+    if (selectedAccountId !== "all") return selectedAccountId;
+    if (accounts.length === 1) return accounts[0].id;
+    if (activeAccountId) return activeAccountId;
+    if (accounts.length > 0) return accounts[0].id;
+    return null;
+  }, [selectedAccountId, accounts, activeAccountId]);
+
+  const effectiveAccountName = accounts.find(a => a.id === resolvedPortfolioId)?.name ?? null;
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const isSessionView = searchParams.get("view") === "session";
+
+  const setSessionView = useCallback((show: boolean) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (show) {
+      params.set("view", "session");
+    } else {
+      params.delete("view");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
 
   const {
     data: balance,
@@ -45,13 +69,13 @@ export default function RebalancePage() {
     error,
     targets,
     exchangeRate,
-  } = usePortfolioData(effectivePortfolioId);
+  } = usePortfolioData(resolvedPortfolioId);
   const {
     stocks: manualStocks,
     portfolio,
     isLoading: isManualLoading,
     updateBatchTargets,
-  } = useManualPortfolio(effectivePortfolioId, exchangeRate);
+  } = useManualPortfolio(resolvedPortfolioId, exchangeRate);
   const {
     activeSession,
     isLoadingSession,
@@ -73,16 +97,33 @@ export default function RebalancePage() {
     isAbandoning,
     isRecalculating,
     isResuming,
-  } = useProgressiveRebalance(effectivePortfolioId);
+  } = useProgressiveRebalance(resolvedPortfolioId);
 
-  // Auto-redirect: "전체 계좌" 모드에서 첫 번째 계좌로 자동 전환
-  const redirectingRef = useRef(false);
+  // URL 동기화 + 계좌 전환 시 세션 뷰 해제 (단일 effect로 race condition 방지)
+  const prevPortfolioRef = useRef<string | null>(null);
   useEffect(() => {
-    if (effectiveIsAllMode && accounts.length > 0 && !redirectingRef.current) {
-      redirectingRef.current = true;
-      setSelectedAccountId(accounts[0].id);
+    const params = new URLSearchParams(searchParams.toString());
+    let dirty = false;
+
+    // "전체 계좌" → 실제 계좌로 URL 업데이트
+    if (selectedAccountId === "all" && resolvedPortfolioId) {
+      params.set("account", resolvedPortfolioId);
+      dirty = true;
     }
-  }, [effectiveIsAllMode, accounts, setSelectedAccountId]);
+
+    // 계좌 전환 시 세션 뷰 자동 해제
+    const prev = prevPortfolioRef.current;
+    prevPortfolioRef.current = resolvedPortfolioId;
+    if (prev !== null && prev !== resolvedPortfolioId && params.has("view")) {
+      params.delete("view");
+      dirty = true;
+    }
+
+    if (dirty) {
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }
+  }, [selectedAccountId, resolvedPortfolioId, searchParams, router, pathname]);
 
   const cashAmount = Number(portfolio?.cash ?? 0);
   const totalValue = balance?.total_value ?? 0;
@@ -178,6 +219,7 @@ export default function RebalancePage() {
       });
 
       toast.success("리밸런싱이 시작되었습니다. 체결 수량을 입력하세요.");
+      setSessionView(true);
     } catch (err) {
       // Session creation failed — check if a stale in_progress record exists.
       console.error(
@@ -208,6 +250,24 @@ export default function RebalancePage() {
     }
   }
 
+  async function handleCompleteSession() {
+    if (!activeSession) return;
+    try {
+      await completeSession(activeSession.id);
+    } finally {
+      setSessionView(false);
+    }
+  }
+
+  async function handleAbandonSession() {
+    if (!activeSession) return;
+    try {
+      await abandonSession(activeSession.id);
+    } finally {
+      setSessionView(false);
+    }
+  }
+
   // Loading (wait for session check too, to avoid showing button when stale session exists)
   if (isLoading || isManualLoading || isLoadingSession) {
     return (
@@ -224,31 +284,7 @@ export default function RebalancePage() {
               <History size={20} />
             </Link>
           </div>
-          <div className="space-y-4">
-            <div className="h-40 skeleton-shimmer rounded-3xl bg-muted" />
-            <div className="h-12 skeleton-shimmer rounded-xl bg-muted" />
-          </div>
-        </div>
-      </PageTransition>
-    );
-  }
-
-  // 전체 계좌 모드: 첫 번째 계좌로 자동 리다이렉트 중 스켈레톤 표시
-  if (effectiveIsAllMode) {
-    return (
-      <PageTransition>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-              리밸런싱
-            </h1>
-            <Link
-              href="/history"
-              className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
-            >
-              <History size={20} />
-            </Link>
-          </div>
+          <AccountTabs showAllTab={false} activeSessionIds={activeAccountIds} />
           <div className="space-y-4">
             <div className="h-40 skeleton-shimmer rounded-3xl bg-muted" />
             <div className="h-12 skeleton-shimmer rounded-xl bg-muted" />
@@ -274,7 +310,7 @@ export default function RebalancePage() {
               <History size={20} />
             </Link>
           </div>
-          <AccountTabs showAllTab={false} />
+          <AccountTabs showAllTab={false} activeSessionIds={activeAccountIds} />
           <Card className="rounded-2xl border-border/50 shadow-sm">
             <CardContent className="flex flex-col items-center gap-3 py-8">
               <p className="text-destructive font-medium">
@@ -306,7 +342,7 @@ export default function RebalancePage() {
               <History size={20} />
             </Link>
           </div>
-          <AccountTabs showAllTab={false} />
+          <AccountTabs showAllTab={false} activeSessionIds={activeAccountIds} />
           <div className="rounded-2xl p-6 border border-dashed border-border bg-muted/30 text-center">
             <div className="mx-auto bg-card w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-muted-foreground mb-3">
               <PlusCircle size={24} />
@@ -327,33 +363,7 @@ export default function RebalancePage() {
     );
   }
 
-  // ── Active session view ──────────────────────────────────────
-  if (hasActiveSession) {
-    return (
-      <PageTransition>
-        <ActiveSessionView
-          session={activeSession}
-          accountName={effectiveAccountName}
-          manualStocks={manualStocksForSession}
-          exchangeRate={exchangeRate}
-          updateOrderQuantity={updateOrderQuantity}
-          pendingOrders={pendingOrders}
-          batchFillOrders={batchFillOrders}
-          completeSession={completeSession}
-          abandonSession={abandonSession}
-          recalculateRemaining={recalculateRemaining}
-          getProgress={getProgress}
-          lastSavedAt={lastSavedAt}
-          isSaving={isSaving}
-          isCompleting={isCompleting}
-          isAbandoning={isAbandoning}
-          isRecalculating={isRecalculating}
-        />
-      </PageTransition>
-    );
-  }
-
-  // ── Normal view (no active session) ──────────────────────────
+  // ── Main view ──────────────────────────────────────────────
   return (
     <PageTransition>
       <div className="space-y-6">
@@ -370,113 +380,162 @@ export default function RebalancePage() {
           </Link>
         </div>
 
-        <AccountTabs showAllTab={false} />
+        <AccountTabs showAllTab={false} activeSessionIds={activeAccountIds} />
 
-        {/* Portfolio Summary Card */}
-        <Card className="rounded-3xl shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Wallet className="text-primary" size={20} />
-              <span className="text-muted-foreground font-medium text-sm">
-                {effectiveAccountName ?? "포트폴리오"} 요약
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">총 자산 평가액</p>
-                <h2 className="text-3xl font-bold tracking-tight">
-                  {Math.round(totalValue).toLocaleString("ko-KR")}
-                  <span className="text-lg font-normal text-muted-foreground ml-1">원</span>
-                </h2>
-              </div>
-
-              <div className="flex gap-4 pt-4 border-t border-border/50">
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground mb-1">예수금 (가용현금)</p>
-                  <p className="font-semibold text-lg tabular-nums">{formatCurrency(cashAmount)}</p>
-                </div>
-                <div className="flex-1 border-l border-border/50 pl-4">
-                  <p className="text-xs text-muted-foreground mb-1">리밸런싱 종목</p>
-                  <p className="font-semibold text-lg">
-                    {trackedStockCount === manualStocks.length
-                      ? `${manualStocks.length}종목`
-                      : `${trackedStockCount}/${manualStocks.length}종목`}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Resume partial session banner */}
-        {latestPartialSession && (
+        {/* 활성 세션 배너 - 세션 뷰가 아닐 때만 표시 */}
+        {hasActiveSession && !isSessionView && (
           <div className="rounded-2xl p-5 bg-primary/10 border border-primary/20 flex items-start gap-4 relative overflow-hidden">
             <div className="bg-card p-2 rounded-full shadow-sm z-10 text-primary">
               <RefreshCw size={20} />
             </div>
             <div className="z-10 flex-1 space-y-2">
-              <h3 className="font-bold text-sm">부분완료된 세션이 있습니다</h3>
+              <h3 className="font-bold text-sm">진행중인 리밸런싱이 있습니다</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {latestPartialSession.preset_name
-                  ? `${latestPartialSession.preset_name} · `
-                  : ""}
-                {getProgress(latestPartialSession.orders).completed}/
-                {getProgress(latestPartialSession.orders).total}개 체결 완료
-                {latestPartialSession.completed_at &&
-                  ` · ${formatDistanceToNow(new Date(latestPartialSession.completed_at), { locale: ko, addSuffix: true })}`}
+                {effectiveAccountName} 계좌에서 리밸런싱이 진행 중입니다.
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleResumePartial}
-                disabled={isResuming}
+                onClick={() => setSessionView(true)}
                 className="gap-1.5"
               >
-                <RefreshCw className={cn("size-3.5", isResuming && "animate-spin")} />
-                {isResuming ? "재개 중..." : "이어서 진행"}
+                <ArrowRight className="size-3.5" />
+                이어서 진행
               </Button>
             </div>
           </div>
         )}
 
-        {/* Target Weight Editor - 인라인으로 항상 표시 */}
-        <TargetWeightEditor
-          mode="inline"
-          stocks={manualStocks}
-          cashAmount={cashAmount}
-          exchangeRate={exchangeRate ?? 1}
-          onSave={handleSaveTargets}
-          isSaving={isSavingTargets}
-        />
+        {/* 세션 뷰 또는 일반 뷰 */}
+        {isSessionView && hasActiveSession ? (
+          <ActiveSessionView
+            session={activeSession}
+            accountName={effectiveAccountName}
+            manualStocks={manualStocksForSession}
+            exchangeRate={exchangeRate}
+            updateOrderQuantity={updateOrderQuantity}
+            pendingOrders={pendingOrders}
+            batchFillOrders={batchFillOrders}
+            completeSession={handleCompleteSession}
+            abandonSession={handleAbandonSession}
+            recalculateRemaining={recalculateRemaining}
+            getProgress={getProgress}
+            lastSavedAt={lastSavedAt}
+            isSaving={isSaving}
+            isCompleting={isCompleting}
+            isAbandoning={isAbandoning}
+            isRecalculating={isRecalculating}
+            onBack={() => setSessionView(false)}
+          />
+        ) : (
+          <>
+            {/* Portfolio Summary Card */}
+            <Card className="rounded-3xl shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <Wallet className="text-primary" size={20} />
+                  <span className="text-muted-foreground font-medium text-sm">
+                    {effectiveAccountName ?? "포트폴리오"} 요약
+                  </span>
+                </div>
 
-        {/* 리밸런싱 실행 버튼 - 목표 비중 설정된 경우에만 */}
-        {hasTargets && (
-          <button
-            onClick={handleStartRebalancing}
-            disabled={!canSimulate || isStarting || isLoadingSession}
-            className={cn(
-              "w-full h-12 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
-              !canSimulate || isStarting || isLoadingSession
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-foreground text-background hover:bg-foreground/90 shadow-md",
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">총 자산 평가액</p>
+                    <h2 className="text-3xl font-bold tracking-tight">
+                      {Math.round(totalValue).toLocaleString("ko-KR")}
+                      <span className="text-lg font-normal text-muted-foreground ml-1">원</span>
+                    </h2>
+                  </div>
+
+                  <div className="flex gap-4 pt-4 border-t border-border/50">
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground mb-1">예수금 (가용현금)</p>
+                      <p className="font-semibold text-lg tabular-nums">{formatCurrency(cashAmount)}</p>
+                    </div>
+                    <div className="flex-1 border-l border-border/50 pl-4">
+                      <p className="text-xs text-muted-foreground mb-1">리밸런싱 종목</p>
+                      <p className="font-semibold text-lg">
+                        {trackedStockCount === manualStocks.length
+                          ? `${manualStocks.length}종목`
+                          : `${trackedStockCount}/${manualStocks.length}종목`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Resume partial session banner */}
+            {latestPartialSession && (
+              <div className="rounded-2xl p-5 bg-primary/10 border border-primary/20 flex items-start gap-4 relative overflow-hidden">
+                <div className="bg-card p-2 rounded-full shadow-sm z-10 text-primary">
+                  <RefreshCw size={20} />
+                </div>
+                <div className="z-10 flex-1 space-y-2">
+                  <h3 className="font-bold text-sm">부분완료된 세션이 있습니다</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {latestPartialSession.preset_name
+                      ? `${latestPartialSession.preset_name} · `
+                      : ""}
+                    {getProgress(latestPartialSession.orders).completed}/
+                    {getProgress(latestPartialSession.orders).total}개 체결 완료
+                    {latestPartialSession.completed_at &&
+                      ` · ${formatDistanceToNow(new Date(latestPartialSession.completed_at), { locale: ko, addSuffix: true })}`}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResumePartial}
+                    disabled={isResuming}
+                    className="gap-1.5"
+                  >
+                    <RefreshCw className={cn("size-3.5", isResuming && "animate-spin")} />
+                    {isResuming ? "재개 중..." : "이어서 진행"}
+                  </Button>
+                </div>
+              </div>
             )}
-          >
-            <RefreshCw className={cn("size-5", isStarting && "animate-spin")} />
-            {isStarting ? "시작 중..." : "리밸런싱 실행"}
-          </button>
-        )}
 
-        {/* 포트폴리오 관리 링크 */}
-        <div className="text-center">
-          <Link
-            href="/portfolio"
-            className="text-muted-foreground text-sm font-medium hover:text-foreground inline-flex items-center gap-1 px-4 py-2 rounded-lg hover:bg-muted transition-colors"
-          >
-            <PieChart size={16} />
-            포트폴리오 관리
-          </Link>
-        </div>
+            {/* Target Weight Editor - 인라인으로 항상 표시 */}
+            <TargetWeightEditor
+              mode="inline"
+              stocks={manualStocks}
+              cashAmount={cashAmount}
+              exchangeRate={exchangeRate ?? 1}
+              onSave={handleSaveTargets}
+              isSaving={isSavingTargets}
+            />
+
+            {/* 리밸런싱 실행 버튼 - 목표 비중 설정된 경우에만 */}
+            {hasTargets && (
+              <button
+                onClick={handleStartRebalancing}
+                disabled={!canSimulate || isStarting || isLoadingSession}
+                className={cn(
+                  "w-full h-12 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+                  !canSimulate || isStarting || isLoadingSession
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-foreground text-background hover:bg-foreground/90 shadow-md",
+                )}
+              >
+                <RefreshCw className={cn("size-5", isStarting && "animate-spin")} />
+                {isStarting ? "시작 중..." : "리밸런싱 실행"}
+              </button>
+            )}
+
+            {/* 포트폴리오 관리 링크 */}
+            <div className="text-center">
+              <Link
+                href="/portfolio"
+                className="text-muted-foreground text-sm font-medium hover:text-foreground inline-flex items-center gap-1 px-4 py-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <PieChart size={16} />
+                포트폴리오 관리
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </PageTransition>
   );

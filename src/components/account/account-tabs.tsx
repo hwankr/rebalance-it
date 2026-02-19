@@ -6,7 +6,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { AccountManager } from "./account-manager";
 import { cn } from "@/lib/utils";
 
-export function AccountTabs({ showAllTab = true }: { showAllTab?: boolean } = {}) {
+export function AccountTabs({ showAllTab = true, activeSessionIds }: { showAllTab?: boolean; activeSessionIds?: Set<string> } = {}) {
   const { accounts, selectedAccountId, setSelectedAccountId, isLoading } =
     useAccounts();
   const [managerOpen, setManagerOpen] = useState(false);
@@ -46,6 +46,9 @@ export function AccountTabs({ showAllTab = true }: { showAllTab?: boolean } = {}
             )}
           >
             {account.name}
+            {activeSessionIds?.has(account.id) && (
+              <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            )}
           </button>
         ))}
 

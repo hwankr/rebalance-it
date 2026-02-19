@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/supabase/auth";
 import { PlanBadge } from "@/components/subscription/plan-badge";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
+import { useActiveSessionAccount } from "@/hooks/use-active-session-account";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -28,8 +29,9 @@ const navItems: NavItemProps[] = [
 
 export function Sidebar() {
   const { accounts, selectedAccountId } = useAccounts();
+  const { activeAccountId } = useActiveSessionAccount(accounts);
   const portfolioId = selectedAccountId === "all"
-    ? (accounts.length === 1 ? accounts[0].id : null)
+    ? (accounts.length === 1 ? accounts[0].id : activeAccountId)
     : selectedAccountId;
   const { activeSession } = useProgressiveRebalance(portfolioId);
   const { isGuest } = useGuestMode();

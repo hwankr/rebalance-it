@@ -1,10 +1,10 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, RefreshCw, History, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
+import { useActiveSessionAccount } from "@/hooks/use-active-session-account";
 import { useAccounts } from "@/hooks/use-accounts";
 
 const tabs = [
@@ -16,22 +16,20 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { accounts, selectedAccountId } = useAccounts();
-  const portfolioId = selectedAccountId === "all"
-    ? (accounts.length === 1 ? accounts[0].id : null)
-    : selectedAccountId;
-  const { activeSession } = useProgressiveRebalance(portfolioId);
+  const searchParams = useSearchParams();
+  const { accounts } = useAccounts();
+  const { activeAccountId } = useActiveSessionAccount(accounts);
 
-  // Hide BottomNav during active rebalancing session to avoid z-index conflict
+  // Hide BottomNav when the session view is active to avoid z-index conflict
   // with the fixed bottom action bar. User navigates via "나중에 계속" button instead.
   const isRebalancePage = pathname.startsWith("/rebalance");
-  if (isRebalancePage && !!activeSession) return null;
+  if (isRebalancePage && searchParams.get("view") === "session") return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-border backdrop-header md:hidden safe-area-pb">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href));
-        const showBadge = tab.href === "/rebalance" && !!activeSession;
+        const showBadge = tab.href === "/rebalance" && !!activeAccountId;
         return (
           <Link
             key={tab.href}

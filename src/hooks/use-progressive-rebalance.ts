@@ -38,6 +38,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
   const effectiveUserId = user?.id ?? (isGuest ? "guest" : null);
 
   const activeSessionKey = useMemo(() => ["active-session", portfolioId], [portfolioId]);
+  const activeSessionAnyKey = useMemo(() => ["active-session-any"], []);
   const historyKey = useMemo(() => ["history", effectiveUserId], [effectiveUserId]);
   const manualPortfolioKey = useMemo(() => ["manual-portfolio", portfolioId], [portfolioId]);
 
@@ -139,6 +140,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: activeSessionKey });
+      queryClient.invalidateQueries({ queryKey: activeSessionAnyKey });
       queryClient.invalidateQueries({ queryKey: historyKey });
     },
   });
@@ -246,6 +248,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: activeSessionKey });
+      queryClient.invalidateQueries({ queryKey: activeSessionAnyKey });
       queryClient.invalidateQueries({ queryKey: historyKey });
       // 포트폴리오 캐시 무효화 (자산 업데이트 반영)
       queryClient.invalidateQueries({ queryKey: manualPortfolioKey });
@@ -265,6 +268,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: activeSessionKey });
+      queryClient.invalidateQueries({ queryKey: activeSessionAnyKey });
       queryClient.invalidateQueries({ queryKey: historyKey });
     },
   });
@@ -280,6 +284,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: activeSessionKey });
+      queryClient.invalidateQueries({ queryKey: activeSessionAnyKey });
       queryClient.invalidateQueries({ queryKey: historyKey });
     },
   });

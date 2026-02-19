@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle2,
   XCircle,
   Clock,
@@ -53,6 +54,7 @@ export interface ActiveSessionViewProps {
   accountName: string | null;
   manualStocks: ManualStockInfo[];
   exchangeRate: number;
+  onBack?: () => void;
   // useProgressiveRebalance functions
   updateOrderQuantity: (
     executionId: string,
@@ -83,6 +85,7 @@ export function ActiveSessionView({
   accountName,
   manualStocks,
   exchangeRate,
+  onBack,
   updateOrderQuantity,
   pendingOrders,
   batchFillOrders,
@@ -298,6 +301,16 @@ export function ActiveSessionView({
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="p-1 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="뒤로가기"
+              >
+                <ArrowLeft className="size-5" />
+              </button>
+            )}
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
               진행중
             </span>
