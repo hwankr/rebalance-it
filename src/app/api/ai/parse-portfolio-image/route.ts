@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/subscription/guard";
+import { requirePlan } from "@/lib/subscription/guard";
 import { getOpenAIClient } from "@/lib/ai/openai-client";
 import { checkOutputSafety } from "@/lib/ai/safety";
 import { PARSE_PORTFOLIO_IMAGE_SYSTEM_PROMPT } from "@/lib/ai/prompts/parse-portfolio-image";
+import {
+  checkAndIncrementUsage,
+  addUsageHeaders,
+  createLimitExceededResponse,
+} from "@/lib/ai/usage-tracker";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -73,11 +78,18 @@ function postProcessStocks(rawStocks: RawParsedStock[]): ParsedStock[] {
 }
 
 export async function POST(request: NextRequest) {
+  let planResult: Awaited<ReturnType<typeof requirePlan>>;
   try {
-    await requireAuth();
+    planResult = await requirePlan("plus");
   } catch (res) {
     if (res instanceof Response) return res;
     return NextResponse.json({ error: "인증 오류" }, { status: 401 });
+  }
+  const { user, plan } = planResult;
+
+  const usage = await checkAndIncrementUsage(user.id, 'ai_image_import', plan);
+  if (!usage.allowed) {
+    return createLimitExceededResponse('ai_image_import', usage.dailyLimit);
   }
 
   const openai = getOpenAIClient();
@@ -172,7 +184,9 @@ export async function POST(request: NextRequest) {
     // 후처리: avg_price 계산, 데이터 정제, 유효성 검증
     const processedStocks = postProcessStocks(parsed.stocks);
 
-    return NextResponse.json({ stocks: processedStocks });
+    const response = NextResponse.json({ stocks: processedStocks });
+    addUsageHeaders(response.headers, usage.remaining, usage.dailyLimit);
+    return response;
   } catch (error) {
     if (error instanceof SyntaxError) {
       console.error("[parse-portfolio-image] JSON parse failed for AI response");

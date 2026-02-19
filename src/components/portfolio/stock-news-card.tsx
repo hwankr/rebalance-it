@@ -47,7 +47,7 @@ export function StockNewsCard({
   const cardTitle = isKorean ? "증권사 리포트" : "최근 뉴스";
   const { data: newsData, isLoading, error } = useStockNews(stockCode, market, stockName);
   const newsItems = newsData?.items;
-  const { isPro } = useSubscription();
+  const { isPlusOrAbove } = useSubscription();
   const {
     text: aiSummary,
     isStreaming,
@@ -136,7 +136,7 @@ export function StockNewsCard({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* AI 뉴스 요약 (SSE 스트리밍) */}
-        {isPro && (
+        {isPlusOrAbove && (
           <div className="space-y-2">
             {aiSummary ? (
               <>

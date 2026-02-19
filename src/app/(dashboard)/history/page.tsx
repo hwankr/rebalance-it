@@ -68,11 +68,11 @@ export default function HistoryPage() {
   const { selectedAccountId } = useAccounts();
   const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
   const { history, deleteExecution, clearHistory } = useHistory(portfolioId);
-  const { isPro } = useSubscription();
+  const { isPlusOrAbove } = useSubscription();
   const [clearOpen, setClearOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const maxVisible = isPro ? Infinity : PLAN_LIMITS.free.maxSimulationHistory;
+  const maxVisible = isPlusOrAbove ? Infinity : PLAN_LIMITS.free.maxSimulationHistory;
   const visibleHistory = history.slice(0, maxVisible);
   const hasHidden = history.length > maxVisible;
 

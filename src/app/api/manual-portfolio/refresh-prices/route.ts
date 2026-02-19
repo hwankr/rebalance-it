@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   let supabase: Awaited<ReturnType<typeof requirePlan>>["supabase"];
 
   try {
-    const auth = await requirePlan("pro");
+    const auth = await requirePlan("plus");
     user = auth.user;
     supabase = auth.supabase;
   } catch (error) {

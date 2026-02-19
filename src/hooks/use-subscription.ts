@@ -18,7 +18,7 @@ const DEV_PLAN_KEY = "dev-plan-override";
 function getDevOverride(): PlanTier | null {
   if (typeof window === "undefined") return null;
   const val = localStorage.getItem(DEV_PLAN_KEY);
-  if (val === "pro" || val === "free") return val;
+  if (val === "pro" || val === "plus" || val === "free") return val;
   return null;
 }
 
@@ -63,7 +63,13 @@ export function useSubscription() {
   const realPlan: PlanTier = isGuest ? "free" : (subscription?.plan_tier ?? "free");
   const plan: PlanTier = devOverride ?? realPlan;
   const isPro = plan === "pro";
+  const isPlus = plan === "plus";
+  const isPlusOrAbove = plan === "plus" || plan === "pro";
   const isDevOverride = devOverride !== null;
 
-  return { plan, isPro, isLoading: isGuest ? false : isLoading, subscription, refetch, isDevOverride, realPlan };
+  return {
+    plan, isPro, isPlus, isPlusOrAbove,
+    isLoading: isGuest ? false : isLoading,
+    subscription, refetch, isDevOverride, realPlan,
+  };
 }

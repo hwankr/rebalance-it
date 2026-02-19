@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/subscription/guard";
+import { requireAuth, resolvePlanTier } from "@/lib/subscription/guard";
 import { getOpenAIClient } from "@/lib/ai/openai-client";
 import { checkOutputSafety } from "@/lib/ai/safety";
 import { PARSE_PORTFOLIO_SYSTEM_PROMPT } from "@/lib/ai/prompts/parse-portfolio";
+import {
+  checkAndIncrementUsage,
+  addUsageHeaders,
+  createLimitExceededResponse,
+} from "@/lib/ai/usage-tracker";
 
 const MAX_INPUT_LENGTH = 10000;
 
@@ -28,11 +33,21 @@ function sanitizeInput(text: string): string {
 
 export async function POST(request: NextRequest) {
   // 인증 확인 (무료 사용자 포함)
+  let authResult: Awaited<ReturnType<typeof requireAuth>>;
   try {
-    await requireAuth();
+    authResult = await requireAuth();
   } catch (res) {
     if (res instanceof Response) return res;
     return NextResponse.json({ error: "인증 오류" }, { status: 401 });
+  }
+  const { user, supabase } = authResult;
+
+  // 플랜 조회 (grace period 포함)
+  const plan = await resolvePlanTier(supabase, user.id);
+
+  const usage = await checkAndIncrementUsage(user.id, 'ai_text_import', plan);
+  if (!usage.allowed) {
+    return createLimitExceededResponse('ai_text_import', usage.dailyLimit);
   }
 
   const openai = getOpenAIClient();
@@ -98,9 +113,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       stocks: parsed.stocks,
     });
+    addUsageHeaders(response.headers, usage.remaining, usage.dailyLimit);
+    return response;
   } catch (error) {
     if (error instanceof SyntaxError) {
       console.error("[parse-portfolio] JSON parse failed for AI response");

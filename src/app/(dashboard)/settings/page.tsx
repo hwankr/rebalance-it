@@ -37,7 +37,7 @@ import { PageTransition } from "@/components/layout/page-transition";
 export default function SettingsPage() {
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
-  const { isPro, subscription, isDevOverride, realPlan } = useSubscription();
+  const { isPro, isPlus, isPlusOrAbove, subscription, isDevOverride, realPlan } = useSubscription();
   const { theme, setTheme } = useTheme();
   const [isResetting, setIsResetting] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -131,7 +131,7 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isPro ? (
+          {isPlusOrAbove ? (
             <>
               <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
                 <dt className="text-muted-foreground">상태</dt>
@@ -142,6 +142,12 @@ export default function SettingsPage() {
                 <dt className="text-muted-foreground">다음 결제일</dt>
                 <dd>{subscription?.current_period_end ?? "-"}</dd>
               </dl>
+              {!isPro && (
+                <UpgradePrompt
+                  title="Pro 플랜으로 업그레이드"
+                  description="AI 기능 등 Pro 전용 기능을 이용하려면 업그레이드하세요."
+                />
+              )}
               <Button
                 variant="outline"
                 onClick={() => toast("준비 중입니다")}
@@ -151,8 +157,8 @@ export default function SettingsPage() {
             </>
           ) : (
             <UpgradePrompt
-              title="Pro 플랜으로 업그레이드"
-              description="더 많은 기능을 이용하려면 Pro 플랜으로 업그레이드하세요."
+              title="Plus 플랜으로 업그레이드"
+              description="더 많은 기능을 이용하려면 Plus 플랜으로 업그레이드하세요."
             />
           )}
         </CardContent>
@@ -185,7 +191,17 @@ export default function SettingsPage() {
               Pro
             </Button>
             <Button
-              variant={!isPro && isDevOverride ? "default" : "outline"}
+              variant={isPlus && isDevOverride ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setDevPlanOverride("plus");
+                toast.success("Plus 모드로 전환되었습니다 (개발용)");
+              }}
+            >
+              Plus
+            </Button>
+            <Button
+              variant={!isPlusOrAbove && isDevOverride ? "default" : "outline"}
               size="sm"
               onClick={() => {
                 setDevPlanOverride("free");

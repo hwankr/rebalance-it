@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
-import { requireAuth } from "@/lib/subscription/guard";
+import { requireAuth, resolvePlanTier } from "@/lib/subscription/guard";
 import { getOpenAIClient } from "@/lib/ai/openai-client";
 import { SEARCH_STOCKS_SYSTEM_PROMPT } from "@/lib/ai/prompts/search-stocks";
+import {
+  checkAndIncrementUsage,
+  addUsageHeaders,
+  createLimitExceededResponse,
+} from "@/lib/ai/usage-tracker";
 
 const MAX_QUERY_LENGTH = 200;
 const MAX_RESULTS = 20;
@@ -84,11 +89,21 @@ function scoreStock(stock: StockItem, keywords: string[]): number {
 }
 
 export async function POST(request: NextRequest) {
+  let authResult: Awaited<ReturnType<typeof requireAuth>>;
   try {
-    await requireAuth();
+    authResult = await requireAuth();
   } catch (res) {
     if (res instanceof Response) return res;
     return NextResponse.json({ error: "인증 오류" }, { status: 401 });
+  }
+  const { user, supabase } = authResult;
+
+  // 플랜 조회 (grace period 포함)
+  const plan = await resolvePlanTier(supabase, user.id);
+
+  const usage = await checkAndIncrementUsage(user.id, 'ai_search', plan);
+  if (!usage.allowed) {
+    return createLimitExceededResponse('ai_search', usage.dailyLimit);
   }
 
   const openai = getOpenAIClient();
@@ -192,8 +207,10 @@ export async function POST(request: NextRequest) {
     .sort((a, b) => b.score - a.score)
     .slice(0, MAX_RESULTS);
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     results: scored.map((x) => x.stock),
     filters,
   });
+  addUsageHeaders(response.headers, usage.remaining, usage.dailyLimit);
+  return response;
 }

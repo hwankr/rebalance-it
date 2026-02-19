@@ -25,6 +25,17 @@ export function PlanBadge() {
     );
   }
 
+  if (plan === "plus") {
+    return (
+      <Link href="/pricing">
+        <Badge className="gap-1 bg-green-600 text-white hover:bg-green-700">
+          <Sparkles className="size-3" />
+          Plus
+        </Badge>
+      </Link>
+    );
+  }
+
   return (
     <Link href="/pricing">
       <Badge variant="secondary">Free</Badge>

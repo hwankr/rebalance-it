@@ -6,6 +6,11 @@ import {
   FINANCIAL_SUMMARY_SYSTEM_PROMPT,
   NEWS_SUMMARY_SYSTEM_PROMPT,
 } from "@/lib/ai/prompts/stock-summary";
+import {
+  checkAndIncrementUsage,
+  addUsageHeaders,
+  createLimitExceededResponse,
+} from "@/lib/ai/usage-tracker";
 
 type SummaryType = "financials" | "news";
 
@@ -24,14 +29,21 @@ function sanitizeInput(text: string, maxLength: number): string {
 }
 
 export async function POST(request: NextRequest) {
+  let planResult: Awaited<ReturnType<typeof requirePlan>>;
   try {
-    await requirePlan("pro");
+    planResult = await requirePlan("plus");
   } catch (res) {
     if (res instanceof Response) return res;
     return new Response(JSON.stringify({ error: "인증 오류" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+  const { user, plan } = planResult;
+
+  const usage = await checkAndIncrementUsage(user.id, 'ai_summary', plan);
+  if (!usage.allowed) {
+    return createLimitExceededResponse('ai_summary', usage.dailyLimit);
   }
 
   const openai = getOpenAIClient();
@@ -131,11 +143,12 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
+  const streamHeaders = new Headers({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
   });
+  addUsageHeaders(streamHeaders, usage.remaining, usage.dailyLimit);
+
+  return new Response(stream, { headers: streamHeaders });
 }

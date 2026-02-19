@@ -310,6 +310,36 @@ export interface Database {
         };
         Relationships: [];
       };
+      ai_usage: {
+        Row: {
+          id: string;
+          user_id: string;
+          feature: string;
+          usage_date: string;
+          count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          feature: string;
+          usage_date?: string;
+          count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          feature?: string;
+          usage_date?: string;
+          count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       stocks: {
         Row: {
           stock_code: string;
@@ -351,7 +381,14 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      check_and_increment_ai_usage: {
+        Args: {
+          p_user_id: string;
+          p_feature: string;
+          p_max_count: number;
+        };
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;

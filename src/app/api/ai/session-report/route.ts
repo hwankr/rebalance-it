@@ -3,6 +3,11 @@ import { requirePlan } from "@/lib/subscription/guard";
 import { getOpenAIClient } from "@/lib/ai/openai-client";
 import { sanitizeOutput } from "@/lib/ai/safety";
 import { SESSION_REPORT_SYSTEM_PROMPT } from "@/lib/ai/prompts/session-report";
+import {
+  checkAndIncrementUsage,
+  addUsageHeaders,
+  createLimitExceededResponse,
+} from "@/lib/ai/usage-tracker";
 
 const MAX_SESSION_DATA_LENGTH = 8000;
 
@@ -19,12 +24,19 @@ function sanitizeInput(text: string, maxLength: number): string {
 }
 
 export async function POST(request: NextRequest) {
-  // Pro 플랜 전용
+  // Plus 플랜 전용
+  let planResult: Awaited<ReturnType<typeof requirePlan>>;
   try {
-    await requirePlan("pro");
+    planResult = await requirePlan("plus");
   } catch (res) {
     if (res instanceof Response) return res;
     return NextResponse.json({ error: "인증 오류" }, { status: 401 });
+  }
+  const { user, plan } = planResult;
+
+  const usage = await checkAndIncrementUsage(user.id, 'ai_session_report', plan);
+  if (!usage.allowed) {
+    return createLimitExceededResponse('ai_session_report', usage.dailyLimit);
   }
 
   const openai = getOpenAIClient();
@@ -72,7 +84,9 @@ export async function POST(request: NextRequest) {
     const rawOutput = completion.choices[0]?.message?.content ?? "";
     const safeOutput = sanitizeOutput(rawOutput);
 
-    return NextResponse.json({ report: safeOutput });
+    const response = NextResponse.json({ report: safeOutput });
+    addUsageHeaders(response.headers, usage.remaining, usage.dailyLimit);
+    return response;
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "AI 리포트 생성 실패" },

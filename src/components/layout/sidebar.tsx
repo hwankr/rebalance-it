@@ -33,7 +33,7 @@ export function Sidebar() {
     : selectedAccountId;
   const { activeSession } = useProgressiveRebalance(portfolioId);
   const { isGuest } = useGuestMode();
-  const { isPro } = useSubscription();
+  const { isPro, isPlus } = useSubscription();
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-sidebar">
@@ -81,11 +81,32 @@ export function Sidebar() {
             </Button>
           </form>
         </div>
+      ) : isPlus ? (
+        <div className="px-4 py-4 border-t space-y-3">
+          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-foreground">Pro로 업그레이드</span>
+              <PlanBadge />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              고급 분석, AI 기능 등 Pro 전용 기능을 이용하세요
+            </p>
+            <Button variant="default" className="w-full" size="sm" asChild>
+              <Link href="/pricing">Pro로 업그레이드</Link>
+            </Button>
+          </div>
+          <form action={signOut}>
+            <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" type="submit">
+              <LogOut className="size-4" />
+              로그아웃
+            </Button>
+          </form>
+        </div>
       ) : (
         <div className="px-4 py-4 border-t space-y-3">
           <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-foreground">Pro 플랜</span>
+              <span className="text-sm font-semibold text-foreground">Plus 플랜</span>
               <PlanBadge />
             </div>
             <p className="text-xs text-muted-foreground">

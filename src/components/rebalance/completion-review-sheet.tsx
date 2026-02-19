@@ -55,7 +55,7 @@ export function CompletionReviewSheet({
   onConfirm,
   isCompleting,
 }: CompletionReviewSheetProps) {
-  const { isPro } = useSubscription();
+  const { isPlusOrAbove } = useSubscription();
   const aiReport = useAISessionReport();
 
   // Filter out resolved orders (no longer needed after recalculation)
@@ -257,7 +257,7 @@ export function CompletionReviewSheet({
             </div>
           )}
           {/* AI 세션 리포트 */}
-          {isPro && (
+          {isPlusOrAbove && (
             <div className="space-y-2">
               <Button
                 variant="outline"

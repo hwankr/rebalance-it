@@ -40,7 +40,7 @@ export default function PortfolioPage() {
   const effectivePortfolioId = isAllMode && accounts.length === 1 ? accounts[0].id : portfolioId;
   const effectiveIsAllMode = isAllMode && accounts.length > 1;
 
-  const { isPro } = useSubscription();
+  const { isPlusOrAbove } = useSubscription();
   const { refreshPrices, isRefreshing } = useRefreshPrices(effectivePortfolioId ?? undefined);
   const { rate: exchangeRate } = useExchangeRate();
   const {
@@ -376,7 +376,7 @@ export default function PortfolioPage() {
           stocks={stocks}
           onUpdate={updateStock}
           onDelete={handleDeleteStock}
-          onRefresh={isPro ? handleRefreshPrices : undefined}
+          onRefresh={isPlusOrAbove ? handleRefreshPrices : undefined}
           isRefreshing={isRefreshing}
           exchangeRate={exchangeRate}
           totalPortfolioValue={totalValue}

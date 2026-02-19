@@ -6,6 +6,11 @@ import {
   FINANCIAL_SUMMARY_SYSTEM_PROMPT,
   NEWS_SUMMARY_SYSTEM_PROMPT,
 } from "@/lib/ai/prompts/stock-summary";
+import {
+  checkAndIncrementUsage,
+  addUsageHeaders,
+  createLimitExceededResponse,
+} from "@/lib/ai/usage-tracker";
 
 type SummaryType = "financials" | "news";
 
@@ -25,12 +30,19 @@ function sanitizeInput(text: string, maxLength: number): string {
 }
 
 export async function POST(request: NextRequest) {
-  // Pro 플랜 전용
+  // Plus 플랜 전용
+  let planResult: Awaited<ReturnType<typeof requirePlan>>;
   try {
-    await requirePlan("pro");
+    planResult = await requirePlan("plus");
   } catch (res) {
     if (res instanceof Response) return res;
     return NextResponse.json({ error: "인증 오류" }, { status: 401 });
+  }
+  const { user, plan } = planResult;
+
+  const usage = await checkAndIncrementUsage(user.id, 'ai_summary', plan);
+  if (!usage.allowed) {
+    return createLimitExceededResponse('ai_summary', usage.dailyLimit);
   }
 
   const openai = getOpenAIClient();
@@ -84,13 +96,15 @@ export async function POST(request: NextRequest) {
     const rawOutput = completion.choices[0]?.message?.content ?? "";
     const safeOutput = sanitizeOutput(rawOutput);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       summary: safeOutput,
       tokens: {
         prompt: completion.usage?.prompt_tokens ?? 0,
         completion: completion.usage?.completion_tokens ?? 0,
       },
     });
+    addUsageHeaders(response.headers, usage.remaining, usage.dailyLimit);
+    return response;
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "AI 요약 생성 실패" },

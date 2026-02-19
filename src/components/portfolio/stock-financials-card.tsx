@@ -100,7 +100,7 @@ export function StockFinancialsCard({
 }: StockFinancialsCardProps) {
   const market = detectMarket(stockCode, currency);
   const { data, isLoading, error } = useStockFinancials(stockCode, market);
-  const { isPro } = useSubscription();
+  const { isPlusOrAbove } = useSubscription();
   const [aiSummary, setAiSummary] = useState<string | null>(null);
 
   const summaryMutation = useMutation({
@@ -189,7 +189,7 @@ export function StockFinancialsCard({
         </div>
 
         {/* AI 요약 */}
-        {isPro && (
+        {isPlusOrAbove && (
           <div className="space-y-2 border-t pt-3">
             {aiSummary ? (
               <>
