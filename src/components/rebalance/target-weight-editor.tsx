@@ -43,6 +43,7 @@ function ActionableRow({
   hexColor,
   isCash,
   isExcluded,
+  maxScale = 40,
 }: {
   name: string;
   code?: string;
@@ -51,8 +52,8 @@ function ActionableRow({
   hexColor: string;
   isCash?: boolean;
   isExcluded?: boolean;
+  maxScale?: number;
 }) {
-  const maxScale = 40;
   const currentWidth = Math.min((currentPct / maxScale) * 100, 100);
   const targetLeft = Math.min((targetPct / maxScale) * 100, 100);
 
@@ -92,23 +93,25 @@ function ActionableRow({
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
             현재 {currentPct.toFixed(1)}% vs 목표 {targetPct.toFixed(1)}%
           </div>
-          <div className="relative h-3 bg-muted rounded-full w-full overflow-hidden">
-            <div
-              className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 opacity-90"
-              style={{
-                width: `${currentWidth}%`,
-                backgroundColor: hexColor,
-              }}
-            />
-          </div>
-          {!isExcluded && targetPct > 0 && (
-            <div
-              className="absolute top-2 bottom-2 w-0.5 bg-foreground z-10 transition-all duration-500 shadow-[0_0_4px_rgba(0,0,0,0.2)]"
-              style={{ left: `calc(${targetLeft}% + 24px)` }}
-            >
-              <div className="absolute -top-1 -left-[3px] w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[5px] border-t-foreground" />
+          <div className="relative h-3 w-full">
+            <div className="absolute inset-0 bg-muted rounded-full overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 opacity-90"
+                style={{
+                  width: `${currentWidth}%`,
+                  backgroundColor: hexColor,
+                }}
+              />
             </div>
-          )}
+            {!isExcluded && targetPct > 0 && (
+              <div
+                className="absolute -top-[6px] -bottom-[6px] w-0.5 bg-foreground z-10 transition-all duration-500 shadow-[0_0_4px_rgba(0,0,0,0.2)]"
+                style={{ left: `${targetLeft}%` }}
+              >
+                <div className="absolute -top-1 -left-[3px] w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[5px] border-t-foreground" />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Current / Target */}
@@ -212,6 +215,16 @@ export function TargetWeightEditor({
 
   const cashTargetPct = Math.max(0, 100 - totalStockTargetPct);
   const isValid = totalStockTargetPct <= 100;
+
+  const dynamicMaxScale = useMemo(() => {
+    const allValues = [
+      cashCurrentPct,
+      cashTargetPct,
+      ...stocksWithPcts.map((d) => Math.max(d.currentPct, d.targetPct)),
+    ];
+    const maxValue = Math.max(...allValues, 1);
+    return Math.max(Math.ceil((maxValue * 1.2) / 5) * 5, 10);
+  }, [cashCurrentPct, cashTargetPct, stocksWithPcts]);
   const hasChanges = modifiedStocks.size > 0;
   const hasAnyTargets = stocks.some((s) => s.target_pct > 0);
 
@@ -314,6 +327,7 @@ export function TargetWeightEditor({
                 targetPct={parseFloat(cashTargetPct.toFixed(1))}
                 hexColor={CASH_COLOR}
                 isCash
+                maxScale={dynamicMaxScale}
               />
               {/* Stock rows */}
               {stocksWithPcts
@@ -329,6 +343,7 @@ export function TargetWeightEditor({
                       ASSET_COLORS[i % ASSET_COLORS.length]
                     }
                     isExcluded={d.is_rebalance_tracked === false}
+                    maxScale={dynamicMaxScale}
                   />
                 ))}
             </div>
@@ -471,6 +486,42 @@ export function TargetWeightEditor({
               </div>
             );
           })}
+
+          {/* Cash Row — 읽기 전용 */}
+          <div
+            className="flex items-center justify-between p-3 rounded-lg border transition-all bg-orange-50/50 dark:bg-orange-950/20 border-orange-200/50 dark:border-orange-800/30"
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                style={{ backgroundColor: CASH_COLOR }}
+              >
+                ₩
+              </div>
+              <div>
+                <div className="font-medium text-sm flex items-center gap-2">
+                  현금 (KRW)
+                  <span className="text-[10px] text-orange-500 font-normal">
+                    자동 계산
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  현재 {cashCurrentPct.toFixed(1)}%
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <span
+                className={cn(
+                  "text-lg font-semibold tabular-nums",
+                  !isValid ? "text-destructive" : "text-foreground"
+                )}
+              >
+                {cashTargetPct.toFixed(1)}
+              </span>
+              <span className="text-sm font-medium text-muted-foreground">%</span>
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Chart */}
@@ -493,9 +544,9 @@ export function TargetWeightEditor({
             `비중 합계 초과: ${totalStockTargetPct.toFixed(0)}%`
           ) : (
             <>
-              잔여 비중:{" "}
+              종목 비중 합계:{" "}
               <span className="font-bold text-foreground">
-                {cashTargetPct.toFixed(1)}%
+                {totalStockTargetPct.toFixed(1)}%
               </span>
             </>
           )}
