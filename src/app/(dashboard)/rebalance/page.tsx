@@ -77,6 +77,7 @@ export default function RebalancePage() {
   const cashAmount = Number(portfolio?.cash ?? 0);
   const totalValue = balance?.total_value ?? 0;
 
+  const trackedStockCount = manualStocks.filter((s) => s.is_rebalance_tracked !== false).length;
   const hasStocks = manualStocks.length > 0;
   const hasTargets = targets.some((t) => !t.is_cash && t.target_pct > 0);
   const canSimulate = hasStocks && hasTargets && !!balance;
@@ -111,8 +112,13 @@ export default function RebalancePage() {
       return;
     }
 
+    // Reduced Universe: 추적 대상 종목만 엔진에 전달
+    const trackedCodes = new Set(
+      manualStocks.filter((s) => s.is_rebalance_tracked !== false).map((s) => s.stock_code)
+    );
+    const trackedBalanceStocks = balance.stocks.filter((s) => trackedCodes.has(s.stock_code));
     const portfolioItems = toPortfolioItems(
-      balance.stocks,
+      trackedBalanceStocks,
       targets,
       cashAmount
     );
@@ -126,6 +132,7 @@ export default function RebalancePage() {
     }
 
     try {
+      // 스냅샷은 전체 포트폴리오 상태를 기록 (recalculate route에서 tracked 필터 재적용)
       const snapshot = {
         stocks: balance.stocks.map((s) => ({
           stock_code: s.stock_code,
@@ -371,8 +378,12 @@ export default function RebalancePage() {
                   <p className="font-semibold text-lg tabular-nums">{formatCurrency(cashAmount)}</p>
                 </div>
                 <div className="flex-1 border-l border-border/50 pl-4">
-                  <p className="text-xs text-muted-foreground mb-1">보유 종목 수</p>
-                  <p className="font-semibold text-lg">{manualStocks.length}종목</p>
+                  <p className="text-xs text-muted-foreground mb-1">리밸런싱 종목</p>
+                  <p className="font-semibold text-lg">
+                    {trackedStockCount === manualStocks.length
+                      ? `${manualStocks.length}종목`
+                      : `${trackedStockCount}/${manualStocks.length}종목`}
+                  </p>
                 </div>
               </div>
             </div>

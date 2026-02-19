@@ -29,6 +29,7 @@ interface TargetWeightEditorProps {
     current_price: number;
     currency: string;
     target_pct: number;
+    is_rebalance_tracked?: boolean;
   }>;
   cashAmount: number;
   exchangeRate: number;
@@ -82,10 +83,12 @@ export function TargetWeightEditor({
   const cashCurrentPct = totalValue > 0 ? (cashAmount / totalValue) * 100 : 0;
 
   const totalStockTargetPct = useMemo(() => {
-    return stocks.reduce(
-      (sum, s) => sum + (edits[s.id] ?? s.target_pct ?? 0),
-      0
-    );
+    return stocks
+      .filter((s) => s.is_rebalance_tracked !== false)
+      .reduce(
+        (sum, s) => sum + (edits[s.id] ?? s.target_pct ?? 0),
+        0
+      );
   }, [stocks, edits]);
 
   const cashTargetPct = Math.max(0, 100 - totalStockTargetPct);
@@ -225,13 +228,18 @@ export function TargetWeightEditor({
                   return (
                     <tr
                       key={d.id}
-                      className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                      className={cn("border-b border-border/40 last:border-0 hover:bg-muted/30", (d as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false && "opacity-50")}
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <StockLogo stockCode={d.stock_code} stockName={d.stock_name} currency={d.currency} size="sm" />
                           <div>
-                            <div className="font-medium">{d.stock_name}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium">{d.stock_name}</span>
+                              {(d as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false && (
+                                <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded">(제외)</span>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               {d.stock_code}
                             </div>
@@ -294,12 +302,15 @@ export function TargetWeightEditor({
               return (
                 <div
                   key={d.id}
-                  className="py-2.5 px-2 border-b border-border/40 last:border-0"
+                  className={cn("py-2.5 px-2 border-b border-border/40 last:border-0", (d as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false && "opacity-50")}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2 font-medium truncate flex-1 pr-2">
                       <StockLogo stockCode={d.stock_code} stockName={d.stock_name} currency={d.currency} size="sm" />
                       {d.stock_name}
+                      {(d as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false && (
+                        <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded shrink-0">(제외)</span>
+                      )}
                     </div>
                     {absDiff >= 0.05 && (
                       <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums", diffColor)}>
@@ -364,13 +375,19 @@ export function TargetWeightEditor({
             {stocksWithPcts.map((stock) => {
               const isModified = modifiedStocks.has(stock.id);
               const diff = stock.targetPct - stock.currentPct;
+              const isUntracked = (stock as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false;
 
               return (
-                <TableRow key={stock.id}>
+                <TableRow key={stock.id} className={cn(isUntracked && "opacity-50")}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div>
-                        <div className="font-medium">{stock.stock_name}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">{stock.stock_name}</span>
+                          {isUntracked && (
+                            <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded">(제외)</span>
+                          )}
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           {stock.stock_code}
                         </div>
@@ -399,6 +416,7 @@ export function TargetWeightEditor({
                         handleTargetPctChange(stock.id, e.target.value)
                       }
                       className="w-24 text-right"
+                      disabled={isUntracked}
                     />
                   </TableCell>
                   <TableCell className="text-right">
@@ -474,6 +492,7 @@ export function TargetWeightEditor({
         {stocksWithPcts.map((stock, index) => {
           const isModified = modifiedStocks.has(stock.id);
           const diff = stock.targetPct - stock.currentPct;
+          const isUntracked = (stock as { is_rebalance_tracked?: boolean }).is_rebalance_tracked === false;
 
           return (
             <m.div
@@ -481,11 +500,17 @@ export function TargetWeightEditor({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
+              className={cn(isUntracked && "opacity-50")}
             >
               <Card className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="font-medium">{stock.stock_name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">{stock.stock_name}</span>
+                      {isUntracked && (
+                        <span className="text-[10px] bg-muted text-muted-foreground px-1 py-0.5 rounded">(제외)</span>
+                      )}
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {stock.stock_code}
                     </div>
@@ -526,6 +551,7 @@ export function TargetWeightEditor({
                       handleTargetPctChange(stock.id, e.target.value)
                     }
                     className="text-right"
+                    disabled={isUntracked}
                   />
                 </div>
 

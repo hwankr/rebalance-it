@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import type { BalanceResponse, Stock } from "@/lib/rebalance/types";
 import { DEFAULT_EXCHANGE_RATE } from "@/lib/utils/format";
+import { toast } from "sonner";
 
 // --- DB row types ---
 
@@ -31,6 +32,7 @@ export interface ManualStockRow {
   price_updated_at: string | null;
   currency: string;
   target_pct: number;
+  is_rebalance_tracked: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +46,7 @@ export interface ManualStockInput {
   currency?: string;
   target_pct?: number;
   price_updated_at?: string | null;
+  is_rebalance_tracked?: boolean;
 }
 
 // --- 변환 로직 ---
@@ -177,6 +180,7 @@ export function useManualPortfolio(
         currency: input.currency ?? "KRW",
         target_pct: input.target_pct ?? 0,
         price_updated_at: input.price_updated_at ?? null,
+        is_rebalance_tracked: input.is_rebalance_tracked ?? true,
       } as never);
       if (error) throw error;
     },
@@ -245,6 +249,38 @@ export function useManualPortfolio(
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
+  // 리밸런싱 추적 토글
+  const toggleRebalanceTrackedMutation = useMutation({
+    mutationFn: async ({ id, tracked }: { id: string; tracked: boolean }) => {
+      const { error } = await client
+        .from("manual_stocks")
+        .update({ is_rebalance_tracked: tracked } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
+  });
+
+  const toggleRebalanceTracked = useCallback(
+    (id: string, tracked: boolean) => {
+      if (tracked) {
+        const stock = stocks.find((s) => s.id === id);
+        const currentTrackedSum = stocks
+          .filter((s) => s.is_rebalance_tracked && s.id !== id)
+          .reduce((sum, s) => sum + s.target_pct, 0);
+        const newSum = currentTrackedSum + (stock?.target_pct ?? 0);
+        if (newSum > 100) {
+          toast.error(
+            `목표 비중 합계가 100%를 초과합니다 (${newSum.toFixed(1)}%). 다른 종목의 비중을 조정한 후 다시 시도하세요.`,
+          );
+          return;
+        }
+      }
+      toggleRebalanceTrackedMutation.mutate({ id, tracked });
+    },
+    [toggleRebalanceTrackedMutation, stocks],
+  );
+
   const setCash = useCallback(
     (cash: number) => setCashMutation.mutate(cash),
     [setCashMutation],
@@ -300,5 +336,7 @@ export function useManualPortfolio(
     isAdding: addStockMutation.isPending,
     isUpdating: updateStockMutation.isPending,
     isCashSaving: setCashMutation.isPending,
+    toggleRebalanceTracked,
+    isTogglingTracked: toggleRebalanceTrackedMutation.isPending,
   };
 }

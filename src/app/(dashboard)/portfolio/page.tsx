@@ -8,6 +8,7 @@ import { useManualPortfolio, type ManualStockInput } from "@/hooks/use-manual-po
 import { useSubscription } from "@/hooks/use-subscription";
 import { useRefreshPrices } from "@/hooks/use-refresh-prices";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
+import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
 import { PortfolioHero } from "@/components/portfolio/portfolio-hero";
 import { QuickActions } from "@/components/portfolio/quick-actions";
 import { AllocationChart } from "@/components/portfolio/allocation-chart";
@@ -62,7 +63,12 @@ export default function PortfolioPage() {
     isFetching,
     updateBatchTargets,
     isCashSaving,
+    toggleRebalanceTracked,
+    isTogglingTracked,
   } = useManualPortfolio(effectivePortfolioId, exchangeRate);
+  const {
+    activeSession,
+  } = useProgressiveRebalance(effectivePortfolioId);
   const {
     balance: consolidatedBalance,
     isLoading: isConsolidatedLoading,
@@ -295,6 +301,9 @@ export default function PortfolioPage() {
             exchangeRate={exchangeRate}
             onAddStock={handleAddStock}
             isAdding={isAdding}
+            onToggleTracked={toggleRebalanceTracked}
+            isTogglingTracked={isTogglingTracked}
+            hasActiveSession={!!activeSession}
           />
         </div>
       </PageTransition>
@@ -368,6 +377,9 @@ export default function PortfolioPage() {
               totalPortfolioValue={totalValue}
               onAddStock={handleAddStock}
               isAdding={isAdding}
+              onToggleTracked={toggleRebalanceTracked}
+              isTogglingTracked={isTogglingTracked}
+              hasActiveSession={!!activeSession}
             />
           </div>
         </div>

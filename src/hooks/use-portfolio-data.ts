@@ -29,7 +29,7 @@ export function usePortfolioData(portfolioId: string | null) {
   // manual_stocks에서 target_pct > 0인 종목을 TargetAllocation으로 변환 + 현금 추가
   const targets = useMemo((): TargetAllocation[] => {
     const stockTargets = manualStocks
-      .filter((s) => s.target_pct > 0)
+      .filter((s) => s.target_pct > 0 && s.is_rebalance_tracked !== false)
       .map((s) => ({
         stock_code: s.stock_code,
         stock_name: s.stock_name,

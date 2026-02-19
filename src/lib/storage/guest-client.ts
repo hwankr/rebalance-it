@@ -458,6 +458,7 @@ function handleRpc(
                 current_price: price,
                 currency: currency,
                 target_pct: 0,
+                is_rebalance_tracked: true,
                 price_updated_at: null,
                 created_at: nowISO(),
                 updated_at: nowISO(),

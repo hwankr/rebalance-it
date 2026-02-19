@@ -28,6 +28,7 @@ interface ManualStock {
   current_price: number;
   currency: string;
   target_pct: number;
+  is_rebalance_tracked: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
     // 2. Fetch current manual_stocks with target_pct
     const { data: manualStocks, error: stocksError } = await supabase
       .from("manual_stocks")
-      .select("stock_code, stock_name, quantity, current_price, currency, target_pct")
+      .select("stock_code, stock_name, quantity, current_price, currency, target_pct, is_rebalance_tracked")
       .eq("portfolio_id", body.portfolio_id);
 
     if (stocksError) {
@@ -167,15 +168,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. Build PortfolioItem[] with current prices
-    const targetMap = new Map(stocks.map((s) => [s.stock_code, s.target_pct]));
+    // 6. Build PortfolioItem[] with current prices (tracked stocks only)
+    const trackedStocks = stocks.filter((s) => s.is_rebalance_tracked !== false);
+    const trackedStockCodes = new Set(trackedStocks.map((s) => s.stock_code));
+    const targetMap = new Map(trackedStocks.map((s) => [s.stock_code, s.target_pct]));
     const portfolioItems: PortfolioItem[] = [];
     let totalValue = postExecCash;
 
-    // Calculate eval_amounts first for current_pct
+    // Calculate eval_amounts first for current_pct (tracked stocks only)
     const evalAmounts = new Map<string, number>();
     for (const [code, qty] of stockQuantities) {
       if (qty <= 0) continue;
+      if (!trackedStockCodes.has(code)) continue;
       const freshPrice = priceMap.get(code) ?? 0;
       const currency = stockCurrencies.get(code) ?? "KRW";
       const evalAmount = currency === "USD"
@@ -187,6 +191,7 @@ export async function POST(request: NextRequest) {
 
     for (const [code, qty] of stockQuantities) {
       if (qty <= 0) continue;
+      if (!trackedStockCodes.has(code)) continue;
       const freshPrice = priceMap.get(code) ?? 0;
       const currency = stockCurrencies.get(code) ?? "KRW";
       // PortfolioItem uses KRW-normalized prices
@@ -218,8 +223,8 @@ export async function POST(request: NextRequest) {
       is_cash: true,
     });
 
-    // 7. Build targets from current manual_stocks
-    const targets: TargetAllocation[] = stocks.map((s) => ({
+    // 7. Build targets from current manual_stocks (tracked only)
+    const targets: TargetAllocation[] = trackedStocks.map((s) => ({
       stock_code: s.stock_code,
       stock_name: s.stock_name,
       target_pct: s.target_pct,
