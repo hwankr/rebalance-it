@@ -407,11 +407,11 @@ export function TargetWeightEditor({
       <div
         className={cn(
           "grid grid-cols-1 gap-8 items-start",
-          chart && "lg:grid-cols-2"
+          chart && "lg:grid-cols-12"
         )}
       >
         {/* Left Column: Stock Card Rows */}
-        <div className="space-y-4">
+        <div className={cn("space-y-4", chart && "lg:col-span-7")}>
           {stocksWithPcts.map((stock) => {
             const isUntracked =
               stock.is_rebalance_tracked === false;
@@ -526,9 +526,7 @@ export function TargetWeightEditor({
 
         {/* Right Column: Chart */}
         {chart && (
-          <div className="bg-muted/30 rounded-xl p-4 border border-border/50 h-full flex items-center">
-            {chart}
-          </div>
+          <div className="lg:col-span-5">{chart}</div>
         )}
       </div>
 
