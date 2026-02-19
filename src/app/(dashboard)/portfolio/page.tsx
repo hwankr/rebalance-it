@@ -192,7 +192,6 @@ export default function PortfolioPage() {
             totalProfitLoss={allProfitLoss}
             totalProfitRate={allProfitRate}
             cash={allCash}
-            stockCount={allStocks.length}
             isLoading={false}
           />
 
@@ -303,7 +302,6 @@ export default function PortfolioPage() {
             totalProfitLoss={totalProfitLoss}
             totalProfitRate={totalProfitRate}
             cash={cash}
-            stockCount={0}
             isLoading={isLoading}
             onCashChange={setCash}
             isCashSaving={isCashSaving}
@@ -361,11 +359,9 @@ export default function PortfolioPage() {
           totalProfitLoss={totalProfitLoss}
           totalProfitRate={totalProfitRate}
           cash={cash}
-          stockCount={stocks.length}
           isLoading={isLoading}
           onCashChange={setCash}
           isCashSaving={isCashSaving}
-          dataUpdatedAt={dataUpdatedAt}
         />
 
         {/* Rebalancing Summary Cards - Full Width */}

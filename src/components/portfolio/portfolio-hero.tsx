@@ -14,11 +14,9 @@ interface PortfolioHeroProps {
   totalProfitLoss: number;
   totalProfitRate: number;
   cash: number;
-  stockCount: number;
   isLoading: boolean;
   onCashChange?: (cash: number) => void;
   isCashSaving?: boolean;
-  dataUpdatedAt?: number;
 }
 
 function AnimatedNumber({
@@ -185,23 +183,14 @@ export function PortfolioHero({
           </div>
         </div>
 
-        {/* Right side: Action buttons (desktop) */}
-        <div className="flex flex-col sm:flex-row gap-3 md:flex-col">
-          <Button
-            asChild
-            size="lg"
-            className="bg-white text-primary font-bold rounded-lg hover:bg-white/90 shadow-lg"
-          >
-            <Link href="/rebalance">리밸런싱</Link>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="bg-white/20 border border-white/20 text-white font-bold rounded-lg hover:bg-white/30 hover:border-white/30"
-          >
-            포트폴리오 관리
-          </Button>
-        </div>
+        {/* Right side: Action button (desktop) */}
+        <Button
+          asChild
+          size="lg"
+          className="bg-white text-primary font-bold rounded-lg hover:bg-white/90 shadow-lg"
+        >
+          <Link href="/rebalance">리밸런싱</Link>
+        </Button>
       </div>
     </div>
   );
