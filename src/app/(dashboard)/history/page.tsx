@@ -36,6 +36,8 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { PageTransition } from "@/components/layout/page-transition";
+import { HistoryDetailSheet } from "@/components/history/history-detail-sheet";
+import type { RebalanceExecution } from "@/lib/rebalance/history-types";
 
 const STATUS_MAP: Record<
   string,
@@ -71,6 +73,7 @@ export default function HistoryPage() {
   const { isPlusOrAbove } = useSubscription();
   const [clearOpen, setClearOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [detailExec, setDetailExec] = useState<RebalanceExecution | null>(null);
 
   const maxVisible = isPlusOrAbove ? Infinity : PLAN_LIMITS.free.maxSimulationHistory;
   const visibleHistory = history.slice(0, maxVisible);
@@ -135,15 +138,17 @@ export default function HistoryPage() {
               <TableBody>
                 {visibleHistory.map((exec) => {
                   const statusInfo = STATUS_MAP[exec.status] ?? STATUS_MAP.completed;
-                  const isClickable = exec.status === "in_progress";
                   return (
                     <TableRow
                       key={exec.id}
-                      className={cn(
-                        "hover:bg-accent/50 transition-colors duration-200",
-                        isClickable && "cursor-pointer"
-                      )}
-                      onClick={isClickable ? () => router.push("/rebalance") : undefined}
+                      className="hover:bg-accent/50 transition-colors duration-200 cursor-pointer"
+                      onClick={() => {
+                        if (exec.status === "in_progress") {
+                          router.push("/rebalance");
+                        } else {
+                          setDetailExec(exec);
+                        }
+                      }}
                     >
                       <TableCell>
                         {format(new Date(exec.executed_at), "yyyy.MM.dd HH:mm")}
@@ -200,7 +205,6 @@ export default function HistoryPage() {
           <div className="space-y-3 md:hidden">
             {visibleHistory.map((exec, i) => {
               const statusInfo = STATUS_MAP[exec.status] ?? STATUS_MAP.completed;
-              const isClickable = exec.status === "in_progress";
               return (
                 <m.div
                   key={exec.id}
@@ -210,10 +214,16 @@ export default function HistoryPage() {
                 >
                   <div
                     className={cn(
-                      "bg-card rounded-xl p-3 border border-border hover:bg-accent/50 transition-colors",
-                      isClickable && "cursor-pointer ring-1 ring-blue-500/30"
+                      "bg-card rounded-xl p-3 border border-border hover:bg-accent/50 transition-colors cursor-pointer",
+                      exec.status === "in_progress" && "ring-1 ring-blue-500/30"
                     )}
-                    onClick={isClickable ? () => router.push("/rebalance") : undefined}
+                    onClick={() => {
+                      if (exec.status === "in_progress") {
+                        router.push("/rebalance");
+                      } else {
+                        setDetailExec(exec);
+                      }
+                    }}
                   >
                     {/* Top row: profile name + status badge */}
                     <div className="flex items-start justify-between gap-2 mb-1">
@@ -284,7 +294,7 @@ export default function HistoryPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setDeleteTarget(exec.id)}
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(exec.id); }}
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -311,6 +321,13 @@ export default function HistoryPage() {
           )}
         </>
       )}
+
+      {/* History detail sheet */}
+      <HistoryDetailSheet
+        execution={detailExec}
+        open={detailExec !== null}
+        onOpenChange={(open) => !open && setDetailExec(null)}
+      />
 
       {/* 전체 삭제 확인 Dialog */}
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
