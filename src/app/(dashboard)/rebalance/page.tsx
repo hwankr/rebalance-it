@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
   RefreshCw,
   History,
   Wallet,
-  AlertCircle,
   PieChart,
   PlusCircle,
   ArrowRight,
@@ -27,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageTransition } from "@/components/layout/page-transition";
 import { ActiveSessionView } from "@/components/rebalance/active-session-view";
+import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
 
 export default function RebalancePage() {
   const { accounts, selectedAccountId, setSelectedAccountId } = useAccounts();
@@ -50,6 +50,7 @@ export default function RebalancePage() {
     stocks: manualStocks,
     portfolio,
     isLoading: isManualLoading,
+    updateBatchTargets,
   } = useManualPortfolio(effectivePortfolioId, exchangeRate);
   const {
     activeSession,
@@ -85,6 +86,22 @@ export default function RebalancePage() {
 
   const cashAmount = Number(portfolio?.cash ?? 0);
   const totalValue = balance?.total_value ?? 0;
+  const [isSavingTargets, setIsSavingTargets] = useState(false);
+
+  function handleSaveTargets(updates: { id: string; targetPct: number }[]) {
+    setIsSavingTargets(true);
+    updateBatchTargets(updates, {
+      onSuccess: () => {
+        toast.success("목표 비중이 저장되었습니다.");
+        setIsSavingTargets(false);
+      },
+      onError: (error) => {
+        const msg = error instanceof Error ? error.message : "알 수 없는 오류";
+        toast.error(`목표 비중 저장에 실패했습니다: ${msg}`);
+        setIsSavingTargets(false);
+      },
+    });
+  }
 
   const trackedStockCount = manualStocks.filter((s) => s.is_rebalance_tracked !== false).length;
   const hasStocks = manualStocks.length > 0;
@@ -423,51 +440,43 @@ export default function RebalancePage() {
           </div>
         )}
 
-        {!hasTargets ? (
-          /* No targets set → warning banner */
-          <div className="rounded-2xl p-5 bg-warning/10 border border-warning/20 flex items-start gap-3">
-            <AlertCircle className="text-warning shrink-0 mt-0.5" size={20} />
-            <div>
-              <h3 className="font-bold text-sm mb-1">목표 비중이 설정되지 않았어요</h3>
-              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                각 종목의 목표 비중을 설정하면 리밸런싱을 실행할 수 있습니다.
-              </p>
-              <Link
-                href="/portfolio"
-                className="inline-block bg-warning/20 hover:bg-warning/30 text-foreground rounded-lg text-xs font-semibold px-3 py-1.5 transition-colors"
-              >
-                목표 비중 설정하기
-              </Link>
-            </div>
-          </div>
-        ) : (
-          /* Has targets → rebalancing CTA */
-          <div className="space-y-4 pt-2">
-            <button
-              onClick={handleStartRebalancing}
-              disabled={!canSimulate || isStarting || isLoadingSession}
-              className={cn(
-                "w-full h-12 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
-                !canSimulate || isStarting || isLoadingSession
-                  ? "bg-muted text-muted-foreground cursor-not-allowed"
-                  : "bg-foreground text-background hover:bg-foreground/90 shadow-md",
-              )}
-            >
-              <RefreshCw className={cn("size-5", isStarting && "animate-spin")} />
-              {isStarting ? "시작 중..." : "리밸런싱 실행"}
-            </button>
+        {/* Target Weight Editor - 인라인으로 항상 표시 */}
+        <TargetWeightEditor
+          mode="inline"
+          stocks={manualStocks}
+          cashAmount={cashAmount}
+          exchangeRate={exchangeRate ?? 1}
+          onSave={handleSaveTargets}
+          isSaving={isSavingTargets}
+        />
 
-            <div className="text-center">
-              <Link
-                href="/portfolio"
-                className="text-muted-foreground text-sm font-medium hover:text-foreground inline-flex items-center gap-1 px-4 py-2 rounded-lg hover:bg-muted transition-colors"
-              >
-                <PieChart size={16} />
-                목표 비중 편집
-              </Link>
-            </div>
-          </div>
+        {/* 리밸런싱 실행 버튼 - 목표 비중 설정된 경우에만 */}
+        {hasTargets && (
+          <button
+            onClick={handleStartRebalancing}
+            disabled={!canSimulate || isStarting || isLoadingSession}
+            className={cn(
+              "w-full h-12 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+              !canSimulate || isStarting || isLoadingSession
+                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                : "bg-foreground text-background hover:bg-foreground/90 shadow-md",
+            )}
+          >
+            <RefreshCw className={cn("size-5", isStarting && "animate-spin")} />
+            {isStarting ? "시작 중..." : "리밸런싱 실행"}
+          </button>
         )}
+
+        {/* 포트폴리오 관리 링크 */}
+        <div className="text-center">
+          <Link
+            href="/portfolio"
+            className="text-muted-foreground text-sm font-medium hover:text-foreground inline-flex items-center gap-1 px-4 py-2 rounded-lg hover:bg-muted transition-colors"
+          >
+            <PieChart size={16} />
+            포트폴리오 관리
+          </Link>
+        </div>
       </div>
     </PageTransition>
   );
