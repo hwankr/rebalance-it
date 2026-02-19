@@ -80,16 +80,16 @@ export function ConsolidatedFilterBar({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
-        {/* 계좌 필터 */}
+      {/* 1행: 계좌 + 정렬 */}
+      <div className="flex items-center gap-2">
         <Select
           value={filters.accountId}
           onValueChange={(v) => update({ accountId: v })}
         >
-          <SelectTrigger size="sm" className="h-8 text-xs min-w-[100px]">
+          <SelectTrigger size="sm" className="h-8 text-xs w-[130px]">
             <SelectValue placeholder="계좌" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" sideOffset={4} className="min-w-[130px]">
             <SelectItem value="all">전체 계좌</SelectItem>
             {breakdown.map((b) => (
               <SelectItem key={b.accountId} value={b.accountId}>
@@ -99,7 +99,25 @@ export function ConsolidatedFilterBar({
           </SelectContent>
         </Select>
 
-        {/* 통화 필터 */}
+        <Select
+          value={filters.sortBy}
+          onValueChange={(v) =>
+            update({ sortBy: v as ConsolidatedFilters["sortBy"] })
+          }
+        >
+          <SelectTrigger size="sm" className="h-8 text-xs w-[120px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper" sideOffset={4} className="min-w-[120px]">
+            <SelectItem value="eval_amount">평가금액순</SelectItem>
+            <SelectItem value="profit_rate">수익률순</SelectItem>
+            <SelectItem value="name">이름순</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* 2행: 통화 + 수익상태 */}
+      <div className="flex items-center gap-3">
         <PillToggle
           value={filters.currency}
           onChange={(v) => update({ currency: v })}
@@ -110,7 +128,8 @@ export function ConsolidatedFilterBar({
           ]}
         />
 
-        {/* 수익상태 필터 */}
+        <div className="w-px h-4 bg-border" />
+
         <PillToggle
           value={filters.profitStatus}
           onChange={(v) => update({ profitStatus: v })}
@@ -120,23 +139,6 @@ export function ConsolidatedFilterBar({
             { value: "loss", label: "손실" },
           ]}
         />
-
-        {/* 정렬 */}
-        <Select
-          value={filters.sortBy}
-          onValueChange={(v) =>
-            update({ sortBy: v as ConsolidatedFilters["sortBy"] })
-          }
-        >
-          <SelectTrigger size="sm" className="h-8 text-xs min-w-[110px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="eval_amount">평가금액순</SelectItem>
-            <SelectItem value="profit_rate">수익률순</SelectItem>
-            <SelectItem value="name">이름순</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* 필터 결과 표시 */}
