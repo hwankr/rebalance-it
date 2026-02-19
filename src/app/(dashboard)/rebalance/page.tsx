@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -29,7 +29,7 @@ import { PageTransition } from "@/components/layout/page-transition";
 import { ActiveSessionView } from "@/components/rebalance/active-session-view";
 
 export default function RebalancePage() {
-  const { accounts, selectedAccountId } = useAccounts();
+  const { accounts, selectedAccountId, setSelectedAccountId } = useAccounts();
   const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
   const isAllMode = selectedAccountId === "all";
 
@@ -73,6 +73,15 @@ export default function RebalancePage() {
     isRecalculating,
     isResuming,
   } = useProgressiveRebalance(effectivePortfolioId);
+
+  // Auto-redirect: "전체 계좌" 모드에서 첫 번째 계좌로 자동 전환
+  const redirectingRef = useRef(false);
+  useEffect(() => {
+    if (effectiveIsAllMode && accounts.length > 0 && !redirectingRef.current) {
+      redirectingRef.current = true;
+      setSelectedAccountId(accounts[0].id);
+    }
+  }, [effectiveIsAllMode, accounts, setSelectedAccountId]);
 
   const cashAmount = Number(portfolio?.cash ?? 0);
   const totalValue = balance?.total_value ?? 0;
@@ -207,7 +216,7 @@ export default function RebalancePage() {
     );
   }
 
-  // Must select specific account for rebalancing (2+ accounts only)
+  // 전체 계좌 모드: 첫 번째 계좌로 자동 리다이렉트 중 스켈레톤 표시
   if (effectiveIsAllMode) {
     return (
       <PageTransition>
@@ -223,17 +232,10 @@ export default function RebalancePage() {
               <History size={20} />
             </Link>
           </div>
-          <AccountTabs />
-          <Card className="rounded-2xl border-border/50 shadow-sm">
-            <CardContent className="flex flex-col items-center gap-3 py-8">
-              <p className="font-medium">
-                리밸런싱을 실행하려면 특정 계좌를 선택해주세요.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                위 탭에서 개별 계좌를 선택하세요.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <div className="h-40 skeleton-shimmer rounded-3xl bg-muted" />
+            <div className="h-12 skeleton-shimmer rounded-xl bg-muted" />
+          </div>
         </div>
       </PageTransition>
     );
@@ -255,7 +257,7 @@ export default function RebalancePage() {
               <History size={20} />
             </Link>
           </div>
-          <AccountTabs />
+          <AccountTabs showAllTab={false} />
           <Card className="rounded-2xl border-border/50 shadow-sm">
             <CardContent className="flex flex-col items-center gap-3 py-8">
               <p className="text-destructive font-medium">
@@ -287,7 +289,7 @@ export default function RebalancePage() {
               <History size={20} />
             </Link>
           </div>
-          <AccountTabs />
+          <AccountTabs showAllTab={false} />
           <div className="rounded-2xl p-6 border border-dashed border-border bg-muted/30 text-center">
             <div className="mx-auto bg-card w-12 h-12 rounded-full flex items-center justify-center shadow-sm text-muted-foreground mb-3">
               <PlusCircle size={24} />
@@ -351,7 +353,7 @@ export default function RebalancePage() {
           </Link>
         </div>
 
-        <AccountTabs />
+        <AccountTabs showAllTab={false} />
 
         {/* Portfolio Summary Card */}
         <Card className="rounded-3xl shadow-sm">

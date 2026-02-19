@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -16,17 +16,15 @@ import { AllocationChart } from "@/components/portfolio/allocation-chart";
 import { StockTable } from "@/components/manual-portfolio/stock-table";
 
 import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/layout/page-transition";
 import { toast } from "sonner";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useConsolidatedPortfolio } from "@/hooks/use-consolidated-portfolio";
 import { AccountTabs } from "@/components/account/account-tabs";
-import { formatCurrency } from "@/lib/utils/format";
-import { cn } from "@/lib/utils";
-import { StockLogo } from "@/components/stock-logo";
-import { Badge } from "@/components/ui/badge";
+import { ConsolidatedFilterBar, DEFAULT_FILTERS, type ConsolidatedFilters } from "@/components/portfolio/consolidated-filter-bar";
+import { ConsolidatedStockList } from "@/components/portfolio/consolidated-stock-list";
 
 function formatUpdatedAt(timestamp: number | undefined): string {
   if (!timestamp) return "";
@@ -70,9 +68,12 @@ export default function PortfolioPage() {
     balance: consolidatedBalance,
     isLoading: isConsolidatedLoading,
     stockAccountMap,
+    breakdown,
+    perAccountBalances,
   } = useConsolidatedPortfolio();
 
   const [isSavingTargets, setIsSavingTargets] = useState(false);
+  const [filters, setFilters] = useState<ConsolidatedFilters>(DEFAULT_FILTERS);
 
   function handleRefreshPrices() {
     refreshPrices(undefined, {
@@ -96,6 +97,56 @@ export default function PortfolioPage() {
   const totalProfitLoss = balance?.total_profit_loss ?? 0;
   const totalProfitRate = balance?.total_profit_rate ?? 0;
   const cash = Number(portfolio?.cash ?? 0);
+
+  // Filtered data for "all accounts" view
+  const { filteredStocks, filteredCash, filteredTotalValue } = useMemo(() => {
+    if (!effectiveIsAllMode || !consolidatedBalance) {
+      return { filteredStocks: [], filteredCash: 0, filteredTotalValue: 0 };
+    }
+
+    // 1. Base data: account filter
+    let stocks = consolidatedBalance.stocks;
+    let accountCash = consolidatedBalance.cash;
+    if (filters.accountId !== "all") {
+      const accountBalance = perAccountBalances[filters.accountId];
+      if (accountBalance) {
+        stocks = accountBalance.stocks;
+        accountCash = accountBalance.cash;
+      } else {
+        return { filteredStocks: [], filteredCash: 0, filteredTotalValue: 0 };
+      }
+    }
+
+    // 2. Currency filter
+    if (filters.currency !== "all") {
+      stocks = stocks.filter((s) => (s.currency ?? "KRW") === filters.currency);
+      if (filters.currency === "USD") accountCash = 0;
+    }
+
+    // 3. Profit status filter
+    if (filters.profitStatus === "profit") {
+      stocks = stocks.filter((s) => s.profit_rate > 0);
+    } else if (filters.profitStatus === "loss") {
+      stocks = stocks.filter((s) => s.profit_rate < 0);
+    }
+
+    // 4. Sort
+    const sorted = [...stocks];
+    switch (filters.sortBy) {
+      case "eval_amount":
+        sorted.sort((a, b) => b.eval_amount - a.eval_amount);
+        break;
+      case "profit_rate":
+        sorted.sort((a, b) => b.profit_rate - a.profit_rate);
+        break;
+      case "name":
+        sorted.sort((a, b) => a.stock_name.localeCompare(b.stock_name, "ko"));
+        break;
+    }
+
+    const total = sorted.reduce((sum, s) => sum + s.eval_amount, 0) + accountCash;
+    return { filteredStocks: sorted, filteredCash: accountCash, filteredTotalValue: total };
+  }, [effectiveIsAllMode, consolidatedBalance, filters, perAccountBalances]);
 
   function handleDeleteStock(id: string) {
     const stock = stocks.find((s) => s.id === id);
@@ -171,7 +222,7 @@ export default function PortfolioPage() {
     const allProfitLoss = consolidatedBalance?.total_profit_loss ?? 0;
     const allProfitRate = consolidatedBalance?.total_profit_rate ?? 0;
     const allCash = consolidatedBalance?.cash ?? 0;
-    const allStocks = consolidatedBalance?.stocks ?? [];
+    const allStocksCount = consolidatedBalance?.stocks?.length ?? 0;
 
     return (
       <PageTransition>
@@ -195,79 +246,31 @@ export default function PortfolioPage() {
             isLoading={false}
           />
 
+          <ConsolidatedFilterBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            breakdown={breakdown}
+            filteredCount={filteredStocks.length}
+            totalCount={allStocksCount}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
             <div className="lg:col-span-4">
               <AllocationChart
-                stocks={allStocks}
-                cash={allCash}
-                totalValue={allTotalValue}
+                stocks={filteredStocks}
+                cash={filteredCash}
+                totalValue={filteredTotalValue}
                 isLoading={false}
               />
             </div>
 
-            <Card className="lg:col-span-8">
-              <CardContent>
-                {allStocks.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    보유 종목이 없습니다.
-                  </p>
-                ) : (
-                  <div className="space-y-1">
-                    {allStocks.map((stock) => {
-                      const mapKey = `${stock.stock_code}:${stock.currency ?? "KRW"}`;
-                      const accountNames = stockAccountMap[mapKey];
-                      return (
-                      <div
-                        key={mapKey}
-                        className="flex items-center justify-between py-2 border-b last:border-0"
-                      >
-                        <div className="flex items-center gap-2">
-                          <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="default" />
-                          <div>
-                            <div className="font-medium text-sm">
-                              {stock.stock_name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {stock.stock_code} ·{" "}
-                              {stock.quantity.toLocaleString("ko-KR")}주
-                            </div>
-                            {accountNames && accountNames.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-0.5">
-                                {accountNames.map((name) => (
-                                  <Badge
-                                    key={name}
-                                    variant="outline"
-                                    className="text-[11px] px-1.5 py-0 h-4 font-normal text-muted-foreground"
-                                  >
-                                    {name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-sm tabular-nums">
-                            {formatCurrency(stock.eval_amount)}
-                          </div>
-                          <div
-                            className={cn(
-                              "text-xs tabular-nums",
-                              stock.profit_rate > 0 && "profit-up",
-                              stock.profit_rate < 0 && "profit-down",
-                            )}
-                          >
-                            {stock.profit_rate > 0 ? "+" : ""}
-                            {stock.profit_rate.toFixed(2)}%
-                          </div>
-                        </div>
-                      </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <div className="lg:col-span-8">
+              <ConsolidatedStockList
+                stocks={filteredStocks}
+                stockAccountMap={stockAccountMap}
+                filterAccountId={filters.accountId !== "all" ? filters.accountId : undefined}
+              />
+            </div>
           </div>
 
           {/* CTA */}
@@ -362,10 +365,11 @@ export default function PortfolioPage() {
           isLoading={isLoading}
           onCashChange={setCash}
           isCashSaving={isCashSaving}
+          accountId={effectivePortfolioId}
         />
 
         {/* Rebalancing Summary Cards - Full Width */}
-        <RebalanceSummaryCards stocks={stocks} />
+        <RebalanceSummaryCards stocks={stocks} accountId={effectivePortfolioId} />
 
         {/* Stock Table - Full Width */}
         <StockTable
@@ -404,7 +408,7 @@ export default function PortfolioPage() {
         {/* Sticky Bottom CTA - Mobile Only */}
         <div className="fixed bottom-16 left-0 right-0 md:hidden bg-background border-t border-border p-3 z-10">
           <Button asChild className="w-full" size="lg">
-            <Link href="/rebalance">리밸런싱으로 이동</Link>
+            <Link href={`/rebalance?account=${effectivePortfolioId}`}>리밸런싱으로 이동</Link>
           </Button>
         </div>
       </div>

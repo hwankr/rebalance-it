@@ -86,6 +86,8 @@ export function useConsolidatedPortfolio() {
         }
       >();
       const stockAccountNames = new Map<string, Set<string>>();
+      const perAccountBalances: Record<string, BalanceResponse> = {};
+      const stockAccountIds = new Map<string, Set<string>>();
 
       for (const portfolio of portfolioRows) {
         const accountStocks = stockRows.filter(
@@ -97,6 +99,7 @@ export function useConsolidatedPortfolio() {
           rate,
         );
 
+        perAccountBalances[portfolio.id] = accountBalance;
         totalCash += accountBalance.cash;
 
         breakdown.push({
@@ -133,6 +136,10 @@ export function useConsolidatedPortfolio() {
           const nameSet = stockAccountNames.get(key) ?? new Set<string>();
           nameSet.add(portfolio.name);
           stockAccountNames.set(key, nameSet);
+
+          const idSet = stockAccountIds.get(key) ?? new Set<string>();
+          idSet.add(portfolio.id);
+          stockAccountIds.set(key, idSet);
         }
       }
 
@@ -177,18 +184,26 @@ export function useConsolidatedPortfolio() {
         Array.from(stockAccountNames.entries()).map(([k, v]) => [k, Array.from(v)])
       );
 
-      return { balance: consolidatedBalance, breakdown, stockAccountMap };
+      const stockAccountIdMap: StockAccountMap = Object.fromEntries(
+        Array.from(stockAccountIds.entries()).map(([k, v]) => [k, Array.from(v)])
+      );
+
+      return { balance: consolidatedBalance, breakdown, stockAccountMap, perAccountBalances, stockAccountIdMap };
     },
   });
 
   const balance = data?.balance ?? null;
   const breakdown = data?.breakdown ?? [];
   const stockAccountMap: StockAccountMap = data?.stockAccountMap ?? {};
+  const perAccountBalances = data?.perAccountBalances ?? {};
+  const stockAccountIdMap: StockAccountMap = data?.stockAccountIdMap ?? {};
 
   return {
     balance,
     breakdown,
     stockAccountMap,
+    perAccountBalances,
+    stockAccountIdMap,
     isLoading,
     isError,
     error,

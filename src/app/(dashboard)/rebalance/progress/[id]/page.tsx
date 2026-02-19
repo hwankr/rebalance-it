@@ -54,7 +54,7 @@ export default function ProgressPage() {
 
   // Redirect active sessions to the integrated rebalance page
   if (activeSession && activeSession.id === executionId) {
-    router.replace("/rebalance");
+    router.replace(portfolioId ? `/rebalance?account=${portfolioId}` : "/rebalance");
     return null;
   }
 
@@ -86,7 +86,7 @@ export default function ProgressPage() {
               세션을 찾을 수 없습니다.
             </p>
             <Button asChild>
-              <Link href="/rebalance">리밸런싱으로 돌아가기</Link>
+              <Link href={portfolioId ? `/rebalance?account=${portfolioId}` : "/rebalance"}>리밸런싱으로 돌아가기</Link>
             </Button>
           </Card>
         </div>
@@ -298,7 +298,7 @@ export default function ProgressPage() {
               포기
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/rebalance">새 시뮬레이션</Link>
+              <Link href={portfolioId ? `/rebalance?account=${portfolioId}` : "/rebalance"}>새 시뮬레이션</Link>
             </Button>
           </div>
         )}
@@ -306,7 +306,7 @@ export default function ProgressPage() {
         {!isInProgress && (
           <div className="flex flex-wrap items-center gap-3">
             <Button asChild>
-              <Link href="/rebalance">새 리밸런싱</Link>
+              <Link href={portfolioId ? `/rebalance?account=${portfolioId}` : "/rebalance"}>새 리밸런싱</Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="/history">기록 보기</Link>

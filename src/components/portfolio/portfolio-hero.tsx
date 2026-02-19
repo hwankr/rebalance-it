@@ -17,6 +17,7 @@ interface PortfolioHeroProps {
   isLoading: boolean;
   onCashChange?: (cash: number) => void;
   isCashSaving?: boolean;
+  accountId?: string | null;
 }
 
 function AnimatedNumber({
@@ -50,6 +51,7 @@ export function PortfolioHero({
   isLoading,
   onCashChange,
   isCashSaving,
+  accountId,
 }: PortfolioHeroProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -189,7 +191,7 @@ export function PortfolioHero({
           size="lg"
           className="bg-white text-primary font-bold rounded-lg hover:bg-white/90 shadow-lg"
         >
-          <Link href="/rebalance">리밸런싱</Link>
+          <Link href={accountId ? `/rebalance?account=${accountId}` : "/rebalance"}>리밸런싱</Link>
         </Button>
       </div>
     </div>

@@ -82,13 +82,13 @@ export function AllocationChart({
   }
 
   const data = [
+    ...(cash > 0 ? [{ name: "현금", value: cash, stock_code: "CASH", currency: undefined }] : []),
     ...stocks.map((s) => ({
       name: s.stock_name,
       value: s.eval_amount,
       stock_code: s.stock_code,
       currency: s.currency,
     })),
-    ...(cash > 0 ? [{ name: "현금", value: cash, stock_code: "CASH", currency: undefined }] : []),
   ];
 
   const total = data.reduce((sum, d) => sum + d.value, 0);

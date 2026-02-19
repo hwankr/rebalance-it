@@ -10,9 +10,10 @@ interface RebalanceSummaryCardsProps {
     target_pct: number;
     is_rebalance_tracked?: boolean;
   }>;
+  accountId?: string | null;
 }
 
-export function RebalanceSummaryCards({ stocks }: RebalanceSummaryCardsProps) {
+export function RebalanceSummaryCards({ stocks, accountId }: RebalanceSummaryCardsProps) {
   const trackedStocks = stocks.filter(s => s.is_rebalance_tracked !== false);
   const trackedCount = trackedStocks.length;
   const totalCount = stocks.length;
@@ -64,7 +65,7 @@ export function RebalanceSummaryCards({ stocks }: RebalanceSummaryCardsProps) {
       {/* Card 3 - CTA */}
       <div className="flex items-center justify-center">
         <Link
-          href="/rebalance"
+          href={accountId ? `/rebalance?account=${accountId}` : "/rebalance"}
           className="w-full h-full min-h-[120px] bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md transition-colors flex flex-col items-center justify-center gap-2"
         >
           <RefreshCw className="size-6" />
