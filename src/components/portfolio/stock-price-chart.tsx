@@ -10,11 +10,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { ChartData } from "@/lib/rebalance/types";
+import { DataSourceFooter } from "@/components/data-source-footer";
 
 interface StockPriceChartProps {
   chartData: ChartData[];
   stockName: string;
   isLoading?: boolean;
+  fetchedAt?: string | null;
+  provider?: string;
 }
 
 const PERIOD_OPTIONS = [
@@ -71,6 +74,8 @@ export function StockPriceChart({
   chartData,
   stockName,
   isLoading,
+  fetchedAt,
+  provider,
 }: StockPriceChartProps) {
   const [selectedPeriod, setSelectedPeriod] = useState(0);
 
@@ -162,6 +167,8 @@ export function StockPriceChart({
           />
         </AreaChart>
       </ResponsiveContainer>
+
+      <DataSourceFooter fetchedAt={fetchedAt} provider={provider} />
     </div>
   );
 }

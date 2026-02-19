@@ -10,11 +10,17 @@ export interface StockNewsItem {
   summary: string | null;
 }
 
+interface StockNewsResponse {
+  items: StockNewsItem[];
+  fetchedAt?: string;
+  provider?: string;
+}
+
 async function fetchNews(
   code: string,
   market?: string,
   name?: string,
-): Promise<StockNewsItem[]> {
+): Promise<StockNewsResponse> {
   const params = new URLSearchParams({ code, ...(market ? { market } : {}), ...(name ? { name } : {}) });
   const res = await fetch(`/api/stocks/news?${params}`);
   if (!res.ok) {
@@ -22,7 +28,11 @@ async function fetchNews(
     throw new Error(data.error ?? "뉴스 조회에 실패했습니다.");
   }
   const json = await res.json();
-  return json.items ?? [];
+  return {
+    items: json.items ?? [],
+    fetchedAt: json.fetchedAt,
+    provider: json.provider,
+  };
 }
 
 export function useStockNews(code: string | null, market?: string, name?: string) {

@@ -85,4 +85,8 @@ export interface ChartResponse {
   stock_name: string;
   period: "day" | "week" | "month";
   data: ChartData[];
+  /** ISO 8601 timestamp of when chart data was fetched */
+  fetchedAt: string;
+  /** Data provider name */
+  provider: string;
 }

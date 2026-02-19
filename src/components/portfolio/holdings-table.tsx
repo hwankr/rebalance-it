@@ -112,6 +112,8 @@ function StockChartSheet({
             chartData={data?.data ?? []}
             stockName={stock.stock_name}
             isLoading={isLoading}
+            fetchedAt={data?.fetchedAt}
+            provider={data?.provider}
           />
 
           <StockFinancialsCard

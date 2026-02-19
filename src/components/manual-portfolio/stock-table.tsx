@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus } from "lucide-react";
+import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus, Sparkles } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +32,7 @@ import { StockPriceChart } from "@/components/portfolio/stock-price-chart";
 import { StockFinancialsCard } from "@/components/portfolio/stock-financials-card";
 import { StockNewsCard } from "@/components/portfolio/stock-news-card";
 import { StockForm } from "@/components/manual-portfolio/stock-form";
+import { BulkImportDialog } from "@/components/ai/bulk-import-dialog";
 
 
 interface StockRow {
@@ -144,6 +145,8 @@ function StockChartSheet({
             chartData={data?.data ?? []}
             stockName={stock.stock_name}
             isLoading={isLoading}
+            fetchedAt={data?.fetchedAt}
+            provider={data?.provider}
           />
 
           <StockFinancialsCard
@@ -186,6 +189,7 @@ export function StockTable({
   const [editValues, setEditValues] = useState<Partial<ManualStockInput>>({});
   const [selectedStock, setSelectedStock] = useState<StockRow | null>(null);
   const [isFormExpanded, setIsFormExpanded] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
 
   function startEdit(stock: StockRow) {
     setEditingId(stock.id);
@@ -217,15 +221,25 @@ export function StockTable({
           {onAddStock && (
             <div className="w-full max-w-2xl space-y-3 px-4">
               {!isFormExpanded ? (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setIsFormExpanded(true)}
-                  data-stock-add-button
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  종목 추가
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => setIsBulkImportOpen(true)}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    AI 대량 종목 추가
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setIsFormExpanded(true)}
+                    data-stock-add-button
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    종목 추가
+                  </Button>
+                </div>
               ) : (
                 <div className="border rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -248,6 +262,19 @@ export function StockTable({
                 </div>
               )}
             </div>
+          )}
+
+          {onAddStock && (
+            <BulkImportDialog
+              open={isBulkImportOpen}
+              onOpenChange={setIsBulkImportOpen}
+              onImport={(importedStocks) => {
+                for (const stock of importedStocks) {
+                  onAddStock(stock);
+                }
+              }}
+              existingStockCodes={stocks.map((s) => s.stock_code)}
+            />
           )}
         </div>
       </div>
@@ -277,16 +304,27 @@ export function StockTable({
             </Button>
           )}
           {onAddStock && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsFormExpanded(true)}
-              className="text-xs h-8"
-              data-stock-add-button
-            >
-              <Plus className="mr-2 size-3" />
-              종목 추가
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsBulkImportOpen(true)}
+                className="text-xs h-8 gap-1.5"
+              >
+                <Sparkles className="size-3" />
+                AI 대량 추가
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFormExpanded(true)}
+                className="text-xs h-8"
+                data-stock-add-button
+              >
+                <Plus className="mr-2 size-3" />
+                종목 추가
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -677,6 +715,19 @@ export function StockTable({
             if (!open) setSelectedStock(null);
           }}
           exchangeRate={exchangeRate}
+        />
+      )}
+
+      {onAddStock && (
+        <BulkImportDialog
+          open={isBulkImportOpen}
+          onOpenChange={setIsBulkImportOpen}
+          onImport={(importedStocks) => {
+            for (const stock of importedStocks) {
+              onAddStock(stock);
+            }
+          }}
+          existingStockCodes={stocks.map((s) => s.stock_code)}
         />
       )}
     </div>

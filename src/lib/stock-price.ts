@@ -80,6 +80,8 @@ export async function fetchStockChart(
     close: number;
     volume: number;
   }>;
+  fetchedAt: string;
+  provider: string;
 }> {
   const period = options?.period ?? "day";
   const count = options?.count ?? 60;
@@ -140,6 +142,8 @@ export async function fetchStockChart(
     stock_name: meta?.shortName ?? meta?.symbol ?? stockCode,
     period,
     data: trimmed,
+    fetchedAt: new Date().toISOString(),
+    provider: "Yahoo Finance",
   };
 }
 

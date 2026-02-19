@@ -8,6 +8,8 @@ export const PLAN_LIMITS = {
     allowAdvancedAnalytics: false,
     allowAISummary: false,
     aiCallsPerDay: 0,
+    aiTextImportPerDay: 5,
+    aiSearchPerDay: 10,
   },
   pro: {
     maxSimulationHistory: Infinity,
@@ -16,6 +18,8 @@ export const PLAN_LIMITS = {
     allowAdvancedAnalytics: true,
     allowAISummary: true,
     aiCallsPerDay: 30,
+    aiTextImportPerDay: 50,
+    aiSearchPerDay: 100,
   },
 } as const;
 

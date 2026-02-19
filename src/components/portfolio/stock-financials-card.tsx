@@ -11,6 +11,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { AIDisclaimer } from "@/components/ai/ai-disclaimer";
 import type { StockFinancials } from "@/lib/stock-financials";
 import { detectMarket } from "@/lib/utils/stock";
+import { DataSourceFooter } from "@/components/data-source-footer";
 
 interface StockFinancialsCardProps {
   stockCode: string;
@@ -222,6 +223,8 @@ export function StockFinancialsCard({
             )}
           </div>
         )}
+
+        <DataSourceFooter fetchedAt={data.fetchedAt} provider={data.provider} />
       </CardContent>
     </Card>
   );

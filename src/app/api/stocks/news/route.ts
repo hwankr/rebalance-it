@@ -23,7 +23,11 @@ export async function GET(request: NextRequest) {
     const news = isKorean
       ? await fetchNaverResearch(code)
       : await fetchNaverNews(code, name);
-    return NextResponse.json({ items: news });
+    return NextResponse.json({
+      items: news,
+      fetchedAt: new Date().toISOString(),
+      provider: "네이버 금융",
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "뉴스 조회 실패" },

@@ -28,6 +28,10 @@ export interface StockFinancials {
   sector: string | null;
   industry: string | null;
   longBusinessSummary: string | null;
+  /** ISO 8601 timestamp of when data was fetched */
+  fetchedAt: string;
+  /** Data provider name */
+  provider: string;
 }
 
 /* ─── 네이버 금융 (한국 주식) ─── */
@@ -159,6 +163,8 @@ async function fetchNaverFinancials(stockCode: string): Promise<StockFinancials>
     sector: null, // 네이버 integration에서 직접 제공하지 않음
     industry: null,
     longBusinessSummary: null,
+    fetchedAt: new Date().toISOString(),
+    provider: "네이버 금융",
   };
 }
 
@@ -202,6 +208,8 @@ async function fetchYahooFinancials(stockCode: string): Promise<StockFinancials>
     sector: str(sp?.sector),
     industry: str(sp?.industry),
     longBusinessSummary: str(sp?.longBusinessSummary),
+    fetchedAt: new Date().toISOString(),
+    provider: "Yahoo Finance",
   };
 }
 

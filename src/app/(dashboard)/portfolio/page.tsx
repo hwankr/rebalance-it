@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { format } from "date-fns";
 
 import { useManualPortfolio, type ManualStockInput } from "@/hooks/use-manual-portfolio";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -28,12 +29,7 @@ import { StockLogo } from "@/components/stock-logo";
 
 function formatUpdatedAt(timestamp: number | undefined): string {
   if (!timestamp) return "";
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  return format(new Date(timestamp), "yy.MM.dd HH:mm");
 }
 
 export default function PortfolioPage() {

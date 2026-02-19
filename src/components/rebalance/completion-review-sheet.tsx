@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Check, Minus, Circle } from "lucide-react";
+import { AlertTriangle, Check, Minus, Circle, Sparkles } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { ExecutionOrderResult } from "@/lib/rebalance/history-types";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useAISessionReport } from "@/hooks/use-ai-session-report";
+import { AIDisclaimer } from "@/components/ai/ai-disclaimer";
+import { AI_GENERATED_LABEL } from "@/lib/ai/disclaimer";
 
 interface CompletionReviewSheetProps {
   open: boolean;
@@ -51,6 +55,9 @@ export function CompletionReviewSheet({
   onConfirm,
   isCompleting,
 }: CompletionReviewSheetProps) {
+  const { isPro } = useSubscription();
+  const aiReport = useAISessionReport();
+
   // Filter out resolved orders (no longer needed after recalculation)
   const activeOrders = orders.filter((o) => !o.resolved_by_recalc);
   const sellOrders = activeOrders.filter((o) => o.side === "sell");
@@ -68,6 +75,23 @@ export function CompletionReviewSheet({
     (sum, o) => sum + getExecQty(o) * (o.actual_price ?? o.estimated_price), 0
   );
   const executedNetCash = executedSellAmount - executedBuyAmount;
+
+  function buildSessionData(): string {
+    const lines: string[] = [
+      `총 주문: ${totalOrders}건 (매도 ${sellOrders.length}건, 매수 ${buyOrders.length}건)`,
+      `체결: ${filledOrders}건, 미체결: ${unfilledOrders}건`,
+      `매도 금액: ${formatCurrency(executedSellAmount)}`,
+      `매수 금액: ${formatCurrency(executedBuyAmount)}`,
+      `순 현금 변동: ${executedNetCash >= 0 ? "+" : ""}${formatCurrency(executedNetCash)}`,
+    ];
+    if (sellOrders.length > 0) {
+      lines.push(`매도 종목: ${sellOrders.map((o) => `${o.stock_name}(${getExecQty(o)}/${o.quantity}주)`).join(", ")}`);
+    }
+    if (buyOrders.length > 0) {
+      lines.push(`매수 종목: ${buyOrders.map((o) => `${o.stock_name}(${getExecQty(o)}/${o.quantity}주)`).join(", ")}`);
+    }
+    return lines.join("\n");
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -230,6 +254,42 @@ export function CompletionReviewSheet({
                   );
                 })}
               </div>
+            </div>
+          )}
+          {/* AI 세션 리포트 */}
+          {isPro && (
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full rounded-xl gap-2 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 active:scale-[0.98] transition-transform"
+                onClick={() => aiReport.mutate(buildSessionData())}
+                disabled={aiReport.isPending}
+              >
+                <Sparkles className="size-4" />
+                {aiReport.isPending ? "리포트 생성 중..." : "AI 세션 리포트"}
+              </Button>
+
+              {aiReport.isError && (
+                <p className="text-xs text-destructive text-center">
+                  {aiReport.error instanceof Error
+                    ? aiReport.error.message
+                    : "리포트 생성 실패"}
+                </p>
+              )}
+
+              {aiReport.data && (
+                <div className="rounded-2xl border border-purple-500/20 bg-purple-50/50 dark:bg-purple-950/20 p-3 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-purple-600 dark:text-purple-400">
+                    <Sparkles className="size-3" />
+                    <span>{AI_GENERATED_LABEL}</span>
+                  </div>
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                    {aiReport.data.report}
+                  </p>
+                  <AIDisclaimer />
+                </div>
+              )}
             </div>
           )}
         </div>

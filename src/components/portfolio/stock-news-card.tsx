@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback } from "react";
 import { Newspaper, ExternalLink, Sparkles, Loader2 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useStockNews } from "@/hooks/use-stock-news";
@@ -10,6 +9,8 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { AIDisclaimer } from "@/components/ai/ai-disclaimer";
 import type { StockNewsItem } from "@/hooks/use-stock-news";
 import { detectMarket } from "@/lib/utils/stock";
+import { DataSourceFooter } from "@/components/data-source-footer";
+import { useAIStream } from "@/hooks/use-ai-stream";
 
 interface StockNewsCardProps {
   stockCode: string;
@@ -30,32 +31,10 @@ function formatTimeAgo(isoDate: string): string {
   return "방금 전";
 }
 
-async function fetchNewsSummary(
-  items: StockNewsItem[],
-  stockName: string,
-): Promise<string> {
-  const newsText = items
-    .map(
-      (item, i) =>
-        `${i + 1}. [${item.source}] ${item.title}`,
-    )
+function buildNewsText(items: StockNewsItem[]): string {
+  return items
+    .map((item, i) => `${i + 1}. [${item.source}] ${item.title}`)
     .join("\n");
-
-  const res = await fetch("/api/ai/stock-summary", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type: "news",
-      stockName,
-      data: newsText,
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? "뉴스 요약 생성에 실패했습니다.");
-  }
-  const json = await res.json();
-  return json.summary;
 }
 
 export function StockNewsCard({
@@ -66,15 +45,26 @@ export function StockNewsCard({
   const market = detectMarket(stockCode, currency);
   const isKorean = market === "KOSPI" || /^\d{6}$/.test(stockCode);
   const cardTitle = isKorean ? "증권사 리포트" : "최근 뉴스";
-  const { data: newsItems, isLoading, error } = useStockNews(stockCode, market, stockName);
+  const { data: newsData, isLoading, error } = useStockNews(stockCode, market, stockName);
+  const newsItems = newsData?.items;
   const { isPro } = useSubscription();
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const {
+    text: aiSummary,
+    isStreaming,
+    error: streamError,
+    start: startStream,
+  } = useAIStream({ url: "/api/ai/stock-summary-stream" });
 
-  const summaryMutation = useMutation({
-    mutationFn: (items: StockNewsItem[]) =>
-      fetchNewsSummary(items, stockName),
-    onSuccess: (summary) => setAiSummary(summary),
-  });
+  const handleSummarize = useCallback(
+    (items: StockNewsItem[]) => {
+      startStream({
+        type: "news",
+        stockName,
+        data: buildNewsText(items),
+      });
+    },
+    [startStream, stockName],
+  );
 
   if (isLoading) {
     return (
@@ -130,6 +120,7 @@ export function StockNewsCard({
           <p className="text-sm text-muted-foreground">
             {cardTitle}가 없습니다.
           </p>
+          <DataSourceFooter fetchedAt={newsData?.fetchedAt} provider={newsData?.provider} />
         </CardContent>
       </Card>
     );
@@ -144,25 +135,26 @@ export function StockNewsCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* AI 뉴스 요약 */}
+        {/* AI 뉴스 요약 (SSE 스트리밍) */}
         {isPro && (
           <div className="space-y-2">
             {aiSummary ? (
               <>
                 <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
                   {aiSummary}
+                  {isStreaming && <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 align-text-bottom" />}
                 </p>
-                <AIDisclaimer />
+                {!isStreaming && <AIDisclaimer />}
               </>
             ) : (
               <Button
                 variant="outline"
                 size="sm"
                 className="w-full gap-2"
-                onClick={() => summaryMutation.mutate(newsItems)}
-                disabled={summaryMutation.isPending}
+                onClick={() => handleSummarize(newsItems)}
+                disabled={isStreaming}
               >
-                {summaryMutation.isPending ? (
+                {isStreaming ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Sparkles className="h-3.5 w-3.5" />
@@ -170,12 +162,8 @@ export function StockNewsCard({
                 AI 뉴스 요약
               </Button>
             )}
-            {summaryMutation.isError && (
-              <p className="text-xs text-destructive">
-                {summaryMutation.error instanceof Error
-                  ? summaryMutation.error.message
-                  : "요약 생성에 실패했습니다."}
-              </p>
+            {streamError && (
+              <p className="text-xs text-destructive">{streamError}</p>
             )}
           </div>
         )}
@@ -208,6 +196,8 @@ export function StockNewsCard({
             </a>
           ))}
         </div>
+
+        <DataSourceFooter fetchedAt={newsData?.fetchedAt} provider={newsData?.provider} />
       </CardContent>
     </Card>
   );
