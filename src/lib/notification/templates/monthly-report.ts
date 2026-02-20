@@ -1,5 +1,13 @@
 import { emailLayout } from "./layout";
 import type { MonthlyReportData } from "../monthly-report";
+import type { ReportSections } from "@/hooks/use-notification-preferences";
+
+const DEFAULT_SECTIONS: ReportSections = {
+  summary: true,
+  portfolios: true,
+  drift_table: true,
+  activity: true,
+};
 
 function formatKrw(amount: number): string {
   return `₩${Math.round(amount).toLocaleString("ko-KR")}`;
@@ -12,7 +20,8 @@ function formatPct(pct: number): string {
 
 export function monthlyReportTemplate(
   data: MonthlyReportData,
-  unsubscribeUrl: string
+  unsubscribeUrl: string,
+  sections: ReportSections = DEFAULT_SECTIONS
 ): { subject: string; html: string } {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://rebalance-it.app";
 
@@ -75,7 +84,7 @@ export function monthlyReportTemplate(
               <td style="padding:4px 0;font-size:13px;text-align:right;font-weight:500;color:${statusColor};">${statusIcon} ${statusText}</td>
             </tr>
           </table>
-          ${driftTable}
+          ${sections.drift_table ? driftTable : ""}
         </div>`;
     })
     .join("");
@@ -116,10 +125,10 @@ export function monthlyReportTemplate(
 
   const content = `
     <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#111827;">📊 ${data.userName}님의 ${data.reportMonth} 리포트</h2>
-    <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">매월 1일 발송되는 포트폴리오 현황 리포트입니다.</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">포트폴리오 현황 리포트입니다.</p>
 
     <!-- 총자산 요약 -->
-    <div style="margin-bottom:24px;padding:20px;background-color:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;">
+    ${sections.summary ? `<div style="margin-bottom:24px;padding:20px;background-color:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td style="padding:6px 0;font-size:14px;color:#6b7280;">총 자산</td>
@@ -131,14 +140,14 @@ export function monthlyReportTemplate(
           <td style="padding:6px 0;font-size:14px;text-align:right;color:#111827;">${data.portfolios.length}개</td>
         </tr>
       </table>
-    </div>
+    </div>` : ""}
 
     <!-- 계좌별 현황 -->
-    <h3 style="margin:0 0 16px;font-size:16px;font-weight:600;color:#111827;">계좌별 현황</h3>
-    ${portfolioSections}
+    ${sections.portfolios ? `<h3 style="margin:0 0 16px;font-size:16px;font-weight:600;color:#111827;">계좌별 현황</h3>
+    ${portfolioSections}` : ""}
 
     <!-- 리밸런싱 활동 -->
-    ${activitySection}
+    ${sections.activity ? activitySection : ""}
 
     <!-- CTA -->
     <div style="margin-top:28px;text-align:center;">

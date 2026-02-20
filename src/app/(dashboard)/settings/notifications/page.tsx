@@ -25,6 +25,9 @@ import {
 } from "@/components/ui/select";
 import { PageTransition } from "@/components/layout/page-transition";
 import { NotificationHistory } from "@/components/notification/notification-history";
+import { DriftAlertSettings } from "@/components/notification/drift-alert-settings";
+import { ReportScheduleSettings } from "@/components/notification/report-schedule-settings";
+import { ReportContentSettings } from "@/components/notification/report-content-settings";
 import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
@@ -68,7 +71,6 @@ export default function NotificationSettingsPage() {
     field: "notification_enabled" | "monthly_report_enabled",
     value: boolean,
   ) {
-    // notification_enabled 토글 시 email_enabled도 동기화
     const updates = field === "notification_enabled"
       ? { notification_enabled: value, email_enabled: value }
       : { [field]: value };
@@ -145,7 +147,7 @@ export default function NotificationSettingsPage() {
           </Link>
         </Button>
 
-        {/* 이메일 알림 설정 */}
+        {/* 이메일 알림 기본 설정 */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader>
             <CardTitle>이메일 알림 설정</CardTitle>
@@ -169,12 +171,12 @@ export default function NotificationSettingsPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-0.5">
                 <Label className="text-sm font-medium">
-                  월간 리포트
+                  정기 리포트
                   {!isPlusOrAbove && (
                     <span className="ml-2 text-xs text-muted-foreground">(Plus 플랜 필요)</span>
                   )}
                 </Label>
-                <p className="text-xs text-muted-foreground">매월 1일 포트폴리오 현황 리포트 발송</p>
+                <p className="text-xs text-muted-foreground">포트폴리오 현황 리포트 정기 발송</p>
               </div>
               <Switch
                 checked={isPlusOrAbove ? (prefs?.monthly_report_enabled ?? false) : false}
@@ -229,6 +231,30 @@ export default function NotificationSettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* 드리프트 알림 상세 설정 */}
+        <DriftAlertSettings
+          prefs={prefs}
+          isLoading={isLoading}
+          updateMutation={updateMutation}
+          isPlusOrAbove={isPlusOrAbove}
+        />
+
+        {/* 리포트 주기 설정 (월간 리포트 ON 시에만 표시) */}
+        <ReportScheduleSettings
+          prefs={prefs}
+          isLoading={isLoading}
+          updateMutation={updateMutation}
+          isPlusOrAbove={isPlusOrAbove}
+        />
+
+        {/* 리포트 내용 설정 (월간 리포트 ON 시에만 표시) */}
+        <ReportContentSettings
+          prefs={prefs}
+          isLoading={isLoading}
+          updateMutation={updateMutation}
+          isPlusOrAbove={isPlusOrAbove}
+        />
 
         {/* 테스트 알림 */}
         <Card className="border-border/50 shadow-sm">

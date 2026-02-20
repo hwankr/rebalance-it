@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useNotificationPreferences, useUpdateNotificationPreferences } from "@/hooks/use-notification-preferences";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useGuestMode } from "@/contexts/guest-mode-context";
+import { getReportIntervalLabel } from "@/lib/notification/next-check";
 
 export function NotificationSettingsCard() {
   const { isGuest } = useGuestMode();
@@ -62,7 +63,14 @@ export function NotificationSettingsCard() {
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-0.5">
             <p className="text-sm font-medium">월간 리포트</p>
-            <p className="text-xs text-muted-foreground">매월 1일 포트폴리오 현황 리포트</p>
+            <p className="text-xs text-muted-foreground">
+              {getReportIntervalLabel({
+                intervalType: prefs?.report_interval_type ?? "monthly",
+                dayOfWeek: prefs?.report_day_of_week,
+                dayOfMonth: prefs?.report_day_of_month,
+                customDays: prefs?.report_custom_days,
+              })} 포트폴리오 현황 리포트
+            </p>
             {!isPlusOrAbove && (
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                 <Lock className="size-3" />

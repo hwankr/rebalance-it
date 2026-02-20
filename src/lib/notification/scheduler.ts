@@ -51,7 +51,7 @@ export async function getMonthlyDriftAlertCount(
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("notification_type", "drift_alert")
-    .in("status", ["sent", "pending"])
+    .in("status", ["sent", "pending", "digest_pending"])
     .gte("created_at", monthStart.toISOString());
 
   return count ?? 0;

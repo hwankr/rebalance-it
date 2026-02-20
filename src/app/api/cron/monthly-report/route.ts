@@ -5,6 +5,8 @@ import { canSendMonthlyReport } from "@/lib/notification/plan-gate";
 import { collectMonthlyReportData } from "@/lib/notification/monthly-report";
 import { monthlyReportTemplate } from "@/lib/notification/templates/monthly-report";
 import { sendEmail } from "@/lib/notification/email-sender";
+import { calculateNextReportAt } from "@/lib/notification/next-check";
+import { parseReportSections } from "@/hooks/use-notification-preferences";
 
 export async function GET(request: Request) {
   // 1. CRON_SECRET 검증
@@ -35,9 +37,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "No users with monthly report enabled", processed: 0 });
   }
 
+  // report_next_send_at 기반 필터링
+  const eligiblePrefs = (preferences ?? []).filter((pref: { report_next_send_at: string | null }) => {
+    if (pref.report_next_send_at) {
+      return new Date(pref.report_next_send_at) <= now;
+    }
+    // report_next_send_at이 NULL인 기존 사용자: 매월 1일에만 발송 (fallback)
+    return now.getUTCDate() === 1;
+  });
+
+  if (eligiblePrefs.length === 0) {
+    return NextResponse.json({ message: "No users due for report today", processed: 0 });
+  }
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://rebalance-it.app";
 
-  for (const pref of preferences) {
+  for (const pref of eligiblePrefs) {
     const userId: string = pref.user_id;
     const exchangeRate: number = pref.exchange_rate ?? 1300;
 
@@ -88,7 +103,8 @@ export async function GET(request: Request) {
 
     // 7. 이메일 생성 + 발송
     const unsubscribeUrl = `${appUrl}/api/notification/unsubscribe?token=${pref.unsubscribe_token}`;
-    const { subject, html } = monthlyReportTemplate(reportData, unsubscribeUrl);
+    const sections = parseReportSections(pref.report_sections);
+    const { subject, html } = monthlyReportTemplate(reportData, unsubscribeUrl, sections);
 
     const result = await sendEmail({
       to: emailAddress,
@@ -103,6 +119,24 @@ export async function GET(request: Request) {
         .from("notification_log")
         .update({ status: "sent", sent_at: now.toISOString() })
         .eq("id", logEntry.id);
+
+      // report_last_sent_at, report_next_send_at 업데이트
+      const nextSendAt = calculateNextReportAt({
+        intervalType: pref.report_interval_type ?? "monthly",
+        dayOfWeek: pref.report_day_of_week,
+        dayOfMonth: pref.report_day_of_month,
+        customDays: pref.report_custom_days,
+        fromDate: now,
+      });
+
+      await supabase
+        .from("notification_preferences")
+        .update({
+          report_last_sent_at: now.toISOString(),
+          report_next_send_at: nextSendAt.toISOString(),
+        })
+        .eq("user_id", userId);
+
       processedCount++;
     } else {
       await supabase

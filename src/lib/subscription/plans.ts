@@ -20,6 +20,7 @@ export const PLAN_LIMITS = {
     // 알림
     allowCalendarStrategy: false,
     allowMonthlyReport: false,
+    allowDriftDigest: false,
     maxMonthlyEmails: 4,
     maxNotificationHistory: 10,
   },
@@ -42,6 +43,7 @@ export const PLAN_LIMITS = {
     // 알림
     allowCalendarStrategy: true,
     allowMonthlyReport: true,
+    allowDriftDigest: true,
     maxMonthlyEmails: Infinity,
     maxNotificationHistory: 50,
   },
@@ -64,6 +66,7 @@ export const PLAN_LIMITS = {
     // 알림
     allowCalendarStrategy: true,
     allowMonthlyReport: true,
+    allowDriftDigest: true,
     maxMonthlyEmails: Infinity,
     maxNotificationHistory: Infinity,
   },

@@ -3,10 +3,11 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { calculateDrift, needsRebalancing, getMaxDrift } from "@/lib/rebalance/drift";
 import type { PortfolioItem } from "@/lib/rebalance/types";
 import { verifyCronSecret, getUserSubscriptionPlan, getMonthlyDriftAlertCount } from "@/lib/notification/scheduler";
-import { canSendDriftAlert } from "@/lib/notification/plan-gate";
+import { canSendDriftAlert, canUseDriftDigest } from "@/lib/notification/plan-gate";
 import { calculateNextCheckAt } from "@/lib/notification/next-check";
 import { sendEmail } from "@/lib/notification/email-sender";
 import { driftAlertTemplate } from "@/lib/notification/templates/drift-alert";
+import { digestAlertTemplate } from "@/lib/notification/templates/digest-alert";
 
 // 가격 데이터 만료 기준: 48시간
 const PRICE_STALE_HOURS = 48;
@@ -59,7 +60,8 @@ export async function GET(request: Request) {
     const exchangeRate: number = pref.exchange_rate ?? 1300;
 
     // 3a. 쿨다운 체크: last_notified_at + cooldown_days > now → SKIP
-    if (pref.last_notified_at) {
+    // digest 모드는 쿨다운을 발송 단계에서 처리하므로 여기서는 스킵하지 않음
+    if (pref.alert_mode !== "digest" && pref.last_notified_at) {
       const lastNotified = new Date(pref.last_notified_at);
       const cooldownUntil = new Date(lastNotified);
       cooldownUntil.setDate(cooldownUntil.getDate() + cooldownDays);
@@ -76,7 +78,12 @@ export async function GET(request: Request) {
       .eq("user_id", userId)
       .single();
 
-    const thresholdPct: number = rebalanceSettings?.threshold_pct ?? 5;
+    // Change 1: Use alert_threshold_pct from notification_preferences if set
+    const thresholdPct: number = pref.alert_threshold_pct ?? rebalanceSettings?.threshold_pct ?? 5;
+
+    // Change 3: Handle alert_severity 'major_only'
+    const severityMultiplier = pref.alert_severity === "major_only" ? 2 : 1;
+    const effectiveThreshold = thresholdPct * severityMultiplier;
 
     // 3c. 포트폴리오 + 종목 조회
     const { data: portfolios } = await supabase
@@ -89,11 +96,22 @@ export async function GET(request: Request) {
       continue;
     }
 
+    // Change 2: Filter excluded_portfolio_ids
+    const excludedIds: string[] = pref.excluded_portfolio_ids ?? [];
+    const filteredPortfolios = (portfolios ?? []).filter(
+      (p: { id: string }) => !excludedIds.includes(p.id)
+    );
+
+    if (filteredPortfolios.length === 0) {
+      skippedCount++;
+      continue;
+    }
+
     let userNeedsRebalancing = false;
     let hasStalePrice = false;
     const driftedPortfolios: PortfolioDriftInfo[] = [];
 
-    for (const portfolio of portfolios) {
+    for (const portfolio of filteredPortfolios) {
       // 리밸런싱 추적 종목만 조회
       const { data: stocks } = await supabase
         .from("manual_stocks")
@@ -141,9 +159,9 @@ export async function GET(request: Request) {
 
       if (portfolioItems.length === 0) continue;
 
-      // 3e. Drift 계산
+      // 3e. Drift 계산 (use effectiveThreshold for filtering)
       const drifts = calculateDrift(portfolioItems);
-      const portfolioNeedsRebalancing = needsRebalancing(drifts, thresholdPct);
+      const portfolioNeedsRebalancing = needsRebalancing(drifts, effectiveThreshold);
       const maxDrift = getMaxDrift(drifts);
 
       if (portfolioNeedsRebalancing) {
@@ -153,7 +171,7 @@ export async function GET(request: Request) {
           maxDrift,
           thresholdPct,
           driftedStocks: drifts
-            .filter((d) => Math.abs(d.drift_pct) > thresholdPct)
+            .filter((d) => Math.abs(d.drift_pct) > effectiveThreshold)
             .map((d) => ({
               name: d.stock_name,
               currentPct: d.current_pct,
@@ -173,6 +191,43 @@ export async function GET(request: Request) {
       if (!canSendDriftAlert(plan, monthlyCount)) {
         skippedCount++;
         continue;
+      }
+
+      // Change 4: Handle alert_mode 'digest' - Accumulation Phase
+      if (pref.alert_mode === "digest") {
+        // Deduplication: skip if a digest_pending row already exists for today
+        const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const { count: existingDigestCount } = await supabase
+          .from("notification_log")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("notification_type", "drift_alert")
+          .eq("status", "digest_pending")
+          .gte("created_at", todayStart.toISOString());
+
+        if ((existingDigestCount ?? 0) > 0) {
+          skippedCount++;
+          continue; // Already recorded today's snapshot
+        }
+
+        // Digest mode: save as digest_pending, don't send email
+        await supabase.from("notification_log").insert({
+          user_id: userId,
+          notification_type: "drift_alert",
+          title: "포트폴리오 드리프트 감지 (다이제스트 대기)",
+          status: "digest_pending",
+          metadata: {
+            max_drift_pct: Math.max(...driftedPortfolios.map((p) => p.maxDrift)),
+            threshold_pct: thresholdPct,
+            portfolio_count: driftedPortfolios.length,
+            portfolios: driftedPortfolios, // Store full data for later digest
+            plan,
+            is_approximate: hasStalePrice,
+          },
+        });
+        // Don't update last_notified_at (keep accumulating)
+        processedCount++;
+        continue; // Skip email sending
       }
 
       // 이메일 주소 결정
@@ -292,11 +347,106 @@ export async function GET(request: Request) {
     }
   }
 
+  // 6. 다이제스트 발송 단계: 쿨다운 만료된 다이제스트 사용자 처리
+  let digestProcessed = 0;
+
+  const { data: digestUsers } = await supabase
+    .from("notification_preferences")
+    .select("*")
+    .eq("alert_mode", "digest")
+    .eq("notification_enabled", true)
+    .eq("email_enabled", true);
+
+  if (digestUsers && digestUsers.length > 0) {
+    for (const digestPref of digestUsers) {
+      const digestUserId = digestPref.user_id;
+
+      // Check cooldown
+      if (digestPref.last_notified_at) {
+        const lastNotified = new Date(digestPref.last_notified_at);
+        const cooldownUntil = new Date(lastNotified);
+        cooldownUntil.setDate(cooldownUntil.getDate() + (digestPref.cooldown_days ?? 7));
+        if (cooldownUntil > now) continue;
+      }
+
+      // Get pending digest items
+      const { data: digestItems } = await supabase
+        .from("notification_log")
+        .select("*")
+        .eq("user_id", digestUserId)
+        .eq("status", "digest_pending")
+        .order("created_at", { ascending: true });
+
+      if (!digestItems || digestItems.length === 0) continue;
+
+      // Plan gate check
+      const digestPlan = await getUserSubscriptionPlan(supabase, digestUserId);
+      if (!canUseDriftDigest(digestPlan)) continue;
+
+      // Get email address
+      const { data: digestUserData } = await supabase.auth.admin.getUserById(digestUserId);
+      const digestEmail = digestPref.email_address ?? digestUserData?.user?.email;
+      if (!digestEmail) continue;
+
+      const digestUserName = digestEmail.split("@")[0];
+
+      // Build digest data from accumulated logs
+      const dailySnapshots = digestItems.map((item: { created_at: string; metadata: { portfolios?: Array<{ name: string; maxDrift: number; thresholdPct: number; driftedStocks: Array<{ name: string; currentPct: number; targetPct: number; driftPct: number }> }> } }) => ({
+        date: new Date(item.created_at).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" }),
+        portfolios: (item.metadata?.portfolios ?? []) as Array<{
+          name: string;
+          maxDrift: number;
+          thresholdPct: number;
+          driftedStocks: Array<{ name: string; currentPct: number; targetPct: number; driftPct: number }>;
+        }>,
+      }));
+
+      const firstDate = new Date(digestItems[0].created_at).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+      const lastDate = new Date(digestItems[digestItems.length - 1].created_at).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+
+      const unsubscribeUrl = `${appUrl}/api/notification/unsubscribe?token=${digestPref.unsubscribe_token}`;
+      const { subject, html } = digestAlertTemplate(
+        {
+          userName: digestUserName,
+          digestPeriod: { from: firstDate, to: lastDate },
+          dailySnapshots,
+          isApproximate: digestItems.some((item: { metadata?: { is_approximate?: boolean } }) => item.metadata?.is_approximate === true),
+        },
+        unsubscribeUrl,
+      );
+
+      const result = await sendEmail({ to: digestEmail, subject, html, unsubscribeToken: digestPref.unsubscribe_token });
+
+      if (result.success) {
+        // Mark all digest_pending items as sent
+        const digestIds = digestItems.map((item: { id: string }) => item.id);
+        await supabase
+          .from("notification_log")
+          .update({ status: "sent", sent_at: now.toISOString() })
+          .in("id", digestIds);
+
+        // Update last_notified_at and next_check_at
+        await supabase
+          .from("notification_preferences")
+          .update({
+            last_notified_at: now.toISOString(),
+            next_check_at: calculateNextCheckAt(digestPref.cooldown_days ?? 7).toISOString(),
+          })
+          .eq("user_id", digestUserId);
+
+        digestProcessed++;
+      } else {
+        console.error(`[check-drift] 다이제스트 발송 실패 (user: ${digestUserId}):`, result.error);
+      }
+    }
+  }
+
   return NextResponse.json({
     message: "Drift check completed",
     processed: processedCount,
     skipped: skippedCount,
     retryProcessed,
+    digestProcessed,
     checkedAt: now.toISOString(),
   });
 }
