@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/supabase/auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
-import { AccountSelector } from "@/components/account/account-selector";
 import { ExchangeRateWidget } from "@/components/layout/exchange-rate-widget";
 
 export function Header() {
@@ -19,9 +18,6 @@ export function Header() {
         <Image src="/icon-192x192.png" alt="Rebalance-it" width={28} height={28} className="size-7" />
         <span className="text-lg font-bold text-foreground">Rebalance-it</span>
       </div>
-
-      {/* Account selector */}
-      <AccountSelector />
 
       <div className="flex-1" />
 

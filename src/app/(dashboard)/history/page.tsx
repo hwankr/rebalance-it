@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageTransition } from "@/components/layout/page-transition";
 import { HistoryDetailSheet } from "@/components/history/history-detail-sheet";
+import { AccountTabs } from "@/components/account/account-tabs";
 import type { RebalanceExecution } from "@/lib/rebalance/history-types";
 
 const STATUS_MAP: Record<
@@ -107,6 +108,8 @@ export default function HistoryPage() {
           </Button>
         )}
       </div>
+
+      <AccountTabs />
 
       {history.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 p-8 bg-muted/30 rounded-lg">
