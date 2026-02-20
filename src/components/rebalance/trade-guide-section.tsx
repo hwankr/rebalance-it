@@ -164,8 +164,8 @@ export function TradeGuideSection({
                   >
                     <div className="rounded-xl border bg-card p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold">{order.stock_name}</span>
-                        <Badge className="bg-red-500/10 text-red-600">매도</Badge>
+                        <span className="font-semibold min-w-0 flex-1 truncate">{order.stock_name}</span>
+                        <Badge className="bg-red-500/10 text-red-600 shrink-0">매도</Badge>
                       </div>
                       <div className="text-sm text-muted-foreground tabular-nums">
                         {order.quantity.toLocaleString("ko-KR")}주 ×{" "}
@@ -247,8 +247,8 @@ export function TradeGuideSection({
                   >
                     <div className="rounded-xl border bg-card p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold">{order.stock_name}</span>
-                        <Badge className="bg-green-500/10 text-green-600">매수</Badge>
+                        <span className="font-semibold min-w-0 flex-1 truncate">{order.stock_name}</span>
+                        <Badge className="bg-green-500/10 text-green-600 shrink-0">매수</Badge>
                       </div>
                       <div className="text-sm text-muted-foreground tabular-nums">
                         {order.quantity.toLocaleString("ko-KR")}주 ×{" "}

@@ -81,12 +81,12 @@ export function ConsolidatedFilterBar({
   return (
     <div className="space-y-2">
       {/* 1행: 계좌 + 정렬 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <Select
           value={filters.accountId}
           onValueChange={(v) => update({ accountId: v })}
         >
-          <SelectTrigger size="sm" className="h-8 text-xs w-[130px]">
+          <SelectTrigger size="sm" className="h-8 text-xs flex-1 min-w-[100px] max-w-[160px]">
             <SelectValue placeholder="계좌" />
           </SelectTrigger>
           <SelectContent position="popper" sideOffset={4} className="min-w-[130px]">
@@ -105,7 +105,7 @@ export function ConsolidatedFilterBar({
             update({ sortBy: v as ConsolidatedFilters["sortBy"] })
           }
         >
-          <SelectTrigger size="sm" className="h-8 text-xs w-[120px]">
+          <SelectTrigger size="sm" className="h-8 text-xs flex-1 min-w-[100px] max-w-[160px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent position="popper" sideOffset={4} className="min-w-[120px]">

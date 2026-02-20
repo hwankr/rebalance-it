@@ -59,13 +59,14 @@ export interface ActiveSessionViewProps {
   updateOrderQuantity: (
     executionId: string,
     stockCode: string,
+    side: string,
     executedQuantity: number,
     actualPrice?: number,
   ) => void;
   pendingOrders: Map<string, PendingOrder>;
   batchFillOrders: (
     executionId: string,
-    orders: Array<{ stock_code: string; quantity: number }>,
+    orders: Array<{ stock_code: string; side: string; quantity: number }>,
   ) => Promise<void>;
   completeSession: (executionId: string) => Promise<void>;
   abandonSession: (executionId: string) => Promise<void>;
@@ -221,10 +222,11 @@ export function ActiveSessionView({
   // Handlers
   function handleQuantityChange(
     stockCode: string,
+    side: string,
     executedQuantity: number,
     actualPrice?: number,
   ) {
-    updateOrderQuantity(session.id, stockCode, executedQuantity, actualPrice);
+    updateOrderQuantity(session.id, stockCode, side, executedQuantity, actualPrice);
   }
 
   async function handleRecalculate() {
@@ -267,13 +269,14 @@ export function ActiveSessionView({
 
   const handleBatchFillSell = () => {
     const unfilled = sellOrders.filter(
-      (o) => (o.executed_quantity ?? 0) < o.quantity,
+      (o) => !o.resolved_by_recalc && (o.executed_quantity ?? 0) < o.quantity,
     );
     if (unfilled.length > 0) {
       batchFillOrders(
         session.id,
         unfilled.map((o) => ({
           stock_code: o.stock_code,
+          side: "sell",
           quantity: o.quantity,
         })),
       );
@@ -282,13 +285,14 @@ export function ActiveSessionView({
 
   const handleBatchFillBuy = () => {
     const unfilled = buyOrders.filter(
-      (o) => (o.executed_quantity ?? 0) < o.quantity,
+      (o) => !o.resolved_by_recalc && (o.executed_quantity ?? 0) < o.quantity,
     );
     if (unfilled.length > 0) {
       batchFillOrders(
         session.id,
         unfilled.map((o) => ({
           stock_code: o.stock_code,
+          side: "buy",
           quantity: o.quantity,
         })),
       );

@@ -564,13 +564,13 @@ export function StockTable({
                   // Edit mode: minimal stacked inputs
                   <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-lg">{stock.stock_name}</span>
-                      <div className="flex gap-2">
+                      <span className="font-semibold text-lg flex-1 min-w-0 truncate">{stock.stock_name}</span>
+                      <div className="flex gap-2 shrink-0">
                         <Button size="sm" onClick={() => saveEdit(stock.id)}>자산수정 완료</Button>
                         <Button size="sm" variant="ghost" onClick={cancelEdit}>취소</Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
                       <div>
                         <label className="text-xs text-muted-foreground block mb-1">수량</label>
                         <Input

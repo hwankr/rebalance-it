@@ -267,8 +267,14 @@ export async function POST(request: NextRequest) {
         const isOverExecuted = execQty > newQuantity && newQuantity > 0;
         const isNoLongerNeeded = newQuantity === 0 && execQty > 0;
 
+        // Lock in actual_price for executed orders before overwriting estimated_price.
+        // complete_rebalance_session uses COALESCE(actual_price, estimated_price),
+        // so without this the recalculated price would incorrectly affect portfolio cash.
+        const lockedActualPrice = existingOrder.actual_price ?? existingOrder.estimated_price;
+
         mergedOrders.push({
           ...existingOrder,
+          actual_price: lockedActualPrice,
           quantity: isNoLongerNeeded ? 0 : (newQuantity > 0 ? newQuantity : existingOrder.quantity),
           original_quantity: existingOrder.quantity,
           over_executed: isOverExecuted || isNoLongerNeeded,

@@ -103,7 +103,7 @@ export function OrderPreview({
             <div className="rounded-xl border bg-card p-4">
               {/* Top row: stock name + side badge */}
               <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="font-semibold">{order.stock_name}</div>
+                <div className="font-semibold min-w-0 flex-1 truncate">{order.stock_name}</div>
                 {order.side === "buy" ? (
                   <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 shrink-0">
                     매수

@@ -137,8 +137,8 @@ export default function ProgressPage() {
     }
   }
 
-  function handleQuantityChange(stockCode: string, executedQuantity: number) {
-    updateOrderQuantity(executionId, stockCode, executedQuantity);
+  function handleQuantityChange(stockCode: string, side: string, executedQuantity: number) {
+    updateOrderQuantity(executionId, stockCode, side, executedQuantity);
   }
 
   return (

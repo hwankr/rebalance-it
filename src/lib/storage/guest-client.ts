@@ -319,6 +319,7 @@ function handleRpc(
       const stockCode = params.p_stock_code as string;
       const executedQuantity = params.p_executed_quantity as number;
       const actualPrice = params.p_actual_price as number | null | undefined;
+      const side = params.p_side as string | null | undefined;
       const executions = readTable("executions");
       const exec = executions.find((e: any) => e.id === executionId);
       if (!exec) {
@@ -327,7 +328,7 @@ function handleRpc(
 
       const orders = (exec.orders ?? []) as Array<Record<string, unknown>>;
       for (let i = 0; i < orders.length; i++) {
-        if (orders[i].stock_code === stockCode) {
+        if (orders[i].stock_code === stockCode && (!side || orders[i].side === side)) {
           const clampedQty = Math.max(0, executedQuantity);
           orders[i].executed_quantity = clampedQty;
           orders[i].executed = clampedQty > 0;
@@ -341,10 +342,11 @@ function handleRpc(
       }
       exec.orders = orders;
 
-      // Update success/fail counts
-      const successCount = orders.filter((o: any) => o.executed).length;
+      // Update success/fail counts (exclude resolved_by_recalc orders)
+      const activeOrders = orders.filter((o: any) => !o.resolved_by_recalc);
+      const successCount = activeOrders.filter((o: any) => o.executed).length;
       exec.success_count = successCount;
-      exec.fail_count = orders.length - successCount;
+      exec.fail_count = activeOrders.length - successCount;
 
       writeTable("executions", executions);
       return { data: orders, error: null };
@@ -355,6 +357,7 @@ function handleRpc(
       const executionId = params.p_execution_id as string;
       const stockCode = params.p_stock_code as string;
       const executed = params.p_executed as boolean;
+      const side = params.p_side as string | null | undefined;
       const executions = readTable("executions");
       const exec = executions.find((e) => e.id === executionId);
       if (!exec) {
@@ -362,13 +365,14 @@ function handleRpc(
       }
 
       const orders = (exec.orders ?? []) as Array<Record<string, unknown>>;
-      const order = orders.find((o) => o.stock_code === stockCode);
+      const order = orders.find((o) => o.stock_code === stockCode && (!side || o.side === side));
       const orderQty = order ? (order.quantity as number) ?? 0 : 0;
 
       return handleRpc("update_execution_order", {
         p_execution_id: executionId,
         p_stock_code: stockCode,
         p_executed_quantity: executed ? orderQty : 0,
+        p_side: side,
       });
     }
 
@@ -383,17 +387,19 @@ function handleRpc(
 
       const orders = (exec.orders ?? []) as Array<Record<string, unknown>>;
 
-      // Count executed orders (backward compat: support both executed_quantity and executed)
-      const executedCount = orders.filter((o) => {
+      // Count executed orders (exclude resolved_by_recalc, backward compat)
+      const activeOrders2 = orders.filter((o) => !o.resolved_by_recalc);
+      const executedCount = activeOrders2.filter((o) => {
         const execQty = o.executed_quantity as number | undefined;
         if (execQty !== undefined) return execQty > 0;
         return o.executed === true;
       }).length;
+      const activeTotal = activeOrders2.length;
 
-      exec.status = executedCount >= orders.length ? "completed" : "partial";
+      exec.status = (activeTotal === 0 || executedCount >= activeTotal) ? "completed" : "partial";
       exec.completed_at = nowISO();
       exec.success_count = executedCount;
-      exec.fail_count = orders.length - executedCount;
+      exec.fail_count = activeTotal - executedCount;
 
       writeTable("executions", executions);
 
@@ -409,6 +415,9 @@ function handleRpc(
         let netCashChange = 0;
 
         for (const order of orders) {
+          // Skip resolved orders (no longer active after recalculation)
+          if (order.resolved_by_recalc) continue;
+
           // Backward compat: derive executed quantity
           const execQty = (order.executed_quantity as number | undefined) !== undefined
             ? (order.executed_quantity as number)

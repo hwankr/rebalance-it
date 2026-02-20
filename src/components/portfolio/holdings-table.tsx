@@ -285,10 +285,10 @@ export function HoldingsTable({ stocks, isLoading, exchangeRate }: HoldingsTable
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <button
                     type="button"
-                    className="flex items-center gap-2 font-semibold text-left hover:text-primary transition-colors"
+                    className="flex items-center gap-2 font-semibold text-left hover:text-primary transition-colors min-w-0 flex-1 overflow-hidden"
                   >
                     <StockLogo stockCode={stock.stock_code} stockName={stock.stock_name} currency={stock.currency} size="default" />
-                    {stock.stock_name}
+                    <span className="truncate">{stock.stock_name}</span>
                   </button>
                   <Badge
                     className={cn(

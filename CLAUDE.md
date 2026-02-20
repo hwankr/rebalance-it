@@ -110,3 +110,42 @@ See `.env.example`:
 5. **Stock Search**: Autocomplete + live price refresh (KR/US stocks)
 6. **Subscription System**: PortOne payments, feature gating
 7. **Exchange Rate Management**: Manual setting + last refresh timestamp
+
+## External Model Consultation Workflow
+
+Claude는 ask_codex/ask_gemini MCP 도구를 자동으로 호출하지 않는다.
+대신, 외부 모델의 의견이 필요할 때 사용자에게 질문 템플릿을 제공하고 사용자가 직접 외부 모델에 질문한다.
+
+### 워크플로우
+
+1. 작업 중 외부 모델 의견이 유용한 상황이 발생하면, Claude가 질문 템플릿을 작성하여 제시한다.
+2. 사용자가 해당 질문을 복사하여 Codex(ChatGPT) 또는 Gemini에 직접 질문한다.
+3. 사용자가 답변을 채팅에 붙여넣거나, `.md` 파일로 저장 후 경로를 알려준다.
+4. Claude가 답변을 분석하여 코드에 반영한다.
+
+### 질문 템플릿 형식
+
+```
+**대상 모델**: Codex(ChatGPT) 또는 Gemini
+**질문 목적**: (예: 아키텍처 리뷰, UI 개선안, 코드 리뷰)
+**컨텍스트**: 관련 코드/파일 내용
+**질문**: 구체적인 질문 내용
+```
+
+### 모델별 추천 용도
+
+| 상황 | 추천 모델 | 이유 |
+|------|----------|------|
+| 설계/아키텍처 결정 | Codex (ChatGPT) | 코드 구조 분석, 로직 검증에 강함 |
+| 코드 리뷰/버그 분석 | Codex (ChatGPT) | 논리적 결함 탐지에 강함 |
+| UI/UX 개선/디자인 리뷰 | Gemini | 디자인 감각, 대용량 컨텍스트(1M 토큰) |
+| 대규모 리팩토링 방향 | 둘 다 | 두 모델의 의견을 비교하여 최선안 선택 |
+| 문서 작성/정리 | Gemini | 자연어 생성 품질 우수 |
+
+### Claude가 질문 템플릿을 제시해야 하는 상황
+
+- 아키텍처/설계 방향에 대한 선택지가 2개 이상일 때
+- UI/UX 변경이 사용자 경험에 큰 영향을 줄 때
+- 복잡한 비즈니스 로직 리뷰가 필요할 때
+- 성능 최적화 전략을 결정해야 할 때
+- 보안 관련 코드를 변경할 때

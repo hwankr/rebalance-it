@@ -42,7 +42,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
   const historyKey = useMemo(() => ["history", effectiveUserId], [effectiveUserId]);
   const manualPortfolioKey = useMemo(() => ["manual-portfolio", portfolioId], [portfolioId]);
 
-  // "Latest wins" counter for mutation cancellation per stock_code
+  // "Latest wins" counter for mutation cancellation per stock_code+side
   const mutationCounterRef = useRef<Map<string, number>>(new Map());
 
   // Pending orders: tracks in-flight mutations to protect display from stale refetches
@@ -150,12 +150,14 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     mutationFn: async ({
       executionId,
       stockCode,
+      side,
       executedQuantity,
       actualPrice,
       callId,
     }: {
       executionId: string;
       stockCode: string;
+      side: string;
       executedQuantity: number;
       actualPrice?: number;
       callId: number;
@@ -165,12 +167,13 @@ export function useProgressiveRebalance(portfolioId: string | null) {
         p_stock_code: stockCode,
         p_executed_quantity: executedQuantity,
         p_actual_price: actualPrice ?? null,
+        p_side: side,
       };
       const { data, error } = await client.rpc("update_execution_order", rpcParams);
       if (error) throw error;
-      return { orders: data as unknown as ExecutionOrderResult[], callId, stockCode };
+      return { orders: data as unknown as ExecutionOrderResult[], callId, stockCode, side };
     },
-    onMutate: async ({ stockCode, executedQuantity, actualPrice }) => {
+    onMutate: async ({ stockCode, side, executedQuantity, actualPrice }) => {
       await queryClient.cancelQueries({
         queryKey: activeSessionKey,
       });
@@ -181,7 +184,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
         queryClient.setQueryData<RebalanceExecution>(activeSessionKey, {
           ...previous,
           orders: previous.orders.map((o) =>
-            o.stock_code === stockCode
+            o.stock_code === stockCode && o.side === side
               ? {
                   ...o,
                   executed_quantity: executedQuantity,
@@ -204,9 +207,10 @@ export function useProgressiveRebalance(portfolioId: string | null) {
         queryClient.setQueryData(activeSessionKey, context.previous);
       }
       // Clear pending immediately on error (mutation failed, value not saved)
+      const orderKey = `${vars.stockCode}-${vars.side}`;
       setPendingOrders((prev) => {
         const next = new Map(prev);
-        next.delete(vars.stockCode);
+        next.delete(orderKey);
         return next;
       });
       toast.error("저장에 실패했습니다. 네트워크를 확인해주세요.");
@@ -214,14 +218,15 @@ export function useProgressiveRebalance(portfolioId: string | null) {
     onSuccess: (_data, vars) => {
       setLastSavedAt(new Date());
       // Clear pending after refetch has time to complete with confirmed data
-      const currentCount = mutationCounterRef.current.get(vars.stockCode) ?? 0;
+      const orderKey = `${vars.stockCode}-${vars.side}`;
+      const currentCount = mutationCounterRef.current.get(orderKey) ?? 0;
       if (vars.callId === currentCount) {
         setTimeout(() => {
           setPendingOrders((prev) => {
-            const pending = prev.get(vars.stockCode);
+            const pending = prev.get(orderKey);
             if (pending && pending.opId === vars.callId) {
               const next = new Map(prev);
-              next.delete(vars.stockCode);
+              next.delete(orderKey);
               return next;
             }
             return prev;
@@ -230,8 +235,9 @@ export function useProgressiveRebalance(portfolioId: string | null) {
       }
     },
     onSettled: (_data, _err, vars) => {
-      // Only invalidate if this is still the latest call for this stock
-      const currentCount = mutationCounterRef.current.get(vars.stockCode) ?? 0;
+      // Only invalidate if this is still the latest call for this stock+side
+      const orderKey = `${vars.stockCode}-${vars.side}`;
+      const currentCount = mutationCounterRef.current.get(orderKey) ?? 0;
       if (vars.callId === currentCount) {
         queryClient.invalidateQueries({ queryKey: activeSessionKey });
       }
@@ -353,31 +359,32 @@ export function useProgressiveRebalance(portfolioId: string | null) {
   );
 
   const updateOrderQuantity = useCallback(
-    (executionId: string, stockCode: string, executedQuantity: number, actualPrice?: number, origin: MutationOrigin = "stepper") => {
-      // Increment counter for this stock (latest wins pattern)
-      const prev = mutationCounterRef.current.get(stockCode) ?? 0;
+    (executionId: string, stockCode: string, side: string, executedQuantity: number, actualPrice?: number, origin: MutationOrigin = "stepper") => {
+      // Increment counter for this stock+side (latest wins pattern)
+      const orderKey = `${stockCode}-${side}`;
+      const prev = mutationCounterRef.current.get(orderKey) ?? 0;
       const callId = prev + 1;
-      mutationCounterRef.current.set(stockCode, callId);
+      mutationCounterRef.current.set(orderKey, callId);
 
       // Track pending to protect display from stale refetches
       setPendingOrders((m) => {
         const next = new Map(m);
-        next.set(stockCode, { opId: callId, quantity: executedQuantity, origin, timestamp: Date.now() });
+        next.set(orderKey, { opId: callId, quantity: executedQuantity, origin, timestamp: Date.now() });
         return next;
       });
 
-      updateQuantityMutation.mutate({ executionId, stockCode, executedQuantity, actualPrice, callId });
+      updateQuantityMutation.mutate({ executionId, stockCode, side, executedQuantity, actualPrice, callId });
     },
     [updateQuantityMutation]
   );
 
   // Backward compat wrapper
   const toggleOrder = useCallback(
-    (executionId: string, stockCode: string, executed: boolean) => {
+    (executionId: string, stockCode: string, executed: boolean, side: string = "buy") => {
       if (!activeSession) return;
-      const order = activeSession.orders.find((o) => o.stock_code === stockCode);
+      const order = activeSession.orders.find((o) => o.stock_code === stockCode && o.side === side);
       const qty = executed ? (order?.quantity ?? 0) : 0;
-      updateOrderQuantity(executionId, stockCode, qty);
+      updateOrderQuantity(executionId, stockCode, side, qty);
     },
     [activeSession, updateOrderQuantity]
   );
@@ -386,7 +393,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
   const batchFillOrders = useCallback(
     async (
       executionId: string,
-      ordersToFill: Array<{ stock_code: string; quantity: number }>
+      ordersToFill: Array<{ stock_code: string; side: string; quantity: number }>
     ) => {
       if (ordersToFill.length === 0) return;
 
@@ -395,9 +402,10 @@ export function useProgressiveRebalance(portfolioId: string | null) {
       setPendingOrders((prev) => {
         const next = new Map(prev);
         for (const o of ordersToFill) {
-          const opId = (mutationCounterRef.current.get(o.stock_code) ?? 0) + 1;
-          mutationCounterRef.current.set(o.stock_code, opId);
-          next.set(o.stock_code, { opId, quantity: o.quantity, origin: "batch", timestamp: now });
+          const orderKey = `${o.stock_code}-${o.side}`;
+          const opId = (mutationCounterRef.current.get(orderKey) ?? 0) + 1;
+          mutationCounterRef.current.set(orderKey, opId);
+          next.set(orderKey, { opId, quantity: o.quantity, origin: "batch", timestamp: now });
         }
         return next;
       });
@@ -408,14 +416,15 @@ export function useProgressiveRebalance(portfolioId: string | null) {
       // Single optimistic update for all orders
       const previous = queryClient.getQueryData<RebalanceExecution | null>(activeSessionKey);
       if (previous) {
-        const fillMap = new Map(ordersToFill.map((o) => [o.stock_code, o.quantity]));
+        // Create a set or map keyed by stock_code + side
+        const fillMap = new Map(ordersToFill.map((o) => [`${o.stock_code}-${o.side}`, o.quantity]));
         queryClient.setQueryData<RebalanceExecution>(activeSessionKey, {
           ...previous,
           orders: previous.orders.map((o) =>
-            fillMap.has(o.stock_code)
+            fillMap.has(`${o.stock_code}-${o.side}`)
               ? {
                   ...o,
-                  executed_quantity: fillMap.get(o.stock_code)!,
+                  executed_quantity: fillMap.get(`${o.stock_code}-${o.side}`)!,
                   executed: true,
                   executed_at: new Date().toISOString(),
                 }
@@ -432,6 +441,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
             p_stock_code: o.stock_code,
             p_executed_quantity: o.quantity,
             p_actual_price: null,
+            p_side: o.side,
           })
         )
       );
@@ -443,7 +453,7 @@ export function useProgressiveRebalance(portfolioId: string | null) {
         // Clear pending on rollback
         setPendingOrders((prev) => {
           const next = new Map(prev);
-          for (const o of ordersToFill) next.delete(o.stock_code);
+          for (const o of ordersToFill) next.delete(`${o.stock_code}-${o.side}`);
           return next;
         });
       }
@@ -463,9 +473,10 @@ export function useProgressiveRebalance(portfolioId: string | null) {
             const next = new Map(prev);
             let changed = false;
             for (const o of ordersToFill) {
-              const pending = next.get(o.stock_code);
+              const orderKey = `${o.stock_code}-${o.side}`;
+              const pending = next.get(orderKey);
               if (pending && pending.origin === "batch" && pending.timestamp === now) {
-                next.delete(o.stock_code);
+                next.delete(orderKey);
                 changed = true;
               }
             }

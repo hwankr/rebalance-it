@@ -129,14 +129,14 @@ function ActionableRow({
       </div>
 
       {/* Mobile */}
-      <div className="flex md:hidden items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex md:hidden items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <div
             className="w-2 h-6 rounded-full shrink-0"
             style={{ backgroundColor: hexColor }}
           />
-          <div>
-            <span className="text-sm font-bold">{name}</span>
+          <div className="min-w-0">
+            <span className="text-sm font-bold truncate block">{name}</span>
             {isCash && (
               <span className="text-[10px] text-orange-500 font-medium ml-1">
                 유동성
@@ -144,7 +144,7 @@ function ActionableRow({
             )}
           </div>
         </div>
-        <div>
+        <div className="shrink-0">
           {isExcluded ? (
             <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">제외</span>
           ) : (

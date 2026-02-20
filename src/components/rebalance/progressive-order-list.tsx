@@ -13,7 +13,7 @@ import type { PendingOrder } from "@/hooks/use-progressive-rebalance";
 interface ProgressiveOrderListProps {
   orders: ExecutionOrderResult[];
   side: "sell" | "buy";
-  onQuantityChange: (stockCode: string, executedQuantity: number, actualPrice?: number) => void;
+  onQuantityChange: (stockCode: string, side: string, executedQuantity: number, actualPrice?: number) => void;
   disabled?: boolean;
   pendingOrders?: Map<string, PendingOrder>;
 }
@@ -229,14 +229,14 @@ export function ProgressiveOrderList({
     if (order) {
       const execQty = order.executed_quantity ?? 0;
       if (execQty > 0) {
-        onQuantityChange(stockCode, execQty, price);
+        onQuantityChange(stockCode, side, execQty, price);
       }
     }
   }
 
   function handleQuantityWithPrice(stockCode: string, qty: number) {
     const storedPrice = actualPriceRef.current.get(stockCode);
-    onQuantityChange(stockCode, qty, storedPrice);
+    onQuantityChange(stockCode, side, qty, storedPrice);
   }
 
   if (filtered.length === 0) return null;
@@ -328,7 +328,7 @@ export function ProgressiveOrderList({
                   <div className="flex items-center gap-2">
                     <DebouncedQuantityInput
                       order={order}
-                      pending={pendingOrders?.get(order.stock_code)}
+                      pending={pendingOrders?.get(`${order.stock_code}-${order.side}`)}
                       onQuantityChange={handleQuantityWithPrice}
                       disabled={disabled || isOverExecuted}
                     />
