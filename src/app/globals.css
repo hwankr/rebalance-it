@@ -233,6 +233,14 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Landing page grid pattern */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(to right, oklch(from var(--border) l c h / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(from var(--border) l c h / 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
 /* Hide scrollbar utility */
 @utility scrollbar-hide {
   -ms-overflow-style: none;
