@@ -569,5 +569,8 @@ function mapExecution(row: Record<string, unknown>): RebalanceExecution {
     portfolio_snapshot:
       (row.portfolio_snapshot as unknown as RebalanceExecution["portfolio_snapshot"]) ??
       undefined,
+    recalculated_at: (row.recalculated_at as string | null) ?? undefined,
+    recalculation_count: row.recalculation_count != null ? Number(row.recalculation_count) : undefined,
+    recalculated_prices: (row.recalculated_prices as Record<string, number> | null) ?? undefined,
   };
 }

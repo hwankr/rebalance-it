@@ -308,13 +308,19 @@ export function ProgressiveOrderList({
 
             {/* Order info */}
             <div className="text-sm text-muted-foreground tabular-nums mb-4">
-              {order.quantity.toLocaleString("ko-KR")}주 &times;{" "}
-              {formatCurrency(order.estimated_price)} ={" "}
-              {formatCurrency(order.estimated_amount)}
+              {isOverExecuted && order.quantity === 0 ? (
+                <>재계산 결과 추가 주문 불필요</>
+              ) : (
+                <>
+                  {order.quantity.toLocaleString("ko-KR")}주 &times;{" "}
+                  {formatCurrency(order.estimated_price)} ={" "}
+                  {formatCurrency(order.estimated_amount)}
+                </>
+              )}
             </div>
 
             {/* Input area */}
-            {!isResolvedByRecalc && (
+            {!isResolvedByRecalc && !(isOverExecuted && order.quantity === 0) && (
               <div className="space-y-3">
                 {/* Quantity row */}
                 <div>

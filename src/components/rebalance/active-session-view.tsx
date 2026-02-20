@@ -452,7 +452,7 @@ export function ActiveSessionView({
         )}
 
         {/* Price change warning banner */}
-        {priceChanges.length > 0 && (
+        {priceChanges.length > 0 && !recalcBannerDismissed && (
           <div className="rounded-2xl p-5 bg-orange-50 border border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/50 flex items-start gap-4">
             <div className="bg-card p-2 rounded-full shadow-sm">
               <AlertTriangle className="size-5 text-orange-600 dark:text-orange-400" />

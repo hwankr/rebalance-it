@@ -190,8 +190,9 @@ export async function POST(request: NextRequest) {
     }
 
     for (const [code, qty] of stockQuantities) {
-      if (qty <= 0) continue;
       if (!trackedStockCodes.has(code)) continue;
+      const hasTarget = (targetMap.get(code) ?? 0) > 0;
+      if (qty <= 0 && !hasTarget) continue;
       const freshPrice = priceMap.get(code) ?? 0;
       const currency = stockCurrencies.get(code) ?? "KRW";
       // PortfolioItem uses KRW-normalized prices
@@ -208,6 +209,7 @@ export async function POST(request: NextRequest) {
         eval_amount: evalAmount,
         current_pct: totalValue > 0 ? (evalAmount / totalValue) * 100 : 0,
         target_pct: targetMap.get(code) ?? 0,
+        currency,
       });
     }
 
@@ -263,14 +265,20 @@ export async function POST(request: NextRequest) {
         // This order has been partially/fully executed — keep it
         const newQuantity = newOrder?.quantity ?? 0;
         const isOverExecuted = execQty > newQuantity && newQuantity > 0;
+        const isNoLongerNeeded = newQuantity === 0 && execQty > 0;
 
         mergedOrders.push({
           ...existingOrder,
-          // Update quantity to recalculated value (or keep if no new order)
-          quantity: newQuantity > 0 ? newQuantity : existingOrder.quantity,
+          quantity: isNoLongerNeeded ? 0 : (newQuantity > 0 ? newQuantity : existingOrder.quantity),
           original_quantity: existingOrder.quantity,
-          over_executed: isOverExecuted || (newQuantity === 0 && execQty > 0),
-          ...(isOverExecuted || (newQuantity === 0 && execQty > 0) ? {} : {}),
+          over_executed: isOverExecuted || isNoLongerNeeded,
+          // Update price/amount from recalculated order when available
+          ...(newOrder ? {
+            estimated_price: newOrder.estimated_price,
+            estimated_amount: newOrder.estimated_amount,
+          } : isNoLongerNeeded ? {
+            estimated_amount: 0,
+          } : {}),
         });
         processedStocks.add(`${existingOrder.stock_code}-${existingOrder.side}`);
       } else if (newOrder) {
@@ -325,10 +333,10 @@ export async function POST(request: NextRequest) {
     const activeOrders = mergedOrders.filter((o) => !o.resolved_by_recalc);
     const newTotalSell = activeOrders
       .filter((o) => o.side === "sell")
-      .reduce((sum, o) => sum + o.quantity * o.estimated_price, 0);
+      .reduce((sum, o) => sum + o.estimated_amount, 0);
     const newTotalBuy = activeOrders
       .filter((o) => o.side === "buy")
-      .reduce((sum, o) => sum + o.quantity * o.estimated_price, 0);
+      .reduce((sum, o) => sum + o.estimated_amount, 0);
     const newNetCash = newTotalSell - newTotalBuy;
 
     // Build recalculated prices map

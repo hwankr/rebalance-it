@@ -18,9 +18,10 @@ export function RebalanceSummaryCards({ stocks, accountId }: RebalanceSummaryCar
   const trackedCount = trackedStocks.length;
   const totalCount = stocks.length;
   const excludedCount = totalCount - trackedCount;
-  const totalTargetPct = Math.round(
-    trackedStocks.reduce((sum, s) => sum + (s.target_pct ?? 0), 0)
-  );
+  const rawTotalTargetPct = trackedStocks.reduce((sum, s) => sum + (s.target_pct ?? 0), 0);
+  const totalTargetPct = Math.round(rawTotalTargetPct);
+  const isOverAllocated = rawTotalTargetPct > 100;
+  const cashTargetPct = Math.max(0, 100 - totalTargetPct);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -40,25 +41,25 @@ export function RebalanceSummaryCards({ stocks, accountId }: RebalanceSummaryCar
         </div>
       </div>
 
-      {/* Card 2 - 목표 비중 합계 */}
+      {/* Card 2 - 종목 비중 합계 */}
       <div className="bg-card rounded-xl p-5 shadow-sm border">
         <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-          목표 비중 합계
+          종목 비중 합계
         </h3>
         <div className="flex items-end gap-2">
           <span
             className={cn(
               "text-3xl font-bold",
-              totalTargetPct === 100 ? "text-green-600 dark:text-green-400" : "text-orange-500 dark:text-orange-400"
+              isOverAllocated ? "text-red-500 dark:text-red-400" : "text-green-600 dark:text-green-400"
             )}
           >
             {totalTargetPct}%
           </span>
         </div>
         <div className="mt-4 text-xs text-muted-foreground">
-          {totalTargetPct !== 100
-            ? "비중 합계가 100%가 되도록 조정해주세요."
-            : "완벽합니다! 리밸런싱을 진행할 수 있습니다."}
+          {isOverAllocated
+            ? "종목 비중 합계가 100%를 초과했습니다. 조정해주세요."
+            : `현금 비중: ${cashTargetPct}% (자동)`}
         </div>
       </div>
 
