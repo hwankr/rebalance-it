@@ -162,7 +162,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-1 flex-col bg-background">
       {/* Header */}
       <header className="border-b">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-4">

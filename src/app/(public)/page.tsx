@@ -25,7 +25,7 @@ export default function Home() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 overflow-hidden bg-muted/30">
+    <div className="relative flex flex-1 flex-col items-center justify-center px-4 overflow-hidden bg-muted/30">
       <div className="relative z-10 w-full max-w-2xl space-y-8">
         {/* Hero */}
         <m.div

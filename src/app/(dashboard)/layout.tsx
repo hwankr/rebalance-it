@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { Footer } from "@/components/layout/footer";
 import { GuestBanner } from "@/components/guest/guest-banner";
 import { AuthGuard } from "@/components/guest/auth-guard";
 import { AccountProvider } from "@/contexts/account-context";
@@ -22,6 +23,9 @@ export default function DashboardLayout({
                 {children}
               </AuthGuard>
           </main>
+          <div className="hidden md:block">
+            <Footer />
+          </div>
           <BottomNav />
         </div>
       </div>
