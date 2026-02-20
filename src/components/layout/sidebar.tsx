@@ -6,8 +6,8 @@ import {
   History,
   Settings,
   LogOut,
-  Wallet,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { NavItem, type NavItemProps } from "./nav";
 import { Separator } from "@/components/ui/separator";
@@ -41,9 +41,7 @@ export function Sidebar() {
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-sidebar">
       {/* Logo area */}
       <div className="flex h-16 items-center gap-3 px-6">
-        <div className="flex items-center justify-center size-8 bg-primary rounded-lg">
-          <Wallet className="h-4 w-4 text-primary-foreground" />
-        </div>
+        <Image src="/icon-192x192.png" alt="Rebalance-it" width={32} height={32} className="size-8" />
         <span className="text-xl font-bold text-foreground">Rebalance-it</span>
       </div>
       <Separator />

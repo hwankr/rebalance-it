@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -100,6 +101,7 @@ export default function LoginPage() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
+              <Image src="/icon-512x512.png" alt="Rebalance-it" width={56} height={56} className="mx-auto size-14" />
               <CardTitle className="text-4xl font-bold text-foreground">
                 Rebalance-it
               </CardTitle>

@@ -7,6 +7,7 @@ import { m } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function Home() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function Home() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center space-y-4"
         >
+          <Image src="/icon-512x512.png" alt="Rebalance-it" width={80} height={80} className="mx-auto size-20" />
           <h1 className="text-5xl md:text-6xl font-bold text-foreground">
             Rebalance-it
           </h1>

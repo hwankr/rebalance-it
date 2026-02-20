@@ -1,6 +1,7 @@
 "use client";
 
 import { Settings, LogOut } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/supabase/auth";
@@ -14,7 +15,10 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-border backdrop-header px-4 md:px-6">
       {/* Mobile: app logo */}
-      <span className="text-lg font-bold text-foreground md:hidden">Rebalance-it</span>
+      <div className="flex items-center gap-2 md:hidden">
+        <Image src="/icon-192x192.png" alt="Rebalance-it" width={28} height={28} className="size-7" />
+        <span className="text-lg font-bold text-foreground">Rebalance-it</span>
+      </div>
 
       {/* Account selector */}
       <AccountSelector />
