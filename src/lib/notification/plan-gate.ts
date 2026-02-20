@@ -27,3 +27,8 @@ export function getMonthlyEmailLimit(plan: PlanTier): number {
 export function canUseDriftDigest(plan: PlanTier): boolean {
   return PLAN_LIMITS[plan].allowDriftDigest;
 }
+
+/** 주간 뉴스 브리핑 발송 가능 여부 확인 (Plus 이상만 가능) */
+export function canSendWeeklyNews(plan: PlanTier): boolean {
+  return PLAN_LIMITS[plan].allowWeeklyNews;
+}

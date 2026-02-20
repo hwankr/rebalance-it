@@ -18,6 +18,7 @@ export interface NotificationPreferences {
   notification_enabled: boolean;
   email_enabled: boolean;
   monthly_report_enabled: boolean;
+  weekly_news_enabled: boolean;
   email_address: string | null;
   cooldown_days: number;
   // Phase 1: 드리프트 알림 세부 설정
@@ -61,6 +62,7 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreferences, "user_id"> = {
   notification_enabled: false,
   email_enabled: true,
   monthly_report_enabled: false,
+  weekly_news_enabled: false,
   email_address: null,
   cooldown_days: 7,
   alert_threshold_pct: null,

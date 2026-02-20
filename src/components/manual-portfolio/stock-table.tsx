@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus, Sparkles } from "lucide-react";
+import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus, Sparkles, Newspaper } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -46,6 +46,7 @@ interface StockRow {
   currency: string;
   updated_at: string;
   is_rebalance_tracked?: boolean;
+  news_enabled?: boolean;
 }
 
 interface StockTableProps {
@@ -61,6 +62,8 @@ interface StockTableProps {
   onToggleTracked?: (id: string, tracked: boolean) => void;
   isTogglingTracked?: boolean;
   hasActiveSession?: boolean;
+  onToggleNews?: (id: string, enabled: boolean) => void;
+  isTogglingNews?: boolean;
 }
 
 
@@ -184,6 +187,8 @@ export function StockTable({
   onToggleTracked,
   isTogglingTracked,
   hasActiveSession,
+  onToggleNews,
+  isTogglingNews,
 }: StockTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<ManualStockInput>>({});
@@ -497,6 +502,17 @@ export function StockTable({
                       </>
                     ) : (
                       <>
+                        {onToggleNews && (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => onToggleNews(stock.id, !stock.news_enabled)}
+                            disabled={isTogglingNews}
+                            title={stock.news_enabled ? "뉴스 수신 중" : "뉴스 받기"}
+                          >
+                            <Newspaper className={cn("size-4", stock.news_enabled ? "text-blue-500" : "text-muted-foreground")} />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon-xs" onClick={() => startEdit(stock)}>
                           <Pencil className="size-4 text-muted-foreground" />
                         </Button>
@@ -645,6 +661,23 @@ export function StockTable({
                              {stock.is_rebalance_tracked === false ? "제외됨" : "추적중"}
                            </span>
                          </div>
+                       )}
+                       {onToggleNews && (
+                         <button
+                           className={cn(
+                             "text-xs px-2 py-1 rounded-md",
+                             stock.news_enabled
+                               ? "text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                               : "text-muted-foreground hover:bg-muted"
+                           )}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             onToggleNews(stock.id, !stock.news_enabled);
+                           }}
+                           disabled={isTogglingNews}
+                         >
+                           {stock.news_enabled ? "뉴스 ON" : "뉴스"}
+                         </button>
                        )}
                        <button
                          className="text-xs text-muted-foreground px-2 py-1 rounded-md hover:bg-muted"

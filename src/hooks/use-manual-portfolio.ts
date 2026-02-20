@@ -33,6 +33,7 @@ export interface ManualStockRow {
   currency: string;
   target_pct: number;
   is_rebalance_tracked: boolean;
+  news_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -261,6 +262,18 @@ export function useManualPortfolio(
     onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
   });
 
+  // 뉴스 수신 토글
+  const toggleNewsEnabledMutation = useMutation({
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
+      const { error } = await client
+        .from("manual_stocks")
+        .update({ news_enabled: enabled } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invalidationKey }),
+  });
+
   const toggleRebalanceTracked = useCallback(
     (id: string, tracked: boolean) => {
       if (tracked) {
@@ -279,6 +292,13 @@ export function useManualPortfolio(
       toggleRebalanceTrackedMutation.mutate({ id, tracked });
     },
     [toggleRebalanceTrackedMutation, stocks],
+  );
+
+  const toggleNewsEnabled = useCallback(
+    (id: string, enabled: boolean) => {
+      toggleNewsEnabledMutation.mutate({ id, enabled });
+    },
+    [toggleNewsEnabledMutation],
   );
 
   const setCash = useCallback(
@@ -338,5 +358,7 @@ export function useManualPortfolio(
     isCashSaving: setCashMutation.isPending,
     toggleRebalanceTracked,
     isTogglingTracked: toggleRebalanceTrackedMutation.isPending,
+    toggleNewsEnabled,
+    isTogglingNews: toggleNewsEnabledMutation.isPending,
   };
 }

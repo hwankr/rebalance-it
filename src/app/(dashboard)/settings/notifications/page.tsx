@@ -54,7 +54,7 @@ export default function NotificationSettingsPage() {
   const { data: prefs, isLoading } = useNotificationPreferences();
   const updateMutation = useUpdateNotificationPreferences();
   const [isSendingTest, setIsSendingTest] = useState(false);
-  const [testType, setTestType] = useState<"test" | "drift" | "monthly" | "drift-real" | "monthly-real">("test");
+  const [testType, setTestType] = useState<"test" | "drift" | "monthly" | "drift-real" | "monthly-real" | "weekly-news">("test");
 
   const historyLimit = PLAN_LIMITS[plan].maxNotificationHistory === Infinity
     ? 50
@@ -68,7 +68,7 @@ export default function NotificationSettingsPage() {
   }
 
   function handleToggle(
-    field: "notification_enabled" | "monthly_report_enabled",
+    field: "notification_enabled" | "monthly_report_enabled" | "weekly_news_enabled",
     value: boolean,
   ) {
     const updates = field === "notification_enabled"
@@ -103,7 +103,7 @@ export default function NotificationSettingsPage() {
     );
   }
 
-  async function handleSendTest(type: "test" | "drift" | "monthly" | "drift-real" | "monthly-real") {
+  async function handleSendTest(type: "test" | "drift" | "monthly" | "drift-real" | "monthly-real" | "weekly-news") {
     setIsSendingTest(true);
     try {
       const res = await fetch("/api/notification/test", {
@@ -112,7 +112,7 @@ export default function NotificationSettingsPage() {
         body: JSON.stringify({ type }),
       });
       if (!res.ok) throw new Error();
-      const labels = { test: "테스트", drift: "드리프트 알림", monthly: "월간 리포트", "drift-real": "드리프트 알림 (실제)", "monthly-real": "월간 리포트 (실제)" };
+      const labels = { test: "테스트", drift: "드리프트 알림", monthly: "월간 리포트", "drift-real": "드리프트 알림 (실제)", "monthly-real": "월간 리포트 (실제)", "weekly-news": "주간 종목 뉴스" };
       toast.success(`${labels[type]} 이메일이 발송되었습니다.`);
     } catch {
       toast.error("테스트 이메일 발송 중 오류가 발생했습니다.");
@@ -182,6 +182,24 @@ export default function NotificationSettingsPage() {
                 checked={isPlusOrAbove ? (prefs?.monthly_report_enabled ?? false) : false}
                 disabled={!isPlusOrAbove || isLoading || updateMutation.isPending}
                 onCheckedChange={(v) => handleToggle("monthly_report_enabled", v)}
+              />
+            </div>
+
+            {/* 주간 종목 뉴스 토글 */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">
+                  주간 종목 뉴스
+                  {!isPlusOrAbove && (
+                    <span className="ml-2 text-xs text-muted-foreground">(Plus 플랜 필요)</span>
+                  )}
+                </Label>
+                <p className="text-xs text-muted-foreground">관심 종목의 주간 뉴스 요약 브리핑 발송</p>
+              </div>
+              <Switch
+                checked={isPlusOrAbove ? (prefs?.weekly_news_enabled ?? false) : false}
+                disabled={!isPlusOrAbove || isLoading || updateMutation.isPending}
+                onCheckedChange={(v) => handleToggle("weekly_news_enabled", v)}
               />
             </div>
 
@@ -276,6 +294,7 @@ export default function NotificationSettingsPage() {
                   <SelectItem value="test">기본 테스트</SelectItem>
                   <SelectItem value="drift">드리프트 알림 (예시 데이터)</SelectItem>
                   <SelectItem value="monthly">월간 리포트 (예시 데이터)</SelectItem>
+                  <SelectItem value="weekly-news">주간 종목 뉴스 (예시 데이터)</SelectItem>
                   <SelectItem value="drift-real">드리프트 알림 (내 포트폴리오)</SelectItem>
                   <SelectItem value="monthly-real">월간 리포트 (내 포트폴리오)</SelectItem>
                 </SelectContent>
@@ -284,6 +303,7 @@ export default function NotificationSettingsPage() {
                 {testType === "test" && "간단한 연결 테스트 이메일을 보냅니다."}
                 {testType === "drift" && "포트폴리오 드리프트 초과 시 발송되는 알림 예시입니다."}
                 {testType === "monthly" && "매월 1일 발송되는 포트폴리오 리포트 예시입니다."}
+                {testType === "weekly-news" && "매주 발송되는 종목 뉴스 브리핑 예시입니다."}
                 {testType === "drift-real" && "내 실제 포트폴리오 데이터로 드리프트 알림을 생성합니다."}
                 {testType === "monthly-real" && "내 실제 포트폴리오 데이터로 월간 리포트를 생성합니다."}
               </p>

@@ -4,6 +4,7 @@
   "regions": ["icn1"],
   "crons": [
     { "path": "/api/cron/check-drift", "schedule": "0 21 * * *" },
-    { "path": "/api/cron/monthly-report", "schedule": "0 22 * * *" }
+    { "path": "/api/cron/monthly-report", "schedule": "0 22 * * *" },
+    { "path": "/api/cron/weekly-news", "schedule": "0 22 * * 0" }
   ]
 }

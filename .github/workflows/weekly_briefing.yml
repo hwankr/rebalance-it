@@ -1,0 +1,23 @@
+name: Weekly Portfolio News Briefing
+
+on:
+  schedule:
+    # 매주 일요일 22:00 UTC = 월요일 07:00 KST
+    # Vercel Cron이 주요 트리거이므로, 이 워크플로는 백업용
+    - cron: '0 22 * * 0'
+  workflow_dispatch:
+    # 수동 실행 지원
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger weekly news cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          curl -s -f -X GET \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${APP_URL}/api/cron/weekly-news"

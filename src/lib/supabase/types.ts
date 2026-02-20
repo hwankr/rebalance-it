@@ -158,6 +158,7 @@ export interface Database {
           price_updated_at: string | null;
           target_pct: number;
           is_rebalance_tracked: boolean;
+          news_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -173,6 +174,7 @@ export interface Database {
           price_updated_at?: string | null;
           target_pct?: number;
           is_rebalance_tracked?: boolean;
+          news_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -188,6 +190,7 @@ export interface Database {
           price_updated_at?: string | null;
           target_pct?: number;
           is_rebalance_tracked?: boolean;
+          news_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };

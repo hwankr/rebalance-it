@@ -60,6 +60,8 @@ export default function PortfolioPage() {
     isCashSaving,
     toggleRebalanceTracked,
     isTogglingTracked,
+    toggleNewsEnabled,
+    isTogglingNews,
   } = useManualPortfolio(effectivePortfolioId, exchangeRate);
   const {
     activeSession,
@@ -320,6 +322,8 @@ export default function PortfolioPage() {
             onToggleTracked={toggleRebalanceTracked}
             isTogglingTracked={isTogglingTracked}
             hasActiveSession={!!activeSession}
+            onToggleNews={toggleNewsEnabled}
+            isTogglingNews={isTogglingNews}
           />
         </div>
       </PageTransition>
@@ -385,6 +389,8 @@ export default function PortfolioPage() {
           onToggleTracked={toggleRebalanceTracked}
           isTogglingTracked={isTogglingTracked}
           hasActiveSession={!!activeSession}
+          onToggleNews={toggleNewsEnabled}
+          isTogglingNews={isTogglingNews}
         />
 
         {/* Target Weight Editor (with Allocation Chart inside) */}

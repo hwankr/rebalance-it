@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/notification/email-sender";
 import { emailLayout } from "@/lib/notification/templates/layout";
 import { driftAlertTemplate } from "@/lib/notification/templates/drift-alert";
 import { monthlyReportTemplate } from "@/lib/notification/templates/monthly-report";
+import { weeklyNewsTemplate } from "@/lib/notification/templates/weekly-news";
 import { collectMonthlyReportData, type MonthlyReportData } from "@/lib/notification/monthly-report";
 import { calculateDrift, needsRebalancing, getMaxDrift } from "@/lib/rebalance/drift";
 import type { PortfolioItem } from "@/lib/rebalance/types";
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
     }
 
     // type 파라미터 파싱
-    const validTypes = ["test", "drift", "monthly", "drift-real", "monthly-real"];
+    const validTypes = ["test", "drift", "monthly", "drift-real", "monthly-real", "weekly-news"];
     let testType = "test";
     try {
       const body = await request.json();
@@ -244,6 +245,44 @@ export async function POST(request: Request) {
       subject = `[테스트] ${email.subject}`;
       html = email.html;
       logTitle = "🔔 테스트: 월간 리포트 (실제 데이터)";
+    } else if (testType === "weekly-news") {
+      // 주간 뉴스 브리핑 예시 데이터
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const weekNum = Math.ceil(now.getDate() / 7);
+      const weekLabel = `${now.getFullYear()}년 ${month}월 ${weekNum}주차`;
+
+      const email = weeklyNewsTemplate(
+        {
+          userName,
+          weekLabel,
+          summaries: [
+            {
+              stockName: "삼성전자",
+              stockCode: "005930",
+              summary: "삼성전자가 차세대 반도체 공정 투자를 확대한다고 발표했습니다. AI 반도체 수요 증가에 따라 HBM4 생산 라인 증설을 앞당기고 있으며, 2분기 실적 개선이 기대됩니다.",
+              newsCount: 5,
+            },
+            {
+              stockName: "Apple",
+              stockCode: "AAPL",
+              summary: "Apple이 새로운 AI 기능을 탑재한 제품 라인업을 공개할 예정입니다. 서비스 매출 성장세가 지속되며 월가 애널리스트들의 목표가 상향 조정이 이어지고 있습니다.",
+              newsCount: 4,
+            },
+            {
+              stockName: "TIGER S&P500",
+              stockCode: "360750",
+              summary: "S&P500 지수가 사상 최고치를 경신하며 TIGER S&P500 ETF 수익률도 상승세를 보이고 있습니다. 미국 경제 연착륙 기대감이 반영되고 있습니다.",
+              newsCount: 3,
+            },
+          ],
+          totalStocks: 3,
+        },
+        unsubscribeUrl,
+      );
+      subject = `[테스트] ${email.subject}`;
+      html = email.html;
+      logTitle = "🔔 테스트: 주간 종목 뉴스";
     } else if (testType === "drift") {
       const email = getSampleDriftAlert(userName);
       subject = `[테스트] ${email.subject}`;
