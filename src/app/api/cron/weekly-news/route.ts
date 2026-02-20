@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { verifyCronSecret, getUserSubscriptionPlan } from "@/lib/notification/scheduler";
 import { canSendWeeklyNews } from "@/lib/notification/plan-gate";
-import { fetchNaverResearch, fetchNaverNews, type StockNewsItem } from "@/lib/stock-news";
+import { fetchAllNews, type StockNewsItem } from "@/lib/stock-news";
 import { summarizeStockNews } from "@/lib/notification/news-summarizer";
 import { weeklyNewsTemplate } from "@/lib/notification/templates/weekly-news";
 import { sendEmail } from "@/lib/notification/email-sender";
+
+export const maxDuration = 300;
 
 function getWeekLabel(): string {
   const now = new Date();
@@ -95,19 +97,20 @@ export async function GET(request: Request) {
       ).values(),
     ) as Array<{ stock_code: string; stock_name: string; currency: string }>;
 
-    // 6. 종목별 뉴스 수집
+    // 6. 종목별 뉴스 수집 (병렬)
     const newsMap = new Map<string, StockNewsItem[]>();
-    for (const stock of uniqueStocks) {
-      try {
+    const fetchResults = await Promise.allSettled(
+      uniqueStocks.map(async (stock) => {
         const isKorean = /^\d{6}$/.test(stock.stock_code);
-        const news = isKorean
-          ? await fetchNaverResearch(stock.stock_code)
-          : await fetchNaverNews(stock.stock_code, stock.stock_name);
-        if (news.length > 0) {
-          newsMap.set(stock.stock_code, news);
-        }
-      } catch (err) {
-        console.error(`[weekly-news] 뉴스 수집 실패 (${stock.stock_code}):`, err);
+        const news = await fetchAllNews(stock.stock_code, stock.stock_name, { isKorean });
+        return { stockCode: stock.stock_code, news };
+      }),
+    );
+    for (const result of fetchResults) {
+      if (result.status === "fulfilled" && result.value.news.length > 0) {
+        newsMap.set(result.value.stockCode, result.value.news);
+      } else if (result.status === "rejected") {
+        console.error(`[weekly-news] 뉴스 수집 실패:`, result.reason);
       }
     }
 

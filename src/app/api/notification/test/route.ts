@@ -260,20 +260,33 @@ export async function POST(request: Request) {
             {
               stockName: "삼성전자",
               stockCode: "005930",
-              summary: "삼성전자가 차세대 반도체 공정 투자를 확대한다고 발표했습니다. AI 반도체 수요 증가에 따라 HBM4 생산 라인 증설을 앞당기고 있으며, 2분기 실적 개선이 기대됩니다.",
+              summary: "삼성전자가 HBM4 양산을 6개월 앞당기며 약 10조원 규모의 AI 반도체 투자를 확대한다(한국경제). 증권가에서는 이에 따라 2분기 영업이익 전망을 기존 12조원에서 14조원으로 상향 조정했으며(매일경제), 파운드리 사업부도 글로벌 팹리스 3곳과 2nm 공정 수주 계약을 체결하며 TSMC 추격에 본격 나선 것으로 알려졌다(조선비즈).",
               newsCount: 5,
+              articles: [
+                { title: "삼성전자, HBM4 양산 앞당긴다…AI 반도체 투자 확대", url: "https://n.news.naver.com/mnews/article/015/0005012345", source: "한국경제", publishedAt: new Date().toISOString(), summary: "삼성전자가 AI 반도체 수요 급증에 대응해 HBM4 생산 라인 증설을 당초 계획보다 6개월 앞당기기로 했다. 총 투자 규모는 약 10조원으로 추산된다." },
+                { title: "삼성전자 2분기 영업이익 전망 상향…반도체 호황 수혜", url: "https://n.news.naver.com/mnews/article/009/0005234567", source: "매일경제", publishedAt: new Date().toISOString(), summary: "증권가에서 삼성전자의 2분기 영업이익 전망치를 기존 12조원에서 14조원으로 상향 조정했다. HBM 매출 확대와 파운드리 가동률 회복이 주요 요인이다." },
+                { title: "삼성전자, 파운드리 수주 확대…TSMC 추격 본격화", url: "https://n.news.naver.com/mnews/article/366/0000987654", source: "조선비즈", publishedAt: new Date().toISOString(), summary: "삼성전자 파운드리 사업부가 글로벌 팹리스 기업 3곳과 2nm 공정 수주 계약을 체결한 것으로 알려졌다." },
+              ],
             },
             {
               stockName: "Apple",
               stockCode: "AAPL",
-              summary: "Apple이 새로운 AI 기능을 탑재한 제품 라인업을 공개할 예정입니다. 서비스 매출 성장세가 지속되며 월가 애널리스트들의 목표가 상향 조정이 이어지고 있습니다.",
+              summary: "애플이 올해 WWDC에서 온디바이스 AI 모델 기반의 시리 업그레이드와 전 제품 라인업에 걸친 AI 기능 강화를 공개할 예정이다(파이낸셜뉴스). 지난 분기 서비스 부문 매출이 260억 달러로 사상 최대치를 경신했으며, 앱스토어·Apple TV+·iCloud 구독 성장이 주요 동력이다(이데일리).",
               newsCount: 4,
+              articles: [
+                { title: "애플, WWDC 2026에서 AI 신기능 대거 공개 예정", url: "https://n.news.naver.com/mnews/article/014/0005123456", source: "파이낸셜뉴스", publishedAt: new Date().toISOString(), summary: "애플이 올해 WWDC에서 온디바이스 AI 모델 기반의 시리 업그레이드와 함께 전 제품 라인업에 걸친 AI 기능을 대폭 강화할 것으로 알려졌다." },
+                { title: "애플 서비스 매출 사상 최대…1분기 260억 달러 돌파", url: "https://n.news.naver.com/mnews/article/018/0005678901", source: "이데일리", publishedAt: new Date().toISOString(), summary: "애플의 서비스 부문이 지난 분기 260억 달러의 매출을 기록하며 사상 최대치를 경신했다. 앱스토어, Apple TV+, iCloud 구독 성장이 견인했다." },
+              ],
             },
             {
               stockName: "TIGER S&P500",
               stockCode: "360750",
-              summary: "S&P500 지수가 사상 최고치를 경신하며 TIGER S&P500 ETF 수익률도 상승세를 보이고 있습니다. 미국 경제 연착륙 기대감이 반영되고 있습니다.",
+              summary: "미국 S&P500 지수가 고용지표 안정세와 인플레이션 둔화로 사상 최고치를 경신했다(연합뉴스). 국내 상장 해외 ETF 순자산이 100조원을 돌파한 가운데, TIGER S&P500 ETF가 순자산 10조원을 넘기며 가장 큰 비중을 차지하고 있다(머니투데이).",
               newsCount: 3,
+              articles: [
+                { title: "S&P500 사상 최고치 경신…미국 경제 연착륙 기대감 반영", url: "https://n.news.naver.com/mnews/article/001/0014567890", source: "연합뉴스", publishedAt: new Date().toISOString(), summary: "미국 S&P500 지수가 전일 대비 0.8% 상승하며 사상 최고치를 경신했다. 고용지표 안정세와 인플레이션 둔화로 연착륙 기대감이 커지고 있다." },
+                { title: "국내 해외 ETF 순자산 100조 돌파…S&P500 ETF가 견인", url: "https://n.news.naver.com/mnews/article/008/0004890123", source: "머니투데이", publishedAt: new Date().toISOString(), summary: "국내 상장 해외 ETF 순자산이 사상 처음 100조원을 넘어섰다. TIGER S&P500 ETF가 순자산 10조원을 돌파하며 가장 큰 비중을 차지하고 있다." },
+              ],
             },
           ],
           totalStocks: 3,

@@ -11,11 +11,20 @@ interface StockInfo {
   currency: string;
 }
 
+export interface NewsArticle {
+  title: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  summary: string | null;
+}
+
 export interface StockNewsSummary {
   stockName: string;
   stockCode: string;
   summary: string;
   newsCount: number;
+  articles: NewsArticle[];
 }
 
 /**
@@ -48,9 +57,21 @@ async function summarizeSingleStock(
     return fallbackSummary(stock, news);
   }
 
-  const newsTitles = news
-    .map((n, i) => `${i + 1}. [${n.source}] ${n.title}`)
+  const newsContent = news
+    .map((n, i) => {
+      let line = `${i + 1}. [${n.source}] ${n.title}`;
+      if (n.summary) line += `\n   요약: ${n.summary}`;
+      return line;
+    })
     .join("\n");
+
+  const articles: NewsArticle[] = news.slice(0, 5).map((n) => ({
+    title: n.title,
+    url: n.url,
+    source: n.source,
+    publishedAt: n.publishedAt,
+    summary: n.summary?.slice(0, 150) ?? null,
+  }));
 
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -62,16 +83,16 @@ async function summarizeSingleStock(
       body: JSON.stringify({
         model: "gpt-4o-mini",
         temperature: 0.3,
-        max_tokens: 300,
+        max_tokens: 500,
         messages: [
           {
             role: "system",
             content:
-              "당신은 주식 뉴스를 분석하는 금융 애널리스트입니다. 투자자에게 도움이 되는 간결한 한국어 브리핑을 작성합니다. 2~3문장으로 핵심 내용을 요약하세요.",
+              "당신은 주식 뉴스를 분석하는 금융 애널리스트입니다. 투자자에게 도움이 되는 한국어 브리핑을 작성합니다.\n\n규칙:\n- 각 뉴스의 핵심 내용을 종합하여 자연스러운 문장으로 요약하세요.\n- 정보의 출처를 본문에 (출처명) 형태로 자연스럽게 포함하세요.\n- 구체적인 수치, 금액, 날짜 등 팩트를 가능한 포함하세요.\n- 분량 제한 없이 중요한 내용을 빠짐없이 전달하세요.",
           },
           {
             role: "user",
-            content: `종목: ${stock.stock_name} (${stock.stock_code})\n\n최근 뉴스 제목:\n${newsTitles}\n\n위 뉴스들을 종합하여 이 종목의 최근 동향을 2~3문장으로 요약해주세요.`,
+            content: `종목: ${stock.stock_name} (${stock.stock_code})\n\n최근 뉴스:\n${newsContent}\n\n위 뉴스들을 종합하여 이 종목의 이번 주 동향을 요약해주세요. 각 정보의 출처를 (출처명) 형태로 본문에 포함해주세요.`,
           },
         ],
       }),
@@ -93,6 +114,7 @@ async function summarizeSingleStock(
       stockCode: stock.stock_code,
       summary: content,
       newsCount: news.length,
+      articles,
     };
   } catch (err) {
     console.error(`[news-summarizer] AI 요약 실패 (${stock.stock_code}):`, err);
@@ -109,10 +131,19 @@ function fallbackSummary(
     .map((n) => `• ${n.title}`)
     .join("\n");
 
+  const articles: NewsArticle[] = news.slice(0, 5).map((n) => ({
+    title: n.title,
+    url: n.url,
+    source: n.source,
+    publishedAt: n.publishedAt,
+    summary: n.summary?.slice(0, 150) ?? null,
+  }));
+
   return {
     stockName: stock.stock_name,
     stockCode: stock.stock_code,
     summary: titles,
     newsCount: news.length,
+    articles,
   };
 }

@@ -120,7 +120,111 @@ export async function fetchNaverNews(
       url: `https://n.news.naver.com/mnews/article/${item.officeId}/${item.articleId}`,
       source: item.officeName,
       publishedAt: isoDate,
-      summary: null,
+      summary: item.body?.slice(0, 300) ?? null,
     };
   });
+}
+
+/* ─── HTML 태그 제거 ─── */
+
+function stripHtmlTags(str: string): string {
+  return str.replace(/<[^>]*>/g, "").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+}
+
+/* ─── 네이버 검색 API ─── */
+
+export async function fetchNaverSearchNews(stockName: string): Promise<StockNewsItem[]> {
+  const clientId = process.env.NAVER_CLIENT_ID;
+  const clientSecret = process.env.NAVER_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return [];
+
+  try {
+    const res = await fetch(
+      `https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(stockName)}&display=10&sort=date`,
+      {
+        headers: {
+          "X-Naver-Client-Id": clientId,
+          "X-Naver-Client-Secret": clientSecret,
+        },
+      },
+    );
+    if (!res.ok) return [];
+
+    const data: {
+      items: Array<{
+        title: string;
+        originallink: string;
+        link: string;
+        description: string;
+        pubDate: string;
+      }>;
+    } = await res.json();
+
+    return data.items
+      .filter((item) => stripHtmlTags(item.title).includes(stockName))
+      .slice(0, 10)
+      .map((item) => ({
+        title: stripHtmlTags(item.title),
+        url: item.originallink || item.link,
+        source: "네이버뉴스",
+        publishedAt: new Date(item.pubDate).toISOString(),
+        summary: stripHtmlTags(item.description).slice(0, 300) || null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/* ─── 중복 제거 ─── */
+
+function normalizeTitle(title: string): string {
+  return title
+    .replace(/\[[^\]]*\]/g, "") // [속보], [단독] 등 대괄호 태그 제거
+    .replace(/\s+/g, "")
+    .toLowerCase()
+    .slice(0, 40);
+}
+
+export function deduplicateNews(items: StockNewsItem[]): StockNewsItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = normalizeTitle(item.title);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/* ─── 최신성 필터 ─── */
+
+export function filterRecentNews(items: StockNewsItem[], daysBack = 7): StockNewsItem[] {
+  const cutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  return items.filter((item) => {
+    if (!item.publishedAt) return true; // publishedAt 없는 항목은 유지
+    const d = new Date(item.publishedAt);
+    return !isNaN(d.getTime()) && d >= cutoff;
+  });
+}
+
+/* ─── 통합 fetch 함수 ─── */
+
+export async function fetchAllNews(
+  stockCode: string,
+  stockName: string,
+  options: { isKorean: boolean },
+): Promise<StockNewsItem[]> {
+  const fetchers = options.isKorean
+    ? [fetchNaverSearchNews(stockName), fetchNaverResearch(stockCode)]
+    : [fetchNaverSearchNews(stockName), fetchNaverNews(stockCode, stockName)];
+
+  const results = await Promise.allSettled(fetchers);
+  const allItems: StockNewsItem[] = [];
+
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      allItems.push(...result.value);
+    }
+  }
+
+  return deduplicateNews(filterRecentNews(allItems));
 }
