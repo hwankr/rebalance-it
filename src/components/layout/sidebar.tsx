@@ -6,6 +6,7 @@ import {
   History,
   Settings,
   LogOut,
+  BookOpen,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,6 +25,7 @@ const navItems: NavItemProps[] = [
   { href: "/portfolio", label: "내 포트폴리오", icon: LayoutDashboard },
   { href: "/rebalance", label: "리밸런싱", icon: RefreshCw },
   { href: "/history", label: "리밸런싱 기록", icon: History },
+  { href: "/notes", label: "투자 노트", icon: BookOpen },
   { href: "/settings", label: "설정", icon: Settings },
 ];
 

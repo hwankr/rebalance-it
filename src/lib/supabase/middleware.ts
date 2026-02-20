@@ -48,6 +48,7 @@ export async function updateSession(request: NextRequest) {
     "/auth",
     "/api",
     "/pricing",
+    "/notes",
     "/portfolio",
     "/rebalance",
     "/history",
