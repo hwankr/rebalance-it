@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { guides, getGuideBySlug } from "@/lib/guides";
 
 const guideComponents: Record<
@@ -56,8 +57,29 @@ export default async function NotePage({
   const { default: GuideContent } = await loader();
 
   return (
-    <main>
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-8">
+        <Link
+          href="/notes"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          돌아가기
+        </Link>
+      </div>
       <GuideContent />
-    </main>
+    </div>
   );
 }
