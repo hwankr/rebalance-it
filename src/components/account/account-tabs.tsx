@@ -15,7 +15,7 @@ export function AccountTabs({ showAllTab = true, activeSessionIds }: { showAllTa
 
   return (
     <>
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
         {/* 전체 계좌 탭 */}
         {showAllTab && (
           <PillButton

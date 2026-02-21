@@ -13,7 +13,7 @@ export default function DashboardLayout({
 }) {
   return (
     <AccountProvider>
-      <div className="min-h-screen">
+      <div className="min-h-screen overflow-x-hidden">
         <Sidebar />
         <div className="md:pl-64 bg-[var(--background-subtle)] min-h-screen flex flex-col">
           <Header />

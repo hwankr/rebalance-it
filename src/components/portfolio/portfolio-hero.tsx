@@ -122,7 +122,7 @@ export function PortfolioHero({
             {isLoading ? (
               <div className="h-12 md:h-16 w-64 bg-white/10 rounded-lg animate-pulse" />
             ) : (
-              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums">
                 <AnimatedNumber value={totalValue} formatter={formatCurrency} />
               </h1>
             )}

@@ -179,7 +179,7 @@ export default function PortfolioPage() {
   if (effectiveIsAllMode ? isConsolidatedLoading : isLoading) {
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
+        <div className="space-y-3 md:space-y-4">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
             내 포트폴리오
           </h1>
@@ -196,7 +196,7 @@ export default function PortfolioPage() {
   if (!isAccountsLoading && accounts.length === 0) {
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
+        <div className="space-y-3 md:space-y-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               내 포트폴리오
@@ -228,7 +228,7 @@ export default function PortfolioPage() {
 
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
+        <div className="space-y-3 md:space-y-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               내 포트폴리오
@@ -290,7 +290,7 @@ export default function PortfolioPage() {
   if (stocks.length === 0) {
     return (
       <PageTransition>
-        <div className="space-y-3 md:space-y-4 pb-20 md:pb-0">
+        <div className="space-y-3 md:space-y-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               내 포트폴리오
@@ -332,7 +332,7 @@ export default function PortfolioPage() {
 
   return (
     <PageTransition>
-      <div className="space-y-6 md:space-y-8 pb-20 md:pb-0">
+      <div className="space-y-6 md:space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between px-1">
           <div>
@@ -411,8 +411,8 @@ export default function PortfolioPage() {
           }
         />
 
-        {/* Sticky Bottom CTA - Mobile Only */}
-        <div className="fixed bottom-16 left-0 right-0 md:hidden bg-background border-t border-border p-3 z-10">
+        {/* Bottom CTA - Mobile Only (inline, not fixed) */}
+        <div className="md:hidden">
           <Button asChild className="w-full" size="lg">
             <Link href={`/rebalance?account=${effectivePortfolioId}`}>리밸런싱으로 이동</Link>
           </Button>

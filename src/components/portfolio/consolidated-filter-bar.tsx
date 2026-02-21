@@ -52,7 +52,7 @@ export function ConsolidatedFilterBar({
   }
 
   return (
-    <div className="relative flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
+    <div className="relative flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
       {/* 계좌 필터 */}
       <Select
         value={filters.accountId}
