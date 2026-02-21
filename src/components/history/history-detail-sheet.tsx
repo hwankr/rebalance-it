@@ -17,21 +17,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getStatusConfig } from "./history-constants";
 import type {
   RebalanceExecution,
   ExecutionOrderResult,
 } from "@/lib/rebalance/history-types";
-
-const STATUS_MAP: Record<
-  string,
-  { label: string; variant: "success" | "secondary" | "destructive" | "default" | "outline" }
-> = {
-  completed: { label: "완료", variant: "success" },
-  partial: { label: "부분 완료", variant: "secondary" },
-  failed: { label: "실패", variant: "destructive" },
-  in_progress: { label: "진행중", variant: "default" },
-  abandoned: { label: "포기", variant: "outline" },
-};
 
 interface HistoryDetailSheetProps {
   execution: RebalanceExecution | null;
@@ -111,7 +101,7 @@ export function HistoryDetailSheet({
 }: HistoryDetailSheetProps) {
   if (!execution) return null;
 
-  const statusInfo = STATUS_MAP[execution.status] ?? STATUS_MAP.completed;
+  const statusInfo = getStatusConfig(execution.status);
   const allOrders = execution.orders ?? [];
   const activeOrders = allOrders.filter((o) => !o.resolved_by_recalc);
   const resolvedOrders = allOrders.filter((o) => o.resolved_by_recalc);

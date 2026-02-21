@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PillToggle } from "@/components/ui/pill-toggle";
+import { PillToggle, PILL_SELECT_TRIGGER } from "@/components/ui/pill-toggle";
 
 export interface ConsolidatedFilters {
   accountId: "all" | string;
@@ -23,9 +23,6 @@ export const DEFAULT_FILTERS: ConsolidatedFilters = {
   profitStatus: "all",
   sortBy: "eval_amount",
 };
-
-const PILL_SELECT_TRIGGER =
-  "rounded-full border-0 bg-muted text-muted-foreground hover:bg-accent px-3 py-1.5 text-xs font-medium h-auto shadow-none gap-1 min-w-fit data-[state=open]:bg-foreground data-[state=open]:text-background";
 
 interface ConsolidatedFilterBarProps {
   filters: ConsolidatedFilters;
