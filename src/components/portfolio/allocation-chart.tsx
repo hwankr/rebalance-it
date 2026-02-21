@@ -1,14 +1,17 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   PieChart,
   Pie,
   Cell,
+  Sector,
   ResponsiveContainer,
   Tooltip,
   Label,
 } from "recharts";
+import type { PieSectorShapeProps } from "recharts";
+import { useTheme } from "next-themes";
 import { useThemeColors } from "@/hooks/use-theme-colors";
 import { formatCurrency } from "@/lib/utils/format";
 import { StockLogo } from "@/components/stock-logo";
@@ -18,6 +21,8 @@ interface AllocationChartProps {
   cash: number;
   totalValue: number;
   isLoading: boolean;
+  activeStockCode?: string | null;
+  onHoverChange?: (stockCode: string | null) => void;
 }
 
 function extendColors(base: string[], count: number): string[] {
@@ -68,10 +73,35 @@ export function AllocationChart({
   cash,
   totalValue,
   isLoading,
+  activeStockCode,
+  onHoverChange,
 }: AllocationChartProps) {
   const themeColors = useThemeColors();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const instanceId = useId();
+  const { resolvedTheme } = useTheme();
+  const [cardColor, setCardColor] = useState("#ffffff");
+
+  useEffect(() => {
+    const timer = requestAnimationFrame(() => {
+      const raw = getComputedStyle(document.documentElement)
+        .getPropertyValue("--card")
+        .trim();
+      if (raw) {
+        try {
+          const el = document.createElement("div");
+          el.style.color = raw;
+          document.body.appendChild(el);
+          const computed = getComputedStyle(el).color;
+          document.body.removeChild(el);
+          if (computed) setCardColor(computed);
+        } catch {
+          // fallback to default
+        }
+      }
+    });
+    return () => cancelAnimationFrame(timer);
+  }, [resolvedTheme]);
 
   if (isLoading) {
     return (
@@ -108,6 +138,22 @@ export function AllocationChart({
     ...d,
     percent: total > 0 ? d.value / total : 0,
   }));
+
+  // Sync hover state: external activeStockCode takes priority over internal activeIndex
+  const externalIndex = activeStockCode != null
+    ? data.findIndex((d) => d.stock_code === activeStockCode)
+    : -1;
+  const hoveredIndex = externalIndex >= 0 ? externalIndex : activeIndex;
+
+  const handleHoverEnter = (index: number) => {
+    setActiveIndex(index);
+    onHoverChange?.(data[index]?.stock_code ?? null);
+  };
+
+  const handleHoverLeave = () => {
+    setActiveIndex(null);
+    onHoverChange?.(null);
+  };
 
   return (
     <div className="bg-card rounded-xl border shadow-sm p-6 space-y-6">
@@ -148,24 +194,34 @@ export function AllocationChart({
               cy="50%"
               innerRadius={60}
               outerRadius={85}
-              paddingAngle={data.length > 1 ? 4 : 0}
-              cornerRadius={6}
+              paddingAngle={0}
               dataKey="value"
-              stroke="none"
-              onMouseEnter={(_, index) => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
+              stroke={data.length > 1 ? cardColor : "none"}
+              strokeWidth={data.length > 1 ? 1 : 0}
+              onMouseEnter={(_, index) => handleHoverEnter(index)}
+              onMouseLeave={handleHoverLeave}
+              shape={(props: PieSectorShapeProps) => {
+                const isHovered = hoveredIndex === props.index;
+                return (
+                  <Sector
+                    {...props}
+                    outerRadius={isHovered ? 90 : 85}
+                    style={{
+                      filter: isHovered
+                        ? "drop-shadow(0px 4px 10px rgba(0,0,0,0.25))"
+                        : "none",
+                      opacity:
+                        hoveredIndex !== null && !isHovered ? 0.65 : 1,
+                      transition: "all 0.3s ease",
+                    }}
+                  />
+                );
+              }}
             >
               {dataWithPercent.map((_, index) => (
                 <Cell
                   key={index}
                   fill={`url(#alloc-grad-${instanceId}-${index})`}
-                  style={{
-                    filter:
-                      activeIndex === index
-                        ? "drop-shadow(0px 3px 8px rgba(0,0,0,0.2))"
-                        : "none",
-                    transition: "all 0.3s ease",
-                  }}
                 />
               ))}
               <Label
@@ -207,7 +263,7 @@ export function AllocationChart({
       <div className="max-h-[320px] overflow-y-auto space-y-3 px-0.5">
         {dataWithPercent.map((item, index) => {
           const pct = (item.percent * 100).toFixed(1);
-          const isActive = activeIndex === index;
+          const isActive = hoveredIndex === index;
           return (
             <div
               key={index}
@@ -216,8 +272,8 @@ export function AllocationChart({
                   ? "bg-muted/80 shadow-sm"
                   : "hover:bg-muted/40"
               }`}
-              onMouseEnter={() => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
+              onMouseEnter={() => handleHoverEnter(index)}
+              onMouseLeave={handleHoverLeave}
             >
               <div className="flex items-center gap-2 min-w-0">
                 {item.stock_code !== "CASH" ? (

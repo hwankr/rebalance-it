@@ -12,12 +12,16 @@ interface ConsolidatedStockListProps {
   stocks: Stock[];
   stockAccountMap: StockAccountMap;
   filterAccountId?: string;
+  activeStockCode?: string | null;
+  onHoverChange?: (stockCode: string | null) => void;
 }
 
 export function ConsolidatedStockList({
   stocks,
   stockAccountMap,
   filterAccountId,
+  activeStockCode,
+  onHoverChange,
 }: ConsolidatedStockListProps) {
   if (stocks.length === 0) {
     return (
@@ -42,7 +46,16 @@ export function ConsolidatedStockList({
             return (
               <div
                 key={mapKey}
-                className="flex items-center justify-between py-2 border-b last:border-0"
+                className={cn(
+                  "flex items-center justify-between py-2 border-b last:border-0 rounded-lg px-2 transition-all duration-200 cursor-default",
+                  activeStockCode === stock.stock_code
+                    ? "bg-muted/80 shadow-sm"
+                    : activeStockCode != null
+                      ? "opacity-65"
+                      : "hover:bg-muted/40",
+                )}
+                onMouseEnter={() => onHoverChange?.(stock.stock_code)}
+                onMouseLeave={() => onHoverChange?.(null)}
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <StockLogo

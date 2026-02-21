@@ -76,6 +76,7 @@ export default function PortfolioPage() {
 
   const [isSavingTargets, setIsSavingTargets] = useState(false);
   const [filters, setFilters] = useState<ConsolidatedFilters>(DEFAULT_FILTERS);
+  const [activeStockCode, setActiveStockCode] = useState<string | null>(null);
 
   function handleRefreshPrices() {
     refreshPrices(undefined, {
@@ -263,6 +264,8 @@ export default function PortfolioPage() {
                 cash={filteredCash}
                 totalValue={filteredTotalValue}
                 isLoading={false}
+                activeStockCode={activeStockCode}
+                onHoverChange={setActiveStockCode}
               />
             </div>
 
@@ -271,6 +274,8 @@ export default function PortfolioPage() {
                 stocks={filteredStocks}
                 stockAccountMap={stockAccountMap}
                 filterAccountId={filters.accountId !== "all" ? filters.accountId : undefined}
+                activeStockCode={activeStockCode}
+                onHoverChange={setActiveStockCode}
               />
             </div>
           </div>
