@@ -510,17 +510,21 @@ export default function RebalancePage() {
             {/* 리밸런싱 실행 버튼 - 목표 비중 설정된 경우에만 */}
             {hasTargets && (
               <button
-                onClick={handleStartRebalancing}
-                disabled={!canSimulate || isStarting || isLoadingSession}
+                onClick={hasActiveSession ? () => setSessionView(true) : handleStartRebalancing}
+                disabled={hasActiveSession ? isLoadingSession : (!canSimulate || isStarting || isLoadingSession)}
                 className={cn(
                   "w-full h-12 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
-                  !canSimulate || isStarting || isLoadingSession
+                  (hasActiveSession ? isLoadingSession : (!canSimulate || isStarting || isLoadingSession))
                     ? "bg-muted text-muted-foreground cursor-not-allowed"
                     : "bg-foreground text-background hover:bg-foreground/90 shadow-md",
                 )}
               >
-                <RefreshCw className={cn("size-5", isStarting && "animate-spin")} />
-                {isStarting ? "시작 중..." : "리밸런싱 실행"}
+                {hasActiveSession
+                  ? <ArrowRight className="size-5" />
+                  : <RefreshCw className={cn("size-5", isStarting && "animate-spin")} />}
+                {hasActiveSession
+                  ? "이어서 하기"
+                  : isStarting ? "시작 중..." : "리밸런싱 실행"}
               </button>
             )}
 
