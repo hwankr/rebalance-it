@@ -2,17 +2,12 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, RefreshCw, History, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveSessionAccount } from "@/hooks/use-active-session-account";
 import { useAccounts } from "@/hooks/use-accounts";
+import { navItems } from "@/components/layout/nav-config";
 
-const tabs = [
-  { href: "/portfolio", label: "포트폴리오", icon: LayoutDashboard },
-  { href: "/rebalance", label: "리밸런싱", icon: RefreshCw },
-  { href: "/history", label: "기록", icon: History },
-  { href: "/settings", label: "설정", icon: Settings },
-];
+const tabs = navItems.filter((item) => item.showInMobile);
 
 export function BottomNav() {
   const pathname = usePathname();

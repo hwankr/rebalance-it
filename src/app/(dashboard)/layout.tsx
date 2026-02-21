@@ -1,5 +1,4 @@
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { TopNavbar } from "@/components/layout/top-navbar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Footer } from "@/components/layout/footer";
 import { GuestBanner } from "@/components/guest/guest-banner";
@@ -13,21 +12,18 @@ export default function DashboardLayout({
 }) {
   return (
     <AccountProvider>
-      <div className="min-h-screen overflow-x-hidden">
-        <Sidebar />
-        <div className="md:pl-64 bg-[var(--background-subtle)] min-h-screen flex flex-col">
-          <Header />
-          <main className="w-full px-4 md:px-8 py-4 md:py-6 pb-20 md:pb-6 max-w-7xl mx-auto flex-1">
-              <AuthGuard>
-                <GuestBanner />
-                {children}
-              </AuthGuard>
-          </main>
-          <div className="hidden md:block">
-            <Footer />
-          </div>
-          <BottomNav />
+      <div className="min-h-screen overflow-x-hidden bg-[var(--background-subtle)] flex flex-col">
+        <TopNavbar />
+        <main className="w-full px-4 md:px-8 py-4 md:py-6 pb-20 md:pb-6 max-w-[1400px] mx-auto flex-1">
+          <AuthGuard>
+            <GuestBanner />
+            {children}
+          </AuthGuard>
+        </main>
+        <div className="hidden md:block">
+          <Footer />
         </div>
+        <BottomNav />
       </div>
     </AccountProvider>
   );

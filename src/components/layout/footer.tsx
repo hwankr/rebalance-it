@@ -12,7 +12,7 @@ interface FooterProps {
 export function Footer({ className }: FooterProps) {
   return (
     <footer className={cn("border-t border-border bg-background", className)}>
-      <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
+      <div className="mx-auto max-w-[1400px] px-4 md:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Branding */}
           <div className="space-y-3">

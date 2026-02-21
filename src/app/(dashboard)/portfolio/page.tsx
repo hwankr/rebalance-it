@@ -10,11 +10,9 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useRefreshPrices } from "@/hooks/use-refresh-prices";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 import { useProgressiveRebalance } from "@/hooks/use-progressive-rebalance";
-import { PortfolioHero } from "@/components/portfolio/portfolio-hero";
-import { RebalanceSummaryCards } from "@/components/portfolio/rebalance-summary-cards";
+import { BalanceCard } from "@/components/portfolio/balance-card";
 import { AllocationChart } from "@/components/portfolio/allocation-chart";
 import { StockTable } from "@/components/manual-portfolio/stock-table";
-
 import { TargetWeightEditor } from "@/components/rebalance/target-weight-editor";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -241,7 +239,7 @@ export default function PortfolioPage() {
 
           <AccountTabs />
 
-          <PortfolioHero
+          <BalanceCard
             totalValue={allTotalValue}
             totalProfitLoss={allProfitLoss}
             totalProfitRate={allProfitRate}
@@ -307,7 +305,7 @@ export default function PortfolioPage() {
 
           <AccountTabs />
 
-          <PortfolioHero
+          <BalanceCard
             totalValue={totalValue}
             totalProfitLoss={totalProfitLoss}
             totalProfitRate={totalProfitRate}
@@ -365,65 +363,62 @@ export default function PortfolioPage() {
 
         <AccountTabs />
 
-        {/* Portfolio Hero */}
-        <PortfolioHero
-          totalValue={totalValue}
-          totalProfitLoss={totalProfitLoss}
-          totalProfitRate={totalProfitRate}
-          cash={cash}
-          isLoading={isLoading}
-          onCashChange={setCash}
-          isCashSaving={isCashSaving}
-          accountId={effectivePortfolioId}
-        />
-
-        {/* Rebalancing Summary Cards - Full Width */}
-        <RebalanceSummaryCards stocks={stocks} accountId={effectivePortfolioId} />
-
-        {/* Stock Table - Full Width */}
-        <StockTable
-          stocks={stocks}
-          onUpdate={updateStock}
-          onDelete={handleDeleteStock}
-          onRefresh={isPlusOrAbove ? handleRefreshPrices : undefined}
-          isRefreshing={isRefreshing}
-          exchangeRate={exchangeRate}
-          totalPortfolioValue={totalValue}
-          onAddStock={handleAddStock}
-          isAdding={isAdding}
-          onToggleTracked={toggleRebalanceTracked}
-          isTogglingTracked={isTogglingTracked}
-          hasActiveSession={!!activeSession}
-          onToggleNews={toggleNewsEnabled}
-          isTogglingNews={isTogglingNews}
-        />
-
-        {/* Target Weight Editor (with Allocation Chart inside) */}
-        <TargetWeightEditor
-          mode="inline"
-          stocks={stocks}
-          cashAmount={cash}
-          exchangeRate={exchangeRate ?? 1}
-          onSave={handleSaveTargets}
-          isSaving={isSavingTargets}
-          chart={
-            <AllocationChart
-              stocks={balance?.stocks ?? []}
-              cash={cash}
+        {/* 2-Column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Balance (compact) + Allocation (fills remaining) */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <BalanceCard
               totalValue={totalValue}
+              totalProfitLoss={totalProfitLoss}
+              totalProfitRate={totalProfitRate}
+              cash={cash}
               isLoading={isLoading}
+              onCashChange={setCash}
+              isCashSaving={isCashSaving}
             />
-          }
-        />
 
-        {/* Bottom CTA - Mobile Only (inline, not fixed) */}
-        <div className="md:hidden">
-          <Button asChild className="w-full" size="lg">
-            <Link href={`/rebalance?account=${effectivePortfolioId}`}>리밸런싱으로 이동</Link>
-          </Button>
+            <div className="flex-1">
+              <AllocationChart
+                stocks={balance?.stocks ?? []}
+                cash={cash}
+                totalValue={totalValue}
+                isLoading={isLoading}
+                activeStockCode={activeStockCode}
+                onHoverChange={setActiveStockCode}
+              />
+            </div>
+          </div>
+
+          {/* Right Column: Holdings + Rebalance Guide */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            <StockTable
+              stocks={stocks}
+              onUpdate={updateStock}
+              onDelete={handleDeleteStock}
+              onRefresh={isPlusOrAbove ? handleRefreshPrices : undefined}
+              isRefreshing={isRefreshing}
+              exchangeRate={exchangeRate}
+              totalPortfolioValue={totalValue}
+              onAddStock={handleAddStock}
+              isAdding={isAdding}
+              onToggleTracked={toggleRebalanceTracked}
+              isTogglingTracked={isTogglingTracked}
+              hasActiveSession={!!activeSession}
+              onToggleNews={toggleNewsEnabled}
+              isTogglingNews={isTogglingNews}
+            />
+
+            <TargetWeightEditor
+              mode="inline"
+              stocks={stocks}
+              cashAmount={cash}
+              exchangeRate={exchangeRate ?? 1}
+              onSave={handleSaveTargets}
+              isSaving={isSavingTargets}
+            />
+          </div>
         </div>
       </div>
-
     </PageTransition>
   );
 }
