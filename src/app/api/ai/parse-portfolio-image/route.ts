@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { zodResponseFormat } from "openai/helpers/zod";
 import { requirePlan } from "@/lib/subscription/guard";
 import { getOpenAIClient } from "@/lib/ai/openai-client";
 import { checkOutputSafety } from "@/lib/ai/safety";
 import { PARSE_PORTFOLIO_IMAGE_SYSTEM_PROMPT } from "@/lib/ai/prompts/parse-portfolio-image";
+import {
+  ParsePortfolioImageSchema,
+  type RawParsedStock,
+} from "@/lib/ai/schemas/parse-portfolio-image";
 import {
   checkAndIncrementUsage,
   addUsageHeaders,
@@ -11,16 +16,6 @@ import {
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-/** Vision AI가 반환하는 raw 데이터 (avg_price 또는 total_amount 중 하나만 있을 수 있음) */
-interface RawParsedStock {
-  stock_name: string;
-  stock_code: string | null;
-  quantity: number;
-  avg_price: number;
-  total_amount: number;
-  currency: "KRW" | "USD";
-}
-
 /** 후처리 완료된 최종 데이터 */
 interface ParsedStock {
   stock_name: string;
@@ -28,10 +23,6 @@ interface ParsedStock {
   quantity: number;
   avg_price: number;
   currency: "KRW" | "USD";
-}
-
-interface AIJsonResponse {
-  stocks: RawParsedStock[];
 }
 
 /**
@@ -130,9 +121,8 @@ export async function POST(request: NextRequest) {
       ? mimeType
       : "image/jpeg";
 
-  let rawResponse = "";
   try {
-    const completion = await openai.chat.completions.create(
+    const completion = await openai.chat.completions.parse(
       {
         model: "gpt-4.1",
         messages: [
@@ -154,15 +144,25 @@ export async function POST(request: NextRequest) {
             ],
           },
         ],
-        response_format: { type: "json_object" },
+        response_format: zodResponseFormat(ParsePortfolioImageSchema, "parse_portfolio_image"),
         max_tokens: 4000,
         temperature: 0,
       },
       { timeout: 60000 },
     );
 
-    rawResponse = completion.choices[0]?.message?.content ?? "";
+    const message = completion.choices[0]?.message;
 
+    // Refusal 체크
+    if (message?.refusal) {
+      return NextResponse.json(
+        { error: "AI가 이미지 분석을 거부했습니다." },
+        { status: 500 },
+      );
+    }
+
+    // 안전성 검사 (투자 조언 패턴 차단) — raw content 기반
+    const rawResponse = message?.content ?? "";
     const safetyResult = checkOutputSafety(rawResponse);
     if (!safetyResult.safe) {
       console.warn("[parse-portfolio-image] Safety filter triggered:", safetyResult.flaggedPattern);
@@ -172,17 +172,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const parsed: AIJsonResponse = JSON.parse(rawResponse);
-
-    if (!Array.isArray(parsed.stocks)) {
+    if (!message?.parsed) {
       return NextResponse.json(
-        { error: "AI 응답 파싱 실패: stocks 배열이 없습니다." },
+        { error: "AI 응답 파싱 실패" },
         { status: 500 },
       );
     }
 
     // 후처리: avg_price 계산, 데이터 정제, 유효성 검증
-    const processedStocks = postProcessStocks(parsed.stocks);
+    const processedStocks = postProcessStocks(message.parsed.stocks);
 
     const response = NextResponse.json({ stocks: processedStocks });
     addUsageHeaders(response.headers, usage.remaining, usage.dailyLimit);

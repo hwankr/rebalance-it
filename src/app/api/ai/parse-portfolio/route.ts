@@ -1,27 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { zodResponseFormat } from "openai/helpers/zod";
 import { requireAuth, resolvePlanTier } from "@/lib/subscription/guard";
 import { getOpenAIClient } from "@/lib/ai/openai-client";
 import { checkOutputSafety } from "@/lib/ai/safety";
 import { PARSE_PORTFOLIO_SYSTEM_PROMPT } from "@/lib/ai/prompts/parse-portfolio";
+import {
+  ParsePortfolioSchema,
+  type ParsedStock,
+} from "@/lib/ai/schemas/parse-portfolio";
 import {
   checkAndIncrementUsage,
   addUsageHeaders,
   createLimitExceededResponse,
 } from "@/lib/ai/usage-tracker";
 
+export type { ParsedStock };
+
 const MAX_INPUT_LENGTH = 10000;
-
-export interface ParsedStock {
-  stock_name: string;
-  stock_code: string | null;
-  quantity: number;
-  avg_price: number;
-  currency: "KRW" | "USD";
-}
-
-interface AIJsonResponse {
-  stocks: ParsedStock[];
-}
 
 /** 프롬프트 인젝션 방지 및 입력 정제 */
 function sanitizeInput(text: string): string {
@@ -76,25 +71,33 @@ export async function POST(request: NextRequest) {
 
   const safeText = sanitizeInput(text);
 
-  let rawResponse = "";
   try {
-    const completion = await openai.chat.completions.create(
+    const completion = await openai.chat.completions.parse(
       {
         model: "gpt-4o",
         messages: [
           { role: "system", content: PARSE_PORTFOLIO_SYSTEM_PROMPT },
           { role: "user", content: safeText },
         ],
-        response_format: { type: "json_object" },
+        response_format: zodResponseFormat(ParsePortfolioSchema, "parse_portfolio"),
         max_tokens: 2000,
         temperature: 0,
       },
       { timeout: 30000 },
     );
 
-    rawResponse = completion.choices[0]?.message?.content ?? "";
+    const message = completion.choices[0]?.message;
 
-    // 안전성 검사 (투자 조언 패턴 차단)
+    // Refusal 체크
+    if (message?.refusal) {
+      return NextResponse.json(
+        { error: "AI가 요청을 거부했습니다." },
+        { status: 500 },
+      );
+    }
+
+    // 안전성 검사 (투자 조언 패턴 차단) — raw content 기반
+    const rawResponse = message?.content ?? "";
     const safetyResult = checkOutputSafety(rawResponse);
     if (!safetyResult.safe) {
       console.warn("[parse-portfolio] Safety filter triggered:", safetyResult.flaggedPattern);
@@ -104,17 +107,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const parsed: AIJsonResponse = JSON.parse(rawResponse);
-
-    if (!Array.isArray(parsed.stocks)) {
+    if (!message?.parsed) {
       return NextResponse.json(
-        { error: "AI 응답 파싱 실패: stocks 배열이 없습니다." },
+        { error: "AI 응답 파싱 실패" },
         { status: 500 },
       );
     }
 
     const response = NextResponse.json({
-      stocks: parsed.stocks,
+      stocks: message.parsed.stocks,
     });
     addUsageHeaders(response.headers, usage.remaining, usage.dailyLimit);
     return response;

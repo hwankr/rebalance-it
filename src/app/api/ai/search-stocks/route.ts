@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { zodResponseFormat } from "openai/helpers/zod";
 import { requireAuth, resolvePlanTier } from "@/lib/subscription/guard";
 import { getOpenAIClient } from "@/lib/ai/openai-client";
 import { SEARCH_STOCKS_SYSTEM_PROMPT } from "@/lib/ai/prompts/search-stocks";
+import {
+  SearchStocksSchema,
+  type SearchStocksResult,
+} from "@/lib/ai/schemas/search-stocks";
 import {
   checkAndIncrementUsage,
   addUsageHeaders,
@@ -21,14 +26,6 @@ interface StockItem {
   country: string;
   currency: string;
   asset_type?: "STOCK" | "ETF";
-}
-
-interface ParsedFilters {
-  keywords: string[];
-  keywords_ko: string[];
-  keywords_en: string[];
-  market: string | null;
-  asset_type: string | null;
 }
 
 // Module-level cache: load stocks.json once per server lifetime
@@ -136,33 +133,40 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 1. AI로 자연어 쿼리 파싱
-  let filters: ParsedFilters;
+  // 1. AI로 자연어 쿼리 파싱 (Structured Outputs)
+  let filters: SearchStocksResult;
   try {
-    const completion = await openai.chat.completions.create(
+    const completion = await openai.chat.completions.parse(
       {
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: SEARCH_STOCKS_SYSTEM_PROMPT },
           { role: "user", content: safeQuery },
         ],
-        response_format: { type: "json_object" },
+        response_format: zodResponseFormat(SearchStocksSchema, "search_stocks"),
         max_tokens: 500,
         temperature: 0,
       },
       { timeout: 20000 },
     );
 
-    const raw = completion.choices[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw);
+    const message = completion.choices[0]?.message;
 
-    filters = {
-      keywords: Array.isArray(parsed.keywords) ? parsed.keywords.map(String) : [],
-      keywords_ko: Array.isArray(parsed.keywords_ko) ? parsed.keywords_ko.map(String) : [],
-      keywords_en: Array.isArray(parsed.keywords_en) ? parsed.keywords_en.map(String) : [],
-      market: typeof parsed.market === "string" ? parsed.market : null,
-      asset_type: typeof parsed.asset_type === "string" ? parsed.asset_type : null,
-    };
+    if (message?.refusal) {
+      return NextResponse.json(
+        { error: "AI가 검색 쿼리 분석을 거부했습니다." },
+        { status: 500 },
+      );
+    }
+
+    if (!message?.parsed) {
+      return NextResponse.json(
+        { error: "검색 쿼리 분석에 실패했습니다." },
+        { status: 500 },
+      );
+    }
+
+    filters = message.parsed;
   } catch {
     return NextResponse.json(
       { error: "검색 쿼리 분석에 실패했습니다." },
