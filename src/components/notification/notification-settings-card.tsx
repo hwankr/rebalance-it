@@ -50,7 +50,7 @@ export function NotificationSettingsCard() {
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-0.5">
             <p className="text-sm font-medium">리밸런싱 알림</p>
-            <p className="text-xs text-muted-foreground">드리프트 임계치 초과 시 알림</p>
+            <p className="text-xs text-muted-foreground">종목의 현재 비중이 목표에서 크게 벗어날 때 알림</p>
           </div>
           <Switch
             checked={prefs?.notification_enabled ?? true}

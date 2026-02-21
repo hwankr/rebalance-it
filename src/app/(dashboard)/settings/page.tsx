@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/use-auth";
 import { useGuestMode } from "@/contexts/guest-mode-context";
 import { useSubscription, setDevPlanOverride } from "@/hooks/use-subscription";
+import { useProfile } from "@/hooks/use-profile";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/lib/supabase/auth";
 import { PlanBadge } from "@/components/subscription/plan-badge";
@@ -39,6 +40,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { isGuest } = useGuestMode();
   const { isPro, isPlus, isPlusOrAbove, subscription, isDevOverride, realPlan } = useSubscription();
+  const { isAdmin } = useProfile();
   const { theme, setTheme } = useTheme();
   const [isResetting, setIsResetting] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -168,18 +170,25 @@ export default function SettingsPage() {
       {/* 이메일 알림 설정 */}
       <NotificationSettingsCard />
 
-      {/* 개발용 구독 토글 */}
-      {process.env.NODE_ENV === "development" && (
+      {/* 구독 토글 (Admin 또는 개발 환경) */}
+      {(isAdmin || process.env.NODE_ENV === "development") && (
         <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              개발용 구독 토글
-              <Badge variant="outline" className="text-yellow-700 border-yellow-400 dark:text-yellow-300">
-                DEV
-              </Badge>
+              구독 플랜 전환
+              {isAdmin && (
+                <Badge variant="outline" className="text-purple-700 border-purple-400 dark:text-purple-300">
+                  Admin
+                </Badge>
+              )}
+              {process.env.NODE_ENV === "development" && (
+                <Badge variant="outline" className="text-yellow-700 border-yellow-400 dark:text-yellow-300">
+                  DEV
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>
-              개발 중 Pro 기능을 테스트할 수 있습니다. 실제 구독: {realPlan}
+              플랜을 전환하여 기능을 테스트할 수 있습니다. 실제 구독: {realPlan}
               {isDevOverride && " (오버라이드 활성)"}
             </CardDescription>
           </CardHeader>

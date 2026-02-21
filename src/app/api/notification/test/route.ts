@@ -99,6 +99,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
+    // Admin 권한 확인 (profiles 테이블의 role)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profile } = await (supabase as any)
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.role !== "admin") {
+      return NextResponse.json({ error: "관리자만 사용할 수 있습니다." }, { status: 403 });
+    }
+
     // type 파라미터 파싱
     const validTypes = ["test", "drift", "monthly", "drift-real", "monthly-real", "weekly-news"];
     let testType = "test";

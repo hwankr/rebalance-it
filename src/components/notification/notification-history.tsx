@@ -33,7 +33,7 @@ const STATUS_CONFIG: Record<NotificationStatus, { label: string; className: stri
 };
 
 const TYPE_CONFIG: Record<NotificationType, { label: string; className: string }> = {
-  drift_alert: { label: "드리프트 알림", className: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" },
+  drift_alert: { label: "비중 변동 알림", className: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" },
   monthly_report: { label: "월간 리포트", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
   test: { label: "테스트", className: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400" },
 };

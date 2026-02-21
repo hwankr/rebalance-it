@@ -10,13 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import type { NotificationPreferences } from "@/hooks/use-notification-preferences";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { calculateNextReportAt } from "@/lib/notification/next-check";
@@ -53,7 +46,6 @@ export function ReportScheduleSettings({
   const isDisabled = !isPlusOrAbove || isLoading || updateMutation.isPending;
 
   function handleUpdate(updates: Partial<Omit<NotificationPreferences, "user_id">>) {
-    // report_next_send_at 재계산
     const newIntervalType = (updates.report_interval_type ?? intervalType) as "weekly" | "biweekly" | "monthly" | "custom";
     const nextSendAt = calculateNextReportAt({
       intervalType: newIntervalType,
@@ -78,7 +70,6 @@ export function ReportScheduleSettings({
     const updates: Partial<Omit<NotificationPreferences, "user_id">> = {
       report_interval_type: value as NotificationPreferences["report_interval_type"],
     };
-    // 타입 변경 시 관련 필드 초기화
     if (value === "weekly" || value === "biweekly") {
       updates.report_day_of_week = prefs?.report_day_of_week ?? 1;
       updates.report_day_of_month = null;
@@ -104,24 +95,18 @@ export function ReportScheduleSettings({
       })
     : "설정 후 계산됩니다";
 
-  if (!prefs?.monthly_report_enabled) return null;
-
   return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader>
-        <CardTitle>리포트 주기 설정</CardTitle>
-        <CardDescription>리포트 발송 주기와 발송일을 설정합니다.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {/* 리포트 주기 */}
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium">리포트 주기</Label>
+    <div className="space-y-2">
+      {/* 주기 + 발송일 */}
+      <div className="flex gap-2">
+        <div className="flex-1 rounded-lg bg-muted/50 p-3">
+          <div className="text-[11px] text-muted-foreground mb-1.5">주기</div>
           <Select
             value={intervalType}
             disabled={isDisabled}
             onValueChange={handleIntervalChange}
           >
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -132,11 +117,9 @@ export function ReportScheduleSettings({
             </SelectContent>
           </Select>
         </div>
-
-        {/* 발송 요일 (weekly/biweekly) */}
-        {(intervalType === "weekly" || intervalType === "biweekly") && (
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">발송 요일</Label>
+        <div className="flex-1 rounded-lg bg-muted/50 p-3">
+          <div className="text-[11px] text-muted-foreground mb-1.5">발송일</div>
+          {(intervalType === "weekly" || intervalType === "biweekly") && (
             <Select
               value={String(prefs?.report_day_of_week ?? 1)}
               disabled={isDisabled}
@@ -144,7 +127,7 @@ export function ReportScheduleSettings({
                 handleUpdate({ report_day_of_week: Number(v) })
               }
             >
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -155,13 +138,8 @@ export function ReportScheduleSettings({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        )}
-
-        {/* 발송 일자 (monthly) */}
-        {intervalType === "monthly" && (
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">발송 일자</Label>
+          )}
+          {intervalType === "monthly" && (
             <Select
               value={String(prefs?.report_day_of_month ?? 1)}
               disabled={isDisabled}
@@ -169,7 +147,7 @@ export function ReportScheduleSettings({
                 handleUpdate({ report_day_of_month: Number(v) })
               }
             >
-              <SelectTrigger className="w-24">
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -180,19 +158,14 @@ export function ReportScheduleSettings({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        )}
-
-        {/* 커스텀 일수 */}
-        {intervalType === "custom" && (
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">발송 간격 (일)</Label>
-            <div className="flex items-center gap-2">
+          )}
+          {intervalType === "custom" && (
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 min={7}
                 max={90}
-                className="w-24"
+                className="h-8 text-xs"
                 defaultValue={prefs?.report_custom_days ?? 30}
                 disabled={isDisabled}
                 onBlur={(e) => {
@@ -202,18 +175,16 @@ export function ReportScheduleSettings({
                   }
                 }}
               />
-              <span className="text-sm text-muted-foreground">일마다 발송</span>
+              <span className="text-[11px] text-muted-foreground whitespace-nowrap">일마다</span>
             </div>
-            <p className="text-xs text-muted-foreground">7~90일 범위로 설정 가능합니다</p>
-          </div>
-        )}
-
-        {/* 다음 발송 예정일 */}
-        <div className="space-y-1">
-          <Label className="text-sm font-medium text-muted-foreground">다음 발송 예정일</Label>
-          <p className="text-sm font-medium">{nextSendLabel}</p>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* 다음 발송 예정일 */}
+      <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+        📅 다음 발송 예정일: <span className="font-medium text-foreground">{nextSendLabel}</span>
+      </div>
+    </div>
   );
 }
