@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Settings2 } from "lucide-react";
 import { useAccounts } from "@/hooks/use-accounts";
 import { AccountManager } from "./account-manager";
-import { cn } from "@/lib/utils";
+import { PillButton } from "@/components/ui/pill-toggle";
 
 export function AccountTabs({ showAllTab = true, activeSessionIds }: { showAllTab?: boolean; activeSessionIds?: Set<string> } = {}) {
   const { accounts, selectedAccountId, setSelectedAccountId, isLoading } =
@@ -18,38 +18,27 @@ export function AccountTabs({ showAllTab = true, activeSessionIds }: { showAllTa
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
         {/* 전체 계좌 탭 */}
         {showAllTab && (
-          <button
-            type="button"
+          <PillButton
+            active={selectedAccountId === "all"}
             onClick={() => setSelectedAccountId("all")}
-            className={cn(
-              "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
-              selectedAccountId === "all"
-                ? "bg-foreground text-background shadow-sm"
-                : "bg-muted text-muted-foreground hover:bg-accent",
-            )}
           >
             전체 계좌
-          </button>
+          </PillButton>
         )}
 
         {/* 개별 계좌 탭 */}
         {accounts.map((account) => (
-          <button
+          <PillButton
             key={account.id}
-            type="button"
+            active={selectedAccountId === account.id}
             onClick={() => setSelectedAccountId(account.id)}
-            className={cn(
-              "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors truncate max-w-[140px]",
-              selectedAccountId === account.id
-                ? "bg-foreground text-background shadow-sm"
-                : "bg-muted text-muted-foreground hover:bg-accent",
-            )}
+            className="truncate max-w-[140px]"
           >
             {account.name}
             {activeSessionIds?.has(account.id) && (
               <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             )}
-          </button>
+          </PillButton>
         ))}
 
         {/* 계좌 관리 버튼 */}
