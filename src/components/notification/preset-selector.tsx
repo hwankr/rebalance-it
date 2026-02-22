@@ -9,14 +9,14 @@ const PRESETS = [
     emoji: "⚡",
     label: "간단하게",
     desc: "비중이 크게 벗어날 때만 알림",
-    config: "기준 5%p · 간격 7일",
+    config: "기준 5% · 간격 7일",
   },
   {
     id: "thorough",
     emoji: "🔍",
     label: "꼼꼼하게",
     desc: "작은 변동도 놓치지 않게",
-    config: "기준 3%p · 간격 3일",
+    config: "기준 3% · 간격 3일",
   },
   {
     id: "custom",
@@ -31,9 +31,10 @@ interface PresetSelectorProps {
   selected: string | null;
   onSelect: (id: string) => void;
   onDismiss: () => void;
+  isPending?: boolean;
 }
 
-export function PresetSelector({ selected, onSelect, onDismiss }: PresetSelectorProps) {
+export function PresetSelector({ selected, onSelect, onDismiss, isPending }: PresetSelectorProps) {
   return (
     <div className="rounded-xl border border-border/50 bg-gradient-to-br from-primary/5 to-purple-500/5 p-5 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center justify-between mb-1">
@@ -57,6 +58,7 @@ export function PresetSelector({ selected, onSelect, onDismiss }: PresetSelector
           <button
             key={p.id}
             onClick={() => onSelect(p.id)}
+            disabled={isPending}
             className={cn(
               "flex items-center gap-3.5 p-3.5 rounded-lg border text-left transition-all",
               selected === p.id

@@ -54,6 +54,7 @@ const COOLDOWN_OPTIONS = [
   { value: "30", label: "30일" },
 ];
 
+
 /* ─── Collapsible accordion section ─── */
 function CollapsibleSection({
   title,
@@ -171,7 +172,7 @@ export default function NotificationSettingsPage() {
     ? (prefs?.weekly_news_enabled ?? false)
     : false;
   const cooldownDays = prefs?.cooldown_days ?? 7;
-  const hasCustomThreshold = prefs?.alert_threshold_pct != null;
+  const threshold = prefs?.alert_threshold_pct ?? 5;
   const intervalLabel =
     { weekly: "매주", biweekly: "격주", monthly: "매월", custom: "커스텀" }[
       prefs?.report_interval_type ?? "monthly"
@@ -215,6 +216,16 @@ export default function NotificationSettingsPage() {
     );
   }
 
+  function handleThresholdChange(value: string) {
+    updateMutation.mutate(
+      { alert_threshold_pct: Number(value) },
+      {
+        onSuccess: () => toast.success("알림 기준이 저장되었습니다."),
+        onError: () => toast.error("설정 저장 중 오류가 발생했습니다."),
+      },
+    );
+  }
+
   function handlePresetSelect(id: string) {
     setSelectedPreset(id);
     if (id === "simple") {
@@ -223,7 +234,7 @@ export default function NotificationSettingsPage() {
           notification_enabled: true,
           email_enabled: true,
           cooldown_days: 7,
-          alert_threshold_pct: null,
+          alert_threshold_pct: 5,
         },
         {
           onSuccess: () => {
@@ -332,6 +343,7 @@ export default function NotificationSettingsPage() {
             selected={selectedPreset}
             onSelect={handlePresetSelect}
             onDismiss={handlePresetDismiss}
+            isPending={updateMutation.isPending}
           />
         )}
 
@@ -397,12 +409,48 @@ export default function NotificationSettingsPage() {
             />
           </div>
           <p className="text-[13px] text-muted-foreground leading-relaxed">
-            종목의 현재 비중이 목표에서 일정 %p 이상 벗어나면 알려드려요
+            종목의 현재 비중이 목표에서 {threshold}% 이상 벗어나면 알려드려요
           </p>
 
           {deviationOn && (
-            <div className="mt-4 animate-in fade-in slide-in-from-top-1 duration-200">
-              {/* 알림 간격 (인라인) */}
+            <div className="mt-4 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+              {/* 알림 기준 */}
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                <div>
+                  <div className="text-sm font-semibold">알림 기준</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    목표 비중 대비 차이
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step={1}
+                    className="w-20 h-8 text-sm text-right"
+                    defaultValue={threshold}
+                    key={threshold}
+                    disabled={isLoading || updateMutation.isPending}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const num = Number(e.target.value);
+                      if (isNaN(num) || num < 1 || num > 100) {
+                        e.target.value = String(threshold);
+                        return;
+                      }
+                      handleThresholdChange(e.target.value);
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+
+              {/* 알림 간격 */}
               <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                 <div>
                   <div className="text-sm font-semibold">알림 간격</div>
@@ -668,10 +716,14 @@ export default function NotificationSettingsPage() {
               }
               active={deviationOn}
             />
-            {deviationOn && hasCustomThreshold && (
+            {deviationOn && (
               <SummaryRow
                 label="  └ 알림 기준"
-                value={`${prefs?.alert_threshold_pct}%p`}
+                value={
+                  prefs?.alert_severity === "major_only"
+                    ? `${threshold * 2}% (x2 적용)`
+                    : `${threshold}%`
+                }
                 active
                 sub
               />

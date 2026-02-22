@@ -65,7 +65,7 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreferences, "user_id"> = {
   weekly_news_enabled: false,
   email_address: null,
   cooldown_days: 7,
-  alert_threshold_pct: null,
+  alert_threshold_pct: 5,
   alert_severity: "all",
   alert_mode: "individual",
   excluded_portfolio_ids: [],
@@ -120,19 +120,20 @@ export function useUpdateNotificationPreferences() {
     mutationFn: async (
       updates: Partial<Omit<NotificationPreferences, "user_id">>,
     ) => {
+      if (!user) throw new Error("Not authenticated");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const supabase = createClient() as any;
+
       const { error } = await supabase
         .from("notification_preferences")
         .upsert(
-          {
-            user_id: user!.id,
-            ...updates,
-            updated_at: new Date().toISOString(),
-          } as never,
+          { user_id: user.id, ...updates },
           { onConflict: "user_id" },
         );
-      if (error) throw error;
+      if (error) {
+        console.error("[notification upsert]", error.message, error);
+        throw new Error(error.message);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
