@@ -19,6 +19,16 @@ export const guides: Guide[] = [
     publishedAt: "2026-02-20",
     icon: "💰",
   },
+  {
+    slug: "rebalancing-guide",
+    title: "포트폴리오 리밸런싱 완전 가이드",
+    description:
+      "처음 세운 비중으로 돌아가는 단순한 규율. 리밸런싱의 개념부터 실전 계산, 절세 전략까지 한 곳에 정리했습니다.",
+    category: "투자 전략",
+    categoryColor: "bg-blue-100 text-blue-800",
+    publishedAt: "2026-02-22",
+    icon: "⚖️",
+  },
 ];
 
 export function getGuideBySlug(slug: string): Guide | undefined {

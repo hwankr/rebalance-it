@@ -1,0 +1,500 @@
+[data-guide="rebalancing-guide"] {
+  --guide-bg: #F6F5F0;
+  --guide-card: #FFFFFF;
+  --guide-ink: #1B1B1B;
+  --guide-sub: #6E6E6E;
+  --guide-border: #E6E5E0;
+  --guide-accent: #2D5BFF;
+  --guide-radius: 14px;
+
+  --guide-concept: #2D5BFF;
+  --guide-concept-soft: #EEF2FF;
+  --guide-effect: #0EA55F;
+  --guide-effect-soft: #EDFCF4;
+  --guide-method: #D97706;
+  --guide-method-soft: #FFF8EB;
+  --guide-practice: #E8443A;
+  --guide-practice-soft: #FFF0EF;
+  --guide-taxsave: #7C3AED;
+  --guide-taxsave-soft: #F3EDFF;
+
+  font-family: var(--font-noto-sans-kr), 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--guide-bg);
+  color: var(--guide-ink);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-guide="rebalancing-guide"] *,
+[data-guide="rebalancing-guide"] *::before,
+[data-guide="rebalancing-guide"] *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+[data-guide="rebalancing-guide"] h1,
+[data-guide="rebalancing-guide"] h2,
+[data-guide="rebalancing-guide"] h3 {
+  font-family: var(--font-gowun-batang), 'Gowun Batang', serif;
+}
+
+[data-guide="rebalancing-guide"] a { color: var(--guide-accent); text-decoration: none; }
+[data-guide="rebalancing-guide"] a:hover { text-decoration: underline; }
+
+[data-guide="rebalancing-guide"] .container { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+/* ─── ① Hero ─── */
+[data-guide="rebalancing-guide"] .hero {
+  padding: 64px 0 48px;
+  text-align: center;
+}
+[data-guide="rebalancing-guide"] .badge {
+  display: inline-block;
+  background: var(--guide-ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  margin-bottom: 20px;
+}
+[data-guide="rebalancing-guide"] .hero h1 {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 14px;
+  letter-spacing: -0.5px;
+}
+[data-guide="rebalancing-guide"] .hero p {
+  font-size: 17px;
+  color: var(--guide-sub);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* ─── ② Navigation Pills ─── */
+[data-guide="rebalancing-guide"] .nav-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding: 20px 0 40px;
+  position: sticky;
+  top: 0;
+  background: var(--guide-bg);
+  z-index: 100;
+  border-bottom: 1px solid var(--guide-border);
+  margin-bottom: 32px;
+}
+[data-guide="rebalancing-guide"] .pill {
+  display: inline-block;
+  background: var(--guide-card);
+  color: var(--guide-ink);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--guide-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+[data-guide="rebalancing-guide"] .pill:hover {
+  background: var(--guide-ink);
+  color: #fff;
+  border-color: var(--guide-ink);
+  text-decoration: none;
+}
+
+/* ─── ③ Overview Cards ─── */
+[data-guide="rebalancing-guide"] .ov-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 48px;
+}
+[data-guide="rebalancing-guide"] .ov-card {
+  background: var(--guide-card);
+  border: 1px solid var(--guide-border);
+  border-radius: 14px;
+  padding: 24px 20px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+[data-guide="rebalancing-guide"] .ov-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+[data-guide="rebalancing-guide"] .ov-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+  display: block;
+}
+[data-guide="rebalancing-guide"] .ov-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-family: var(--font-noto-sans-kr), 'Noto Sans KR', -apple-system, sans-serif;
+}
+[data-guide="rebalancing-guide"] .ov-card p {
+  font-size: 13px;
+  color: var(--guide-sub);
+  line-height: 1.5;
+}
+
+/* ─── ④ Section ─── */
+[data-guide="rebalancing-guide"] .section { margin-bottom: 56px; }
+
+[data-guide="rebalancing-guide"] .section-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--guide-border);
+  margin-bottom: 24px;
+}
+[data-guide="rebalancing-guide"] .section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #fff;
+  flex-shrink: 0;
+}
+[data-guide="rebalancing-guide"] .section-bar h2 {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+[data-guide="rebalancing-guide"] .section-bar .sub {
+  font-size: 14px;
+  color: var(--guide-sub);
+  font-family: var(--font-noto-sans-kr), 'Noto Sans KR', -apple-system, sans-serif;
+  font-weight: 400;
+}
+
+/* Explain */
+[data-guide="rebalancing-guide"] .explain {
+  background: var(--guide-card);
+  border: 1px solid var(--guide-border);
+  border-radius: 14px;
+  padding: 28px 28px 24px;
+  margin-bottom: 20px;
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--guide-ink);
+}
+[data-guide="rebalancing-guide"] .explain p + p { margin-top: 14px; }
+[data-guide="rebalancing-guide"] .explain strong { font-weight: 700; }
+
+/* Callout */
+[data-guide="rebalancing-guide"] .callout {
+  border-left: 3px solid var(--guide-sub);
+  background: #F0EFEA;
+  padding: 14px 20px;
+  margin: 18px 0;
+  border-radius: 0 10px 10px 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+[data-guide="rebalancing-guide"] .callout.concept { border-left-color: var(--guide-concept); background: var(--guide-concept-soft); }
+[data-guide="rebalancing-guide"] .callout.effect  { border-left-color: var(--guide-effect);  background: var(--guide-effect-soft);  }
+[data-guide="rebalancing-guide"] .callout.method  { border-left-color: var(--guide-method);  background: var(--guide-method-soft);  }
+[data-guide="rebalancing-guide"] .callout.practice { border-left-color: var(--guide-practice); background: var(--guide-practice-soft); }
+[data-guide="rebalancing-guide"] .callout.taxsave { border-left-color: var(--guide-taxsave); background: var(--guide-taxsave-soft); }
+
+/* Table */
+[data-guide="rebalancing-guide"] .table-wrap {
+  background: var(--guide-card);
+  border: 1px solid var(--guide-border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+[data-guide="rebalancing-guide"] .table-title {
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--guide-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+[data-guide="rebalancing-guide"] .table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+[data-guide="rebalancing-guide"] .table-wrap th {
+  background: #FAFAF8;
+  font-weight: 700;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--guide-border);
+  font-size: 13px;
+  color: var(--guide-sub);
+  white-space: nowrap;
+}
+[data-guide="rebalancing-guide"] .table-wrap td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--guide-border);
+  vertical-align: top;
+}
+[data-guide="rebalancing-guide"] .table-wrap tr:last-child td { border-bottom: none; }
+[data-guide="rebalancing-guide"] .table-wrap .highlight-cell { font-weight: 700; }
+
+/* Example */
+[data-guide="rebalancing-guide"] .example {
+  border: 2px dashed var(--guide-border);
+  border-radius: 14px;
+  padding: 24px 24px 8px;
+  margin-bottom: 20px;
+}
+[data-guide="rebalancing-guide"] .example-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+[data-guide="rebalancing-guide"] .calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--guide-border);
+}
+[data-guide="rebalancing-guide"] .calc-row:last-of-type { border-bottom: none; }
+[data-guide="rebalancing-guide"] .calc-label { color: var(--guide-sub); }
+[data-guide="rebalancing-guide"] .calc-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+[data-guide="rebalancing-guide"] .calc-result {
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+[data-guide="rebalancing-guide"] .calc-result .big {
+  font-size: 22px;
+  font-family: var(--font-gowun-batang), 'Gowun Batang', serif;
+}
+
+/* Tip */
+[data-guide="rebalancing-guide"] .tip {
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+[data-guide="rebalancing-guide"] .tip-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+[data-guide="rebalancing-guide"] .tip-content { flex: 1; }
+[data-guide="rebalancing-guide"] .tip-content strong { display: block; margin-bottom: 4px; }
+
+/* Compare Grid */
+[data-guide="rebalancing-guide"] .compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+[data-guide="rebalancing-guide"] .compare-card {
+  background: var(--guide-card);
+  border: 1px solid var(--guide-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+[data-guide="rebalancing-guide"] .compare-header {
+  padding: 14px 18px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+}
+[data-guide="rebalancing-guide"] .compare-body {
+  padding: 18px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+[data-guide="rebalancing-guide"] .compare-body li {
+  margin-bottom: 6px;
+  list-style: none;
+  padding-left: 18px;
+  position: relative;
+}
+[data-guide="rebalancing-guide"] .compare-body li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  font-weight: 900;
+}
+
+/* Sources */
+[data-guide="rebalancing-guide"] .sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--guide-border);
+}
+[data-guide="rebalancing-guide"] .sources-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--guide-sub);
+  margin-right: 4px;
+}
+[data-guide="rebalancing-guide"] .source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  background: #F0EFEA;
+  padding: 5px 12px;
+  border-radius: 16px;
+  color: var(--guide-sub);
+  transition: all 0.15s ease;
+}
+[data-guide="rebalancing-guide"] .source-link:hover { background: var(--guide-ink); color: #fff; text-decoration: none; }
+[data-guide="rebalancing-guide"] .s-icon { font-size: 11px; }
+
+/* ─── ⑤ Summary ─── */
+[data-guide="rebalancing-guide"] .summary {
+  background: linear-gradient(135deg, #1B1B1B 0%, #2E2E2E 50%, #1B1B1B 100%);
+  border-radius: 20px;
+  padding: 48px 40px;
+  margin-bottom: 48px;
+  color: #fff;
+}
+[data-guide="rebalancing-guide"] .summary h2 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+[data-guide="rebalancing-guide"] .summary .summary-sub {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 28px;
+}
+[data-guide="rebalancing-guide"] .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+[data-guide="rebalancing-guide"] .summary-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 22px 18px;
+}
+[data-guide="rebalancing-guide"] .summary-card .s-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 8px;
+}
+[data-guide="rebalancing-guide"] .summary-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-family: var(--font-noto-sans-kr), 'Noto Sans KR', -apple-system, sans-serif;
+}
+[data-guide="rebalancing-guide"] .summary-card p {
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.6;
+}
+
+/* ─── ⑥ Footer ─── */
+[data-guide="rebalancing-guide"] .footer-section {
+  background: var(--guide-card);
+  border: 1px solid var(--guide-border);
+  border-radius: 14px;
+  padding: 28px 28px 24px;
+  margin-bottom: 16px;
+}
+[data-guide="rebalancing-guide"] .footer-section h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  font-family: var(--font-noto-sans-kr), 'Noto Sans KR', -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+[data-guide="rebalancing-guide"] .footer-section p,
+[data-guide="rebalancing-guide"] .footer-section li {
+  font-size: 13px;
+  color: var(--guide-sub);
+  line-height: 1.8;
+}
+[data-guide="rebalancing-guide"] .footer-section ul {
+  list-style: none;
+  padding: 0;
+}
+[data-guide="rebalancing-guide"] .footer-section ul li {
+  padding-left: 16px;
+  position: relative;
+  margin-bottom: 4px;
+}
+[data-guide="rebalancing-guide"] .footer-section ul li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  font-size: 11px;
+}
+[data-guide="rebalancing-guide"] .footer-section a { font-size: 13px; }
+
+[data-guide="rebalancing-guide"] .disclaimer-list {
+  counter-reset: disc;
+}
+[data-guide="rebalancing-guide"] .disclaimer-list li {
+  padding-left: 24px !important;
+  counter-increment: disc;
+}
+[data-guide="rebalancing-guide"] .disclaimer-list li::before {
+  content: counter(disc) '.' !important;
+  left: 0 !important;
+  font-weight: 700;
+  font-size: 13px !important;
+}
+
+[data-guide="rebalancing-guide"] .footer-note {
+  text-align: center;
+  padding: 32px 0 48px;
+  font-size: 12px;
+  color: var(--guide-sub);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 700px) {
+  [data-guide="rebalancing-guide"] .hero h1 { font-size: 30px; }
+  [data-guide="rebalancing-guide"] .ov-grid { grid-template-columns: repeat(2, 1fr); }
+  [data-guide="rebalancing-guide"] .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  [data-guide="rebalancing-guide"] .compare-grid { grid-template-columns: 1fr; }
+  [data-guide="rebalancing-guide"] .summary { padding: 32px 24px; }
+  [data-guide="rebalancing-guide"] .nav-pills { gap: 6px; }
+  [data-guide="rebalancing-guide"] .pill { font-size: 12px; padding: 6px 12px; }
+}
+@media (max-width: 640px) {
+  [data-guide="rebalancing-guide"] .table-wrap { overflow-x: auto; }
+  [data-guide="rebalancing-guide"] .table-wrap table { min-width: 520px; }
+  [data-guide="rebalancing-guide"] .ov-grid { grid-template-columns: 1fr 1fr; }
+  [data-guide="rebalancing-guide"] .summary-grid { grid-template-columns: 1fr; }
+  [data-guide="rebalancing-guide"] .section-bar h2 { font-size: 22px; }
+  [data-guide="rebalancing-guide"] .explain { padding: 20px; }
+  [data-guide="rebalancing-guide"] .example { padding: 18px 18px 4px; }
+}

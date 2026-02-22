@@ -8,6 +8,7 @@ const guideComponents: Record<
   () => Promise<{ default: React.ComponentType }>
 > = {
   "stock-tax-2026": () => import("@/components/guides/stock-tax-2026"),
+  "rebalancing-guide": () => import("@/components/guides/rebalancing-guide"),
 };
 
 export function generateStaticParams() {

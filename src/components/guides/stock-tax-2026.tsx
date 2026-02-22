@@ -2,7 +2,7 @@ import "./stock-tax-2026.css";
 
 export default function StockTax2026Guide() {
   return (
-    <div data-guide-article>
+    <div data-guide-article data-guide="stock-tax-2026">
       <div className="container">
 
         {/* Hero */}
