@@ -5,10 +5,17 @@ import type { Database } from "@/lib/supabase/types";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  const error = searchParams.get("error");
   const next = searchParams.get("next") ?? "/portfolio";
 
   // Open redirect protection: only allow relative paths
   const safePath = next.startsWith("/") && !next.startsWith("//") ? next : "/portfolio";
+
+  // OAuth error from provider (e.g., user cancelled consent)
+  if (error) {
+    const errorParam = error === "access_denied" ? "auth_cancelled" : "auth_failed";
+    return NextResponse.redirect(new URL(`/login?error=${errorParam}`, request.url));
+  }
 
   if (code) {
     const redirectUrl = new URL(safePath, request.url);
