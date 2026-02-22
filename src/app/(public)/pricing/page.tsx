@@ -64,39 +64,27 @@ const FEATURES: FeatureRow[] = [
     pro: true,
   },
   {
-    name: "데이터 내보내기 (CSV)",
-    free: false,
-    plus: true,
-    pro: true,
-  },
-  {
-    name: "고급 분석 대시보드",
-    free: false,
-    plus: true,
-    pro: true,
-  },
-  {
-    name: "커스텀 리밸런싱 전략",
-    free: false,
-    plus: false,
-    pro: true,
-  },
-  {
-    name: "AI 텍스트 파싱",
-    free: "3회/일",
-    plus: "30회/일",
+    name: "드리프트 알림",
+    free: "4회/월",
+    plus: "무제한",
     pro: "무제한",
+  },
+  {
+    name: "월간 포트폴리오 리포트",
+    free: false,
+    plus: true,
+    pro: true,
+  },
+  {
+    name: "주간 뉴스 다이제스트",
+    free: false,
+    plus: true,
+    pro: true,
   },
   {
     name: "AI 이미지 파싱",
     free: false,
     plus: "5회/일",
-    pro: "무제한",
-  },
-  {
-    name: "AI 종목 검색",
-    free: "5회/일",
-    plus: "50회/일",
     pro: "무제한",
   },
   {
@@ -110,12 +98,6 @@ const FEATURES: FeatureRow[] = [
     free: false,
     plus: "5회/일",
     pro: "무제한",
-  },
-  {
-    name: "우선 지원",
-    free: false,
-    plus: false,
-    pro: "24시간 내 응답",
   },
 ];
 
@@ -234,8 +216,7 @@ export default function PricingPage() {
                   "리밸런싱 시뮬레이션 무제한",
                   "포트폴리오 1개",
                   "실행 내역 최근 10건",
-                  "AI 텍스트 파싱 3회/일",
-                  "AI 종목 검색 5회/일",
+                  "드리프트 알림 4회/월",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <Check className="size-4 shrink-0 text-green-600 dark:text-green-400" />
@@ -248,6 +229,10 @@ export default function PricingPage() {
               {isCurrentFree ? (
                 <Button variant="outline" className="w-full" disabled>
                   현재 플랜
+                </Button>
+              ) : isCurrentPlus || isCurrentPro ? (
+                <Button variant="outline" className="w-full" disabled>
+                  포함된 플랜
                 </Button>
               ) : (
                 <Button variant="outline" className="w-full" asChild>
@@ -293,11 +278,11 @@ export default function PricingPage() {
                   "다중 포트폴리오 (5개)",
                   "무제한 실행 내역",
                   "일괄 가격 새로고침",
-                  "데이터 내보내기 (CSV)",
-                  "고급 분석 대시보드",
-                  "AI 종목 요약 10회/일",
+                  "드리프트 알림 무제한",
+                  "월간 포트폴리오 리포트",
+                  "주간 뉴스 다이제스트",
                   "AI 이미지 파싱 5회/일",
-                  "AI 종목 검색 50회/일",
+                  "AI 종목 요약 10회/일",
                   "AI 세션 리포트 5회/일",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2">
@@ -314,6 +299,10 @@ export default function PricingPage() {
                   disabled
                 >
                   현재 플랜
+                </Button>
+              ) : isCurrentPro ? (
+                <Button variant="outline" className="w-full" disabled>
+                  포함된 플랜
                 </Button>
               ) : (
                 <Button
@@ -355,8 +344,6 @@ export default function PricingPage() {
                   "Plus의 모든 기능",
                   "모든 AI 기능 무제한",
                   "포트폴리오 10개",
-                  "커스텀 리밸런싱 전략",
-                  "우선 지원 (24시간 내 응답)",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <Check className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
