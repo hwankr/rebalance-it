@@ -13,9 +13,7 @@ export const PLAN_LIMITS = {
     allowAIImageParse: false,
     allowAISessionReport: false,
     aiCallsPerDay: 0,
-    aiTextImportPerDay: 3,
     aiImageImportPerDay: 0,
-    aiSearchPerDay: 5,
     aiSessionReportPerDay: 0,
     // 알림
     allowCalendarStrategy: false,
@@ -37,9 +35,7 @@ export const PLAN_LIMITS = {
     allowAIImageParse: true,
     allowAISessionReport: true,
     aiCallsPerDay: 10,
-    aiTextImportPerDay: 30,
     aiImageImportPerDay: 5,
-    aiSearchPerDay: 50,
     aiSessionReportPerDay: 5,
     // 알림
     allowCalendarStrategy: true,
@@ -61,9 +57,7 @@ export const PLAN_LIMITS = {
     allowAIImageParse: true,
     allowAISessionReport: true,
     aiCallsPerDay: 300,
-    aiTextImportPerDay: 300,
     aiImageImportPerDay: 300,
-    aiSearchPerDay: 300,
     aiSessionReportPerDay: 300,
     // 알림
     allowCalendarStrategy: true,

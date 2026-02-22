@@ -3,16 +3,12 @@ import { PLAN_LIMITS, type PlanTier } from "@/lib/subscription/plans";
 
 export type AIFeature =
   | 'ai_summary'
-  | 'ai_text_import'
   | 'ai_image_import'
-  | 'ai_search'
   | 'ai_session_report';
 
 const FEATURE_LIMIT_MAP: Record<AIFeature, keyof typeof PLAN_LIMITS.free> = {
   ai_summary: 'aiCallsPerDay',
-  ai_text_import: 'aiTextImportPerDay',
   ai_image_import: 'aiImageImportPerDay',
-  ai_search: 'aiSearchPerDay',
   ai_session_report: 'aiSessionReportPerDay',
 };
 

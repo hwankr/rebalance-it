@@ -17,7 +17,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { type ParsedStock } from "@/hooks/use-ai-parse-portfolio";
+import { type ParsedStock } from "@/hooks/use-ai-parse-portfolio-image";
 import { useAIParsePortfolioImage } from "@/hooks/use-ai-parse-portfolio-image";
 import type { ManualStockInput } from "@/hooks/use-manual-portfolio";
 import { AI_DISCLAIMER_SHORT, AI_GENERATED_LABEL } from "@/lib/ai/disclaimer";

@@ -1,7 +1,13 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import type { ParsedStock } from "@/hooks/use-ai-parse-portfolio";
+export interface ParsedStock {
+  stock_name: string;
+  stock_code: string | null;
+  quantity: number;
+  avg_price: number;
+  currency: "KRW" | "USD";
+}
 
 interface ParsePortfolioImageResponse {
   stocks: ParsedStock[];
