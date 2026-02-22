@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Wallet, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useConsolidatedPortfolio } from "@/hooks/use-consolidated-portfolio";
 import { AccountTabs } from "@/components/account/account-tabs";
+import { Input } from "@/components/ui/input";
 import { ConsolidatedFilterBar, DEFAULT_FILTERS, type ConsolidatedFilters } from "@/components/portfolio/consolidated-filter-bar";
 import { ConsolidatedStockList } from "@/components/portfolio/consolidated-stock-list";
 
@@ -30,7 +31,7 @@ function formatUpdatedAt(timestamp: number | undefined): string {
 }
 
 export default function PortfolioPage() {
-  const { accounts, selectedAccountId, isLoading: isAccountsLoading } = useAccounts();
+  const { accounts, selectedAccountId, isLoading: isAccountsLoading, createAccount, isCreating } = useAccounts();
   const portfolioId = selectedAccountId === "all" ? null : selectedAccountId;
   const isAllMode = selectedAccountId === "all";
 
@@ -75,6 +76,7 @@ export default function PortfolioPage() {
   const [isSavingTargets, setIsSavingTargets] = useState(false);
   const [filters, setFilters] = useState<ConsolidatedFilters>(DEFAULT_FILTERS);
   const [activeStockCode, setActiveStockCode] = useState<string | null>(null);
+  const [newAccountName, setNewAccountName] = useState("");
 
   function handleRefreshPrices() {
     refreshPrices(undefined, {
@@ -149,6 +151,21 @@ export default function PortfolioPage() {
     return { filteredStocks: sorted, filteredCash: accountCash, filteredTotalValue: total };
   }, [effectiveIsAllMode, consolidatedBalance, filters, perAccountBalances]);
 
+  async function handleManualCreate() {
+    const name = newAccountName.trim();
+    if (!name) {
+      toast.error("계좌 이름을 입력해주세요.");
+      return;
+    }
+    try {
+      await createAccount(name);
+      setNewAccountName("");
+      toast.success(`"${name}" 계좌가 생성되었습니다.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "계좌 생성에 실패했습니다.");
+    }
+  }
+
   function handleDeleteStock(id: string) {
     const stock = stocks.find((s) => s.id === id);
     deleteStock(id);
@@ -175,7 +192,17 @@ export default function PortfolioPage() {
     });
   }
 
-  if (effectiveIsAllMode ? isConsolidatedLoading : isLoading) {
+  // Consolidated view derived values
+  const allTotalValue = consolidatedBalance?.total_value ?? 0;
+  const allProfitLoss = consolidatedBalance?.total_profit_loss ?? 0;
+  const allProfitRate = consolidatedBalance?.total_profit_rate ?? 0;
+  const allCash = consolidatedBalance?.cash ?? 0;
+  const allStocksCount = consolidatedBalance?.stocks?.length ?? 0;
+
+  const isContentLoading = effectiveIsAllMode ? isConsolidatedLoading : isLoading;
+  const showNoAccounts = !isAccountsLoading && accounts.length === 0;
+
+  if (isContentLoading) {
     return (
       <PageTransition>
         <div className="space-y-3 md:space-y-4">
@@ -191,42 +218,52 @@ export default function PortfolioPage() {
     );
   }
 
-  // No accounts: prompt to create first account
-  if (!isAccountsLoading && accounts.length === 0) {
-    return (
-      <PageTransition>
+  // Single return: dialogs rendered unconditionally to survive state transitions
+  return (
+    <PageTransition>
+      {/* No accounts: welcoming empty state with CTAs */}
+      {showNoAccounts && (
         <div className="space-y-3 md:space-y-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               내 포트폴리오
             </h1>
             <p className="text-sm text-muted-foreground">
-              포트폴리오를 시작하려면 계좌를 추가해주세요.
+              투자를 시작해볼까요? 계좌를 만들고 포트폴리오를 관리하세요.
             </p>
           </div>
-          <Card className="flex flex-col items-center justify-center gap-3 p-8">
-            <p className="text-muted-foreground text-lg">
-              아직 계좌가 없습니다.
-            </p>
-            <p className="text-muted-foreground text-sm">
-              상단의 &quot;계좌 추가&quot; 버튼을 눌러 첫 번째 계좌를 만들어보세요.
-            </p>
+          <Card className="flex flex-col items-center justify-center gap-5 p-8 md:p-12">
+            <Wallet className="size-12 text-muted-foreground" />
+            <div className="text-center space-y-1.5">
+              <p className="text-lg font-semibold">
+                첫 번째 계좌를 만들어보세요
+              </p>
+              <p className="text-muted-foreground text-sm">
+                계좌를 추가하면 보유 종목과 자산 비중을 한눈에 확인할 수 있습니다.
+              </p>
+            </div>
+            <div className="w-full max-w-sm space-y-4">
+              <Input
+                placeholder="계좌 이름 (예: 키움증권, ISA 계좌)"
+                value={newAccountName}
+                onChange={(e) => setNewAccountName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleManualCreate()}
+              />
+              <Button
+                onClick={handleManualCreate}
+                disabled={isCreating}
+                className="w-full"
+              >
+                <PlusCircle className="size-4" />
+                계좌 만들기
+              </Button>
+            </div>
           </Card>
         </div>
-      </PageTransition>
-    );
-  }
+      )}
 
-  // Consolidated "all accounts" view (only for 2+ accounts)
-  if (effectiveIsAllMode) {
-    const allTotalValue = consolidatedBalance?.total_value ?? 0;
-    const allProfitLoss = consolidatedBalance?.total_profit_loss ?? 0;
-    const allProfitRate = consolidatedBalance?.total_profit_rate ?? 0;
-    const allCash = consolidatedBalance?.cash ?? 0;
-    const allStocksCount = consolidatedBalance?.stocks?.length ?? 0;
-
-    return (
-      <PageTransition>
+      {/* Consolidated "all accounts" view (2+ accounts) */}
+      {!showNoAccounts && effectiveIsAllMode && (
         <div className="space-y-3 md:space-y-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
@@ -285,14 +322,10 @@ export default function PortfolioPage() {
             </Button>
           </div>
         </div>
-      </PageTransition>
-    );
-  }
+      )}
 
-  // Empty state: show centered prompt with form expanded
-  if (stocks.length === 0) {
-    return (
-      <PageTransition>
+      {/* Empty stocks state */}
+      {!showNoAccounts && !effectiveIsAllMode && stocks.length === 0 && (
         <div className="space-y-3 md:space-y-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
@@ -329,96 +362,96 @@ export default function PortfolioPage() {
             isTogglingNews={isTogglingNews}
           />
         </div>
-      </PageTransition>
-    );
-  }
+      )}
 
-  return (
-    <PageTransition>
-      <div className="space-y-6 md:space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between px-1">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-              내 포트폴리오
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {dataUpdatedAt > 0 ? (
-                <span>마지막 갱신: {formatUpdatedAt(dataUpdatedAt)}</span>
-              ) : (
-                <span>보유 자산을 관리하세요</span>
-              )}
-            </p>
+      {/* Normal portfolio view */}
+      {!showNoAccounts && !effectiveIsAllMode && stocks.length > 0 && (
+        <div className="space-y-6 md:space-y-8">
+          {/* Header */}
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+                내 포트폴리오
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {dataUpdatedAt > 0 ? (
+                  <span>마지막 갱신: {formatUpdatedAt(dataUpdatedAt)}</span>
+                ) : (
+                  <span>보유 자산을 관리하세요</span>
+                )}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="rounded-full hover:bg-muted"
+            >
+              <RefreshCw className={isFetching ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="rounded-full hover:bg-muted"
-          >
-            <RefreshCw className={isFetching ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
-          </Button>
-        </div>
 
-        <AccountTabs />
+          <AccountTabs />
 
-        {/* 2-Column Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Balance (compact) + Allocation (fills remaining) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <BalanceCard
-              totalValue={totalValue}
-              totalProfitLoss={totalProfitLoss}
-              totalProfitRate={totalProfitRate}
-              cash={cash}
-              isLoading={isLoading}
-              onCashChange={setCash}
-              isCashSaving={isCashSaving}
-            />
-
-            <div className="flex-1">
-              <AllocationChart
-                stocks={balance?.stocks ?? []}
-                cash={cash}
+          {/* 2-Column Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Balance (compact) + Allocation (fills remaining) */}
+            <div className="lg:col-span-4 flex flex-col gap-6">
+              <BalanceCard
                 totalValue={totalValue}
+                totalProfitLoss={totalProfitLoss}
+                totalProfitRate={totalProfitRate}
+                cash={cash}
                 isLoading={isLoading}
-                activeStockCode={activeStockCode}
-                onHoverChange={setActiveStockCode}
+                onCashChange={setCash}
+                isCashSaving={isCashSaving}
+              />
+
+              <div className="flex-1">
+                <AllocationChart
+                  stocks={balance?.stocks ?? []}
+                  cash={cash}
+                  totalValue={totalValue}
+                  isLoading={isLoading}
+                  activeStockCode={activeStockCode}
+                  onHoverChange={setActiveStockCode}
+                />
+              </div>
+            </div>
+
+            {/* Right Column: Holdings + Rebalance Guide */}
+            <div className="lg:col-span-8 flex flex-col gap-6">
+              <StockTable
+                stocks={stocks}
+                onUpdate={updateStock}
+                onDelete={handleDeleteStock}
+                onRefresh={isPlusOrAbove ? handleRefreshPrices : undefined}
+                isRefreshing={isRefreshing}
+                exchangeRate={exchangeRate}
+                totalPortfolioValue={totalValue}
+                onAddStock={handleAddStock}
+                isAdding={isAdding}
+                onToggleTracked={toggleRebalanceTracked}
+                isTogglingTracked={isTogglingTracked}
+                hasActiveSession={!!activeSession}
+                onToggleNews={toggleNewsEnabled}
+                isTogglingNews={isTogglingNews}
+              />
+
+              <TargetWeightEditor
+                mode="inline"
+                stocks={stocks}
+                cashAmount={cash}
+                exchangeRate={exchangeRate ?? 1}
+                onSave={handleSaveTargets}
+                isSaving={isSavingTargets}
               />
             </div>
           </div>
-
-          {/* Right Column: Holdings + Rebalance Guide */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
-            <StockTable
-              stocks={stocks}
-              onUpdate={updateStock}
-              onDelete={handleDeleteStock}
-              onRefresh={isPlusOrAbove ? handleRefreshPrices : undefined}
-              isRefreshing={isRefreshing}
-              exchangeRate={exchangeRate}
-              totalPortfolioValue={totalValue}
-              onAddStock={handleAddStock}
-              isAdding={isAdding}
-              onToggleTracked={toggleRebalanceTracked}
-              isTogglingTracked={isTogglingTracked}
-              hasActiveSession={!!activeSession}
-              onToggleNews={toggleNewsEnabled}
-              isTogglingNews={isTogglingNews}
-            />
-
-            <TargetWeightEditor
-              mode="inline"
-              stocks={stocks}
-              cashAmount={cash}
-              exchangeRate={exchangeRate ?? 1}
-              onSave={handleSaveTargets}
-              isSaving={isSavingTargets}
-            />
-          </div>
         </div>
-      </div>
+      )}
+
     </PageTransition>
   );
 }
