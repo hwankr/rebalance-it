@@ -24,7 +24,7 @@ export function calculateNextReportAt(params: {
       let daysUntilTarget = targetDay - currentDay;
       if (daysUntilTarget <= 0) daysUntilTarget += 7;
       next.setUTCDate(next.getUTCDate() + daysUntilTarget);
-      next.setUTCHours(22, 0, 0, 0);
+      next.setUTCHours(0, 0, 0, 0); // UTC 00:00 = KST 09:00
       return next;
     }
 
@@ -32,12 +32,10 @@ export function calculateNextReportAt(params: {
       const targetDay = dayOfWeek ?? 1; // 기본: 월요일
       const next = new Date(from);
       const currentDay = next.getUTCDay();
-      // 다음 주 목표 요일까지의 일수
       let daysUntilTarget = targetDay - currentDay;
       if (daysUntilTarget <= 0) daysUntilTarget += 7;
-      // 2주 후 = 다음 목표 요일 + 7일
       next.setUTCDate(next.getUTCDate() + daysUntilTarget + 7);
-      next.setUTCHours(22, 0, 0, 0);
+      next.setUTCHours(0, 0, 0, 0); // UTC 00:00 = KST 09:00
       return next;
     }
 
@@ -45,14 +43,11 @@ export function calculateNextReportAt(params: {
       const targetDom = dayOfMonth ?? 1; // 기본: 1일
       const next = new Date(from);
       // 현재 월에서 targetDom이 이미 지났거나 오늘이면 다음 달
-      if (next.getUTCDate() > targetDom) {
-        next.setUTCMonth(next.getUTCMonth() + 1);
-      } else if (next.getUTCDate() === targetDom && next.getUTCHours() >= 22) {
-        // 당일이지만 CRON 시간(22시) 이후면 다음 달
+      if (next.getUTCDate() >= targetDom) {
         next.setUTCMonth(next.getUTCMonth() + 1);
       }
       next.setUTCDate(targetDom);
-      next.setUTCHours(22, 0, 0, 0);
+      next.setUTCHours(0, 0, 0, 0); // UTC 00:00 = KST 09:00
       return next;
     }
 
@@ -60,7 +55,7 @@ export function calculateNextReportAt(params: {
       const days = customDays ?? 30; // 기본: 30일
       const next = new Date(from);
       next.setUTCDate(next.getUTCDate() + days);
-      next.setUTCHours(22, 0, 0, 0);
+      next.setUTCHours(0, 0, 0, 0); // UTC 00:00 = KST 09:00
       return next;
     }
 
@@ -69,7 +64,7 @@ export function calculateNextReportAt(params: {
       const fallback = new Date(from);
       fallback.setUTCMonth(fallback.getUTCMonth() + 1);
       fallback.setUTCDate(1);
-      fallback.setUTCHours(22, 0, 0, 0);
+      fallback.setUTCHours(0, 0, 0, 0); // UTC 00:00 = KST 09:00
       return fallback;
   }
 }
