@@ -16,7 +16,7 @@ jobs:
       - name: Trigger weekly news cron
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          APP_URL: ${{ secrets.APP_URL }}
+          APP_URL: ${{ secrets.CRON_URL }}
         run: |
           curl -s -f -X GET \
             -H "Authorization: Bearer $CRON_SECRET" \
