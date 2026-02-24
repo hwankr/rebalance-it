@@ -170,22 +170,15 @@ export default function SettingsPage() {
       {/* 이메일 알림 설정 */}
       <NotificationSettingsCard />
 
-      {/* 구독 토글 (Admin 또는 개발 환경) */}
-      {(isAdmin || process.env.NODE_ENV === "development") && (
+      {/* 구독 토글 (Admin 전용) */}
+      {isAdmin && (
         <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               구독 플랜 전환
-              {isAdmin && (
-                <Badge variant="outline" className="text-purple-700 border-purple-400 dark:text-purple-300">
-                  Admin
-                </Badge>
-              )}
-              {process.env.NODE_ENV === "development" && (
-                <Badge variant="outline" className="text-yellow-700 border-yellow-400 dark:text-yellow-300">
-                  DEV
-                </Badge>
-              )}
+              <Badge variant="outline" className="text-purple-700 border-purple-400 dark:text-purple-300">
+                Admin
+              </Badge>
             </CardTitle>
             <CardDescription>
               플랜을 전환하여 기능을 테스트할 수 있습니다. 실제 구독: {realPlan}

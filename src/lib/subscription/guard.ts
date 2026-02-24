@@ -35,10 +35,6 @@ export async function resolvePlanTier(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<PlanTier> {
-  if (process.env.NODE_ENV === "development") {
-    return "pro";
-  }
-
   const { data: sub } = await supabase
     .from("subscriptions")
     .select("plan_tier, status, current_period_end")
