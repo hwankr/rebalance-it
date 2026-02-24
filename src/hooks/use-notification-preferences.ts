@@ -23,7 +23,6 @@ export interface NotificationPreferences {
   cooldown_days: number;
   // Phase 1: 드리프트 알림 세부 설정
   alert_threshold_pct: number | null;
-  alert_severity: "all" | "major_only";
   alert_mode: "individual" | "digest";
   excluded_portfolio_ids: string[];
   // Phase 2: 리포트 주기 설정
@@ -66,7 +65,6 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreferences, "user_id"> = {
   email_address: null,
   cooldown_days: 7,
   alert_threshold_pct: 5,
-  alert_severity: "all",
   alert_mode: "individual",
   excluded_portfolio_ids: [],
   report_interval_type: "monthly",

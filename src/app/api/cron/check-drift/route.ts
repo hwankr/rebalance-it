@@ -81,10 +81,6 @@ export async function GET(request: Request) {
     // Change 1: Use alert_threshold_pct from notification_preferences if set
     const thresholdPct: number = pref.alert_threshold_pct ?? rebalanceSettings?.threshold_pct ?? 5;
 
-    // Change 3: Handle alert_severity 'major_only'
-    const severityMultiplier = pref.alert_severity === "major_only" ? 2 : 1;
-    const effectiveThreshold = thresholdPct * severityMultiplier;
-
     // 3c. 포트폴리오 + 종목 조회
     const { data: portfolios } = await supabase
       .from("manual_portfolios")
@@ -159,9 +155,9 @@ export async function GET(request: Request) {
 
       if (portfolioItems.length === 0) continue;
 
-      // 3e. Drift 계산 (use effectiveThreshold for filtering)
+      // 3e. Drift 계산
       const drifts = calculateDrift(portfolioItems);
-      const portfolioNeedsRebalancing = needsRebalancing(drifts, effectiveThreshold);
+      const portfolioNeedsRebalancing = needsRebalancing(drifts, thresholdPct);
       const maxDrift = getMaxDrift(drifts);
 
       if (portfolioNeedsRebalancing) {
@@ -171,7 +167,7 @@ export async function GET(request: Request) {
           maxDrift,
           thresholdPct,
           driftedStocks: drifts
-            .filter((d) => Math.abs(d.drift_pct) > effectiveThreshold)
+            .filter((d) => Math.abs(d.drift_pct) > thresholdPct)
             .map((d) => ({
               name: d.stock_name,
               currentPct: d.current_pct,

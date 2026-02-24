@@ -699,11 +699,7 @@ export default function NotificationSettingsPage() {
             {deviationOn && (
               <SummaryRow
                 label="  └ 알림 기준"
-                value={
-                  prefs?.alert_severity === "major_only"
-                    ? `${threshold * 2}% (x2 적용)`
-                    : `${threshold}%`
-                }
+                value={`${threshold}%`}
                 active
                 sub
               />
