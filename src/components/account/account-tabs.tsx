@@ -5,6 +5,7 @@ import { Settings2 } from "lucide-react";
 import { useAccounts } from "@/hooks/use-accounts";
 import { AccountManager } from "./account-manager";
 import { PillButton } from "@/components/ui/pill-toggle";
+import { ScrollFade } from "@/components/ui/scroll-fade";
 
 export function AccountTabs({ showAllTab = true, activeSessionIds }: { showAllTab?: boolean; activeSessionIds?: Set<string> } = {}) {
   const { accounts, selectedAccountId, setSelectedAccountId, isLoading } =
@@ -15,7 +16,7 @@ export function AccountTabs({ showAllTab = true, activeSessionIds }: { showAllTa
 
   return (
     <>
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
+      <ScrollFade className="flex items-center gap-1 pb-1">
         {/* 전체 계좌 탭 */}
         {showAllTab && (
           <PillButton
@@ -50,7 +51,7 @@ export function AccountTabs({ showAllTab = true, activeSessionIds }: { showAllTa
         >
           <Settings2 className="size-4" />
         </button>
-      </div>
+      </ScrollFade>
 
       <AccountManager open={managerOpen} onOpenChange={setManagerOpen} />
     </>

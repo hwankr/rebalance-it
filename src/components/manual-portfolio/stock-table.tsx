@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Trash2, Pencil, Check, X, RefreshCw, Loader2, Plus, Sparkles, Newspaper } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import { StockFinancialsCard } from "@/components/portfolio/stock-financials-car
 import { StockNewsCard } from "@/components/portfolio/stock-news-card";
 import { StockForm } from "@/components/manual-portfolio/stock-form";
 import { BulkImportDialog } from "@/components/ai/bulk-import-dialog";
+import { ScrollFade } from "@/components/ui/scroll-fade";
 
 
 interface StockRow {
@@ -195,6 +196,17 @@ export function StockTable({
   const [selectedStock, setSelectedStock] = useState<StockRow | null>(null);
   const [isFormExpanded, setIsFormExpanded] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const addFormRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isFormExpanded && addFormRef.current) {
+      // 약간의 딜레이 후 스크롤 (애니메이션 완료 대기)
+      const timer = setTimeout(() => {
+        addFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isFormExpanded]);
 
   function startEdit(stock: StockRow) {
     setEditingId(stock.id);
@@ -289,16 +301,16 @@ export function StockTable({
   return (
     <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
       {/* Card Header */}
-      <div className="flex items-center justify-between p-4 md:p-6 border-b">
-        <h3 className="font-bold text-lg">보유 종목</h3>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between md:p-6 border-b">
+        <h3 className="shrink-0 font-bold text-lg">보유 종목</h3>
+        <ScrollFade className="flex items-center gap-2">
           {onRefresh && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="text-xs h-8"
+              className="shrink-0 text-xs h-8"
             >
               {isRefreshing ? (
                 <Loader2 className="mr-2 size-3 animate-spin" />
@@ -314,7 +326,7 @@ export function StockTable({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsBulkImportOpen(true)}
-                className="text-xs h-8 gap-1.5"
+                className="shrink-0 text-xs h-8 gap-1.5"
               >
                 <Sparkles className="size-3" />
                 AI 대량 추가
@@ -323,7 +335,7 @@ export function StockTable({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsFormExpanded(true)}
-                className="text-xs h-8"
+                className="shrink-0 text-xs h-8"
                 data-stock-add-button
               >
                 <Plus className="mr-2 size-3" />
@@ -331,7 +343,7 @@ export function StockTable({
               </Button>
             </>
           )}
-        </div>
+        </ScrollFade>
       </div>
 
       {/* Desktop table */}
@@ -707,7 +719,7 @@ export function StockTable({
 
       {/* 종목 추가 인라인 폼 */}
       {onAddStock && isFormExpanded && (
-        <div className="p-4 border-t bg-muted/20">
+        <div ref={addFormRef} className="p-4 border-t bg-muted/20">
           <AnimatePresence mode="wait">
             <m.div
               key="add-form"

@@ -155,7 +155,7 @@ export default function Home() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-60px" }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="mx-auto w-full max-w-3xl px-5 md:px-8"
+        className="mx-auto w-full max-w-3xl px-5 pt-12 md:px-8"
       >
         <a
           href="#demo"

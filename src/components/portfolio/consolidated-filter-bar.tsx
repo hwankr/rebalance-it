@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PillToggle, PILL_SELECT_TRIGGER } from "@/components/ui/pill-toggle";
+import { ScrollFade } from "@/components/ui/scroll-fade";
 
 export interface ConsolidatedFilters {
   accountId: "all" | string;
@@ -49,7 +50,7 @@ export function ConsolidatedFilterBar({
   }
 
   return (
-    <div className="relative flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+    <ScrollFade className="flex items-center gap-2 pb-1">
       {/* 계좌 필터 */}
       <Select
         value={filters.accountId}
@@ -128,6 +129,6 @@ export function ConsolidatedFilterBar({
           </button>
         </div>
       )}
-    </div>
+    </ScrollFade>
   );
 }
