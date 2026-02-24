@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Sparkles, X } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PRESETS = [
@@ -30,24 +30,15 @@ const PRESETS = [
 interface PresetSelectorProps {
   selected: string | null;
   onSelect: (id: string) => void;
-  onDismiss: () => void;
   isPending?: boolean;
 }
 
-export function PresetSelector({ selected, onSelect, onDismiss, isPending }: PresetSelectorProps) {
+export function PresetSelector({ selected, onSelect, isPending }: PresetSelectorProps) {
   return (
     <div className="rounded-xl border border-border/50 bg-gradient-to-br from-primary/5 to-purple-500/5 p-5 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-primary" />
-          <span className="text-sm font-bold">빠른 시작</span>
-        </div>
-        <button
-          onClick={onDismiss}
-          className="text-muted-foreground hover:text-foreground transition-colors p-1"
-        >
-          <X className="size-4" />
-        </button>
+      <div className="flex items-center gap-2 mb-1">
+        <Sparkles className="size-4 text-primary" />
+        <span className="text-sm font-bold">빠른 시작</span>
       </div>
       <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
         알림 스타일을 선택하면 추천 설정이 자동 적용돼요.

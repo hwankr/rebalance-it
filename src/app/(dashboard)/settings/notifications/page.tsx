@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -142,7 +142,6 @@ export default function NotificationSettingsPage() {
   const [testType, setTestType] = useState<
     "test" | "drift" | "monthly" | "drift-real" | "monthly-real" | "weekly-news"
   >("test");
-  const [showPreset, setShowPreset] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [showTestPanel, setShowTestPanel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -154,10 +153,6 @@ export default function NotificationSettingsPage() {
 
   useNotificationLog(historyLimit);
 
-  useEffect(() => {
-    const dismissed = localStorage.getItem("notification-preset-dismissed");
-    if (!dismissed) setShowPreset(true);
-  }, []);
 
   if (isGuest) {
     router.replace("/settings");
@@ -239,8 +234,6 @@ export default function NotificationSettingsPage() {
         {
           onSuccess: () => {
             toast.success("'간단하게' 설정이 적용되었습니다.");
-            setShowPreset(false);
-            localStorage.setItem("notification-preset-dismissed", "true");
           },
           onError: () => toast.error("설정 적용 중 오류가 발생했습니다."),
         },
@@ -256,23 +249,13 @@ export default function NotificationSettingsPage() {
         {
           onSuccess: () => {
             toast.success("'꼼꼼하게' 설정이 적용되었습니다.");
-            setShowPreset(false);
-            localStorage.setItem("notification-preset-dismissed", "true");
           },
           onError: () => toast.error("설정 적용 중 오류가 발생했습니다."),
         },
       );
-    } else {
-      /* custom – just dismiss and show all settings */
-      setShowPreset(false);
-      localStorage.setItem("notification-preset-dismissed", "true");
     }
   }
 
-  function handlePresetDismiss() {
-    setShowPreset(false);
-    localStorage.setItem("notification-preset-dismissed", "true");
-  }
 
   async function handleSendTest(
     type:
@@ -337,15 +320,12 @@ export default function NotificationSettingsPage() {
           </Link>
         </Button>
 
-        {/* ── 프리셋 온보딩 ── */}
-        {showPreset && (
-          <PresetSelector
-            selected={selectedPreset}
-            onSelect={handlePresetSelect}
-            onDismiss={handlePresetDismiss}
-            isPending={updateMutation.isPending}
-          />
-        )}
+        {/* ── 빠른 시작 프리셋 ── */}
+        <PresetSelector
+          selected={selectedPreset}
+          onSelect={handlePresetSelect}
+          isPending={updateMutation.isPending}
+        />
 
         {/* ── 카드 그리드 ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
